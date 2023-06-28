@@ -10,7 +10,7 @@ The benchmarks measure not only busy-looped producers and consumers, but also th
 
 A consumer rarely can afford having a busy loop or even just a polling loop with sleeps. The more natural usage is when the consumer clears the queue and then sleeps exactly until the queue becomes non-empty. The producers are supposed to notify the consumer about this.
 
-The blocking consumption is implemented using `mg::common::Signal` class. The benchmarks measure both the busy-loop consumption and the blocking consumption.
+The blocking consumption is implemented using `mg::box::Signal` class. The benchmarks measure both the busy-loop consumption and the blocking consumption.
 
 ## Results
 
@@ -22,4 +22,4 @@ The difference is clearer when producer thread count goes up. That leads to high
 
 In busy-loop benchmarks the mutex contention is incomparable - the lock-free queue simply always has 0 mutex contention.
 
-In blocking consumption benchmarks the `mg::common::Signal` adds some contention even to the lock-free queue, because it has a mutex inside. But nonetheless the lock-free queue remains faster and has generally much less contention. Often the difference is 1-2 orders of magnitude. But in rare cases the blocking consumption can have more contention in `mg::common::Signal` while giving higher RPS. Unclear yet why that happened. Could be the bench being too unstable or the signal having hidden perf issues.
+In blocking consumption benchmarks the `mg::box::Signal` adds some contention even to the lock-free queue, because it has a mutex inside. But nonetheless the lock-free queue remains faster and has generally much less contention. Often the difference is 1-2 orders of magnitude. But in rare cases the blocking consumption can have more contention in `mg::box::Signal` while giving higher RPS. Unclear yet why that happened. Could be the bench being too unstable or the signal having hidden perf issues.

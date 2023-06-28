@@ -5,7 +5,7 @@ add_library(bench
 	Bench.h
 )
 target_link_libraries(bench
-	mgcommon
+	mgbox
 	mgtest
 )
 target_include_directories(bench PUBLIC
@@ -35,7 +35,7 @@ add_executable(bench_mcspqueue
 	BenchMultiConsumerQueueTemplate.hpp
 )
 target_link_libraries(bench_mcspqueue
-	mgcommon
+	mgbox
 	bench
 )
 
@@ -44,7 +44,7 @@ add_executable(bench_mcspqueue_trivial
 	BenchMultiConsumerQueueTemplate.hpp
 )
 target_link_libraries(bench_mcspqueue_trivial
-	mgcommon
+	mgbox
 	bench
 )
 
@@ -53,7 +53,7 @@ add_executable(bench_mpscqueue
 	BenchMultiProducerQueueTemplate.hpp
 )
 target_link_libraries(bench_mpscqueue
-	mgcommon
+	mgbox
 	bench
 )
 
@@ -62,6 +62,6 @@ add_executable(bench_mpscqueue_trivial
 	BenchMultiProducerQueueTemplate.hpp
 )
 target_link_libraries(bench_mpscqueue_trivial
-	mgcommon
+	mgbox
 	bench
 )

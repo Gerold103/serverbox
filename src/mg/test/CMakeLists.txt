@@ -12,5 +12,5 @@ target_include_directories(mgtest PUBLIC
 )
 
 target_link_libraries(mgtest
-	mgcommon
+	mgbox
 )

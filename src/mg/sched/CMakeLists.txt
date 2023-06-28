@@ -12,7 +12,7 @@ target_include_directories(mgsched PUBLIC
 )
 
 target_link_libraries(mgsched
-	mgcommon
+	mgbox
 )
 
 set(install_headers

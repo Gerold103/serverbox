@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mg/common/Definitions.h"
+#include "mg/box/Definitions.h"
 
 namespace mg {
 namespace test {

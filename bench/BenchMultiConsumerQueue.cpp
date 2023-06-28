@@ -1,6 +1,6 @@
 #include "Bench.h"
 
-#include "mg/common/MultiConsumerQueue.h"
+#include "mg/box/MultiConsumerQueue.h"
 
 namespace mg {
 namespace bench {
@@ -15,8 +15,8 @@ namespace bench {
 		void* myValue;
 	};
 
-	using BenchQueue = mg::common::MultiConsumerQueue<BenchValue>;
-	using BenchQueueConsumer = mg::common::MultiConsumerQueueConsumer<BenchValue>;
+	using BenchQueue = mg::box::MultiConsumerQueue<BenchValue>;
+	using BenchQueueConsumer = mg::box::MultiConsumerQueueConsumer<BenchValue>;
 
 }
 }

@@ -1,11 +1,11 @@
 #include "Bench.h"
 
-#include "mg/common/Atomic.h"
-#include "mg/common/ConditionVariable.h"
-#include "mg/common/ForwardList.h"
-#include "mg/common/Mutex.h"
-#include "mg/common/Thread.h"
-#include "mg/common/Util.h"
+#include "mg/box/Atomic.h"
+#include "mg/box/ConditionVariable.h"
+#include "mg/box/ForwardList.h"
+#include "mg/box/Mutex.h"
+#include "mg/box/Thread.h"
+#include "mg/box/Util.h"
 
 #include <functional>
 
@@ -38,7 +38,7 @@ namespace bench {
 		friend TaskSchedulerThread;
 	};
 
-	using TaskList = mg::common::ForwardList<Task>;
+	using TaskList = mg::box::ForwardList<Task>;
 
 	// Trivial task scheduler takes a mutex lock on each task post and pop. The simplest
 	// possible implementation and the most typical one. For the sake of further
@@ -82,8 +82,8 @@ namespace bench {
 			uint32_t& aOutCount) const;
 
 	private:
-		mg::common::Mutex myMutex;
-		mg::common::ConditionVariable myCond;
+		mg::box::Mutex myMutex;
+		mg::box::ConditionVariable myCond;
 		bool myIsStopped;
 		TaskList myQueue;
 		std::vector<TaskSchedulerThread*> myWorkers;
@@ -92,7 +92,7 @@ namespace bench {
 	};
 
 	class TaskSchedulerThread
-		: private mg::common::Thread
+		: private mg::box::Thread
 	{
 	public:
 		TaskSchedulerThread(
@@ -109,7 +109,7 @@ namespace bench {
 		void Run() override;
 
 		TaskScheduler* myScheduler;
-		mg::common::AtomicU64 myExecuteCount;
+		mg::box::AtomicU64 myExecuteCount;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -130,7 +130,7 @@ namespace bench {
 	bool
 	Task::ReceiveSignal()
 	{
-		MG_COMMON_ASSERT(!"Not implemented");
+		MG_BOX_ASSERT(!"Not implemented");
 		return false;
 	}
 
@@ -191,21 +191,21 @@ namespace bench {
 		Task* /*aTask*/,
 		uint32_t /*aDelay*/)
 	{
-		MG_COMMON_ASSERT(!"Not implemented");
+		MG_BOX_ASSERT(!"Not implemented");
 	}
 
 	void
 	TaskScheduler::Wakeup(
 		Task* /*aTask*/)
 	{
-		MG_COMMON_ASSERT(!"Not implemented");
+		MG_BOX_ASSERT(!"Not implemented");
 	}
 
 	void
 	TaskScheduler::Signal(
 		Task* /*aTask*/)
 	{
-		MG_COMMON_ASSERT(!"Not implemented");
+		MG_BOX_ASSERT(!"Not implemented");
 	}
 
 	void
@@ -225,7 +225,7 @@ namespace bench {
 	TaskSchedulerThread::TaskSchedulerThread(
 		const char* aName,
 		TaskScheduler* aScheduler)
-		: Thread(mg::common::StringFormat(
+		: Thread(mg::box::StringFormat(
 			"mgsb.tsksch%s", aName).c_str())
 		, myScheduler(aScheduler)
 	{
@@ -252,8 +252,8 @@ namespace bench {
 	void
 	TaskSchedulerThread::Run()
 	{
-		mg::common::Mutex& mutex = myScheduler->myMutex;
-		mg::common::ConditionVariable& cond = myScheduler->myCond;
+		mg::box::Mutex& mutex = myScheduler->myMutex;
+		mg::box::ConditionVariable& cond = myScheduler->myCond;
 		bool& isStopped = myScheduler->myIsStopped;
 		TaskList& queue = myScheduler->myQueue;
 

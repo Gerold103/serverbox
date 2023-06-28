@@ -1,7 +1,7 @@
 #include "Bench.h"
 
-#include "mg/common/ForwardList.h"
-#include "mg/common/Mutex.h"
+#include "mg/box/ForwardList.h"
+#include "mg/box/Mutex.h"
 
 namespace mg {
 namespace bench {
@@ -26,8 +26,8 @@ namespace bench {
 			BenchValue*& aOutTail);
 
 	private:
-		mg::common::Mutex myLock;
-		mg::common::ForwardList<BenchValue> myValues;
+		mg::box::Mutex myLock;
+		mg::box::ForwardList<BenchValue> myValues;
 	};
 
 	inline

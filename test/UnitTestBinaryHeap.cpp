@@ -1,4 +1,4 @@
-#include "mg/common/BinaryHeap.h"
+#include "mg/box/BinaryHeap.h"
 
 #include "UnitTest.h"
 
@@ -64,7 +64,7 @@ namespace unittests {
 			int aToUse)
 		{
 			ourCopyConstrCount -= aToUse;
-			MG_COMMON_ASSERT(ourCopyConstrCount >= 0);
+			MG_BOX_ASSERT(ourCopyConstrCount >= 0);
 		}
 
 		static void
@@ -72,7 +72,7 @@ namespace unittests {
 			int aToUse)
 		{
 			ourCopyAssignCount -= aToUse;
-			MG_COMMON_ASSERT(ourCopyAssignCount >= 0);
+			MG_BOX_ASSERT(ourCopyAssignCount >= 0);
 		}
 
 		static void
@@ -80,7 +80,7 @@ namespace unittests {
 			int aToUse)
 		{
 			ourMoveConstrCount -= aToUse;
-			MG_COMMON_ASSERT(ourMoveConstrCount >= 0);
+			MG_BOX_ASSERT(ourMoveConstrCount >= 0);
 		}
 
 		static void
@@ -88,7 +88,7 @@ namespace unittests {
 			int aToUse)
 		{
 			ourMoveAssignCount -= aToUse;
-			MG_COMMON_ASSERT(ourMoveAssignCount >= 0);
+			MG_BOX_ASSERT(ourMoveAssignCount >= 0);
 		}
 
 		static void
@@ -96,7 +96,7 @@ namespace unittests {
 			int aToUse)
 		{
 			ourConstrCount -= aToUse;
-			MG_COMMON_ASSERT(ourConstrCount >= 0);
+			MG_BOX_ASSERT(ourConstrCount >= 0);
 		}
 
 		static void
@@ -104,7 +104,7 @@ namespace unittests {
 			int aToUse)
 		{
 			ourDestrCount -= aToUse;
-			MG_COMMON_ASSERT(ourDestrCount >= 0);
+			MG_BOX_ASSERT(ourDestrCount >= 0);
 		}
 
 		static void
@@ -121,7 +121,7 @@ namespace unittests {
 		static void
 		CheckCounters()
 		{
-			MG_COMMON_ASSERT(
+			MG_BOX_ASSERT(
 				ourCopyConstrCount == 0 && ourCopyAssignCount == 0 &&
 				ourMoveConstrCount == 0 && ourMoveAssignCount == 0 &&
 				ourConstrCount == 0 && ourDestrCount == 0
@@ -169,10 +169,10 @@ namespace unittests {
 		const int count = 9;
 		UTBHeapValue values[count];
 		{
-			mg::common::BinaryHeapMinPtr<UTBHeapValue> heap;
+			mg::box::BinaryHeapMinPtr<UTBHeapValue> heap;
 			UTBHeapValue* pop = nullptr;
-			MG_COMMON_ASSERT(!heap.Pop(pop));
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(!heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = i;
 
@@ -185,24 +185,24 @@ namespace unittests {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(&values[indexes[i]]);
-					MG_COMMON_ASSERT(heap.Count() == (uint32_t)counti);
+					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop = nullptr;
-						MG_COMMON_ASSERT(heap.GetTop() == &values[i]);
-						MG_COMMON_ASSERT(heap.Pop(pop));
-						MG_COMMON_ASSERT(pop == &values[i]);
+						MG_BOX_ASSERT(heap.GetTop() == &values[i]);
+						MG_BOX_ASSERT(heap.Pop(pop));
+						MG_BOX_ASSERT(pop == &values[i]);
 					}
-					MG_COMMON_ASSERT(!heap.Pop(pop));
-					MG_COMMON_ASSERT(heap.Count() == 0);
+					MG_BOX_ASSERT(!heap.Pop(pop));
+					MG_BOX_ASSERT(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
 		{
-			mg::common::BinaryHeapMaxPtr<UTBHeapValue> heap;
+			mg::box::BinaryHeapMaxPtr<UTBHeapValue> heap;
 			UTBHeapValue* pop = nullptr;
-			MG_COMMON_ASSERT(!heap.Pop(pop));
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(!heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = count - 1 - i;
 
@@ -215,25 +215,25 @@ namespace unittests {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(&values[indexes[i]]);
-					MG_COMMON_ASSERT(heap.Count() == (uint32_t)counti);
+					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop = nullptr;
-						MG_COMMON_ASSERT(heap.GetTop() == &values[i]);
-						MG_COMMON_ASSERT(heap.Pop(pop));
-						MG_COMMON_ASSERT(pop == &values[i]);
+						MG_BOX_ASSERT(heap.GetTop() == &values[i]);
+						MG_BOX_ASSERT(heap.Pop(pop));
+						MG_BOX_ASSERT(pop == &values[i]);
 					}
-					MG_COMMON_ASSERT(!heap.Pop(pop));
-					MG_COMMON_ASSERT(heap.Count() == 0);
+					MG_BOX_ASSERT(!heap.Pop(pop));
+					MG_BOX_ASSERT(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
 		{
-			mg::common::BinaryHeapMax<UTBHeapValue> heap;
+			mg::box::BinaryHeapMax<UTBHeapValue> heap;
 			UTBHeapValue pop;
 			pop.myValue = INT_MAX;
-			MG_COMMON_ASSERT(!heap.Pop(pop));
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(!heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = count - 1 - i;
 
@@ -246,25 +246,25 @@ namespace unittests {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(values[indexes[i]]);
-					MG_COMMON_ASSERT(heap.Count() == (uint32_t)counti);
+					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop.myValue = INT_MAX;
-						MG_COMMON_ASSERT(heap.GetTop().myValue == values[i].myValue);
-						MG_COMMON_ASSERT(heap.Pop(pop));
-						MG_COMMON_ASSERT(pop.myValue == values[i].myValue);
+						MG_BOX_ASSERT(heap.GetTop().myValue == values[i].myValue);
+						MG_BOX_ASSERT(heap.Pop(pop));
+						MG_BOX_ASSERT(pop.myValue == values[i].myValue);
 					}
-					MG_COMMON_ASSERT(!heap.Pop(pop));
-					MG_COMMON_ASSERT(heap.Count() == 0);
+					MG_BOX_ASSERT(!heap.Pop(pop));
+					MG_BOX_ASSERT(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
 		{
-			mg::common::BinaryHeapMin<UTBHeapValue> heap;
+			mg::box::BinaryHeapMin<UTBHeapValue> heap;
 			UTBHeapValue pop;
 			pop.myValue = INT_MAX;
-			MG_COMMON_ASSERT(!heap.Pop(pop));
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(!heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = i;
 
@@ -277,25 +277,25 @@ namespace unittests {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(values[indexes[i]]);
-					MG_COMMON_ASSERT(heap.Count() == (uint32_t)counti);
+					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop.myValue = INT_MAX;
-						MG_COMMON_ASSERT(heap.GetTop().myValue == values[i].myValue);
-						MG_COMMON_ASSERT(heap.Pop(pop));
-						MG_COMMON_ASSERT(pop.myValue == values[i].myValue);
+						MG_BOX_ASSERT(heap.GetTop().myValue == values[i].myValue);
+						MG_BOX_ASSERT(heap.Pop(pop));
+						MG_BOX_ASSERT(pop.myValue == values[i].myValue);
 					}
-					MG_COMMON_ASSERT(!heap.Pop(pop));
-					MG_COMMON_ASSERT(heap.Count() == 0);
+					MG_BOX_ASSERT(!heap.Pop(pop));
+					MG_BOX_ASSERT(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
 		{
-			mg::common::BinaryHeapMin<UTBHeapValue> heap;
+			mg::box::BinaryHeapMin<UTBHeapValue> heap;
 			UTBHeapValue pop;
 			pop.myValue = INT_MAX;
-			MG_COMMON_ASSERT(!heap.Pop(pop));
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(!heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Count() == 0);
 
 			for (int counti = 1; counti <= count; ++counti)
 			{
@@ -314,21 +314,21 @@ namespace unittests {
 						heap.GetTop().myValue = indexes[i];
 						heap.UpdateTop();
 					}
-					MG_COMMON_ASSERT(heap.Count() == (uint32_t)counti);
+					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop.myValue = INT_MAX;
-						MG_COMMON_ASSERT(heap.GetTop().myValue == i);
-						MG_COMMON_ASSERT(heap.Pop(pop));
-						MG_COMMON_ASSERT(pop.myValue == i);
+						MG_BOX_ASSERT(heap.GetTop().myValue == i);
+						MG_BOX_ASSERT(heap.Pop(pop));
+						MG_BOX_ASSERT(pop.myValue == i);
 					}
-					MG_COMMON_ASSERT(!heap.Pop(pop));
-					MG_COMMON_ASSERT(heap.Count() == 0);
+					MG_BOX_ASSERT(!heap.Pop(pop));
+					MG_BOX_ASSERT(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
 		{
-			mg::common::BinaryHeapMinIntrusive<UTBHeapValue> heap;
+			mg::box::BinaryHeapMinIntrusive<UTBHeapValue> heap;
 			UTBHeapValue* pop = nullptr;
 
 			// The idea is to try every possible update for every
@@ -349,27 +349,27 @@ namespace unittests {
 						}
 						values[srci].myValue = newv;
 						heap.Update(&values[srci]);
-						MG_COMMON_ASSERT(values[srci].myIndex >= 0);
-						MG_COMMON_ASSERT(values[srci].myIndex < counti);
+						MG_BOX_ASSERT(values[srci].myIndex >= 0);
+						MG_BOX_ASSERT(values[srci].myIndex < counti);
 						int prev = -1;
 						for (int i = 0; i < counti; ++i)
 						{
 							pop = nullptr;
-							MG_COMMON_ASSERT(heap.Pop(pop));
-							MG_COMMON_ASSERT(pop->myIndex == -1);
-							MG_COMMON_ASSERT(pop->myValue >= prev);
-							MG_COMMON_ASSERT(pop->myValue >= 0);
+							MG_BOX_ASSERT(heap.Pop(pop));
+							MG_BOX_ASSERT(pop->myIndex == -1);
+							MG_BOX_ASSERT(pop->myValue >= prev);
+							MG_BOX_ASSERT(pop->myValue >= 0);
 							prev = pop->myValue;
 							pop->myValue = -1;
 						}
-						MG_COMMON_ASSERT(!heap.Pop(pop));
-						MG_COMMON_ASSERT(heap.Count() == 0);
+						MG_BOX_ASSERT(!heap.Pop(pop));
+						MG_BOX_ASSERT(heap.Count() == 0);
 					}
 				}
 			}
 		}
 		{
-			mg::common::BinaryHeapMaxIntrusive<UTBHeapValue> heap;
+			mg::box::BinaryHeapMaxIntrusive<UTBHeapValue> heap;
 			UTBHeapValue* pop = nullptr;
 
 			// The idea is to try every possible delete for every
@@ -387,30 +387,30 @@ namespace unittests {
 					}
 					values[srci].myValue = INT_MAX;
 					heap.Remove(&values[srci]);
-					MG_COMMON_ASSERT(values[srci].myIndex == -1);
+					MG_BOX_ASSERT(values[srci].myIndex == -1);
 					int prev = INT_MAX;
 					for (int i = 1; i < counti; ++i)
 					{
 						pop = nullptr;
-						MG_COMMON_ASSERT(heap.Pop(pop));
-						MG_COMMON_ASSERT(pop->myIndex == -1);
-						MG_COMMON_ASSERT(pop->myValue < prev);
-						MG_COMMON_ASSERT(pop->myValue >= 0);
+						MG_BOX_ASSERT(heap.Pop(pop));
+						MG_BOX_ASSERT(pop->myIndex == -1);
+						MG_BOX_ASSERT(pop->myValue < prev);
+						MG_BOX_ASSERT(pop->myValue >= 0);
 						prev = pop->myValue;
 						pop->myValue = -1;
 					}
-					MG_COMMON_ASSERT(!heap.Pop(pop));
-					MG_COMMON_ASSERT(heap.Count() == 0);
+					MG_BOX_ASSERT(!heap.Pop(pop));
+					MG_BOX_ASSERT(heap.Count() == 0);
 				}
 			}
 		}
 		{
 			// Check reservation.
-			mg::common::BinaryHeapMaxIntrusive<UTBHeapValue> heap;
+			mg::box::BinaryHeapMaxIntrusive<UTBHeapValue> heap;
 			heap.Reserve(1);
-			MG_COMMON_ASSERT(heap.GetCapacity() >= 1);
+			MG_BOX_ASSERT(heap.GetCapacity() >= 1);
 			heap.Reserve(100);
-			MG_COMMON_ASSERT(heap.GetCapacity() >= 100);
+			MG_BOX_ASSERT(heap.GetCapacity() >= 100);
 		}
 	}
 
@@ -419,7 +419,7 @@ namespace unittests {
 	{
 		UTBHeapValue::ResetCounters();
 		{
-			mg::common::BinaryHeapMax<UTBHeapValue> heap;
+			mg::box::BinaryHeapMax<UTBHeapValue> heap;
 			// No static elements are created.
 		}
 		UTBHeapValue::CheckCounters();
@@ -433,7 +433,7 @@ namespace unittests {
 			v2.myValue = 2;
 			v3.myValue = 3;
 			v4.myValue = 4;
-			mg::common::BinaryHeapMax<UTBHeapValue> heap;
+			mg::box::BinaryHeapMax<UTBHeapValue> heap;
 			heap.Reserve(10);
 			UTBHeapValue::UseConstrCount(5);
 
@@ -469,7 +469,7 @@ namespace unittests {
 			UTBHeapValue::UseMoveAssignCount(3);
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_COMMON_ASSERT(heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Pop(pop));
 			// Return result.
 			UTBHeapValue::UseMoveAssignCount(1);
 			// Move the rightmost value to the root to start its
@@ -485,7 +485,7 @@ namespace unittests {
 			// Removed element is destroyed in the heap.
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_COMMON_ASSERT(heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Pop(pop));
 			// The tree becomes 2 level - root and 2 children. So
 			// one move to return the old root, and one move to
 			// set a new root to one of the children.
@@ -493,13 +493,13 @@ namespace unittests {
 			// Removed element is destroyed in the heap.
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_COMMON_ASSERT(heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Pop(pop));
 			// The same.
 			UTBHeapValue::UseMoveAssignCount(2);
 			// Removed element is destroyed in the heap.
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_COMMON_ASSERT(heap.Pop(pop));
+			MG_BOX_ASSERT(heap.Pop(pop));
 			// Move the single value to the out parameter.
 			UTBHeapValue::UseMoveAssignCount(1);
 			// Removed element is destroyed in the heap.
@@ -523,7 +523,7 @@ namespace unittests {
 			v2.myValue = 2;
 			v3.myValue = 3;
 			v4.myValue = 4;
-			mg::common::BinaryHeapMax<UTBHeapValue> heap;
+			mg::box::BinaryHeapMax<UTBHeapValue> heap;
 			heap.Reserve(10);
 			heap.Push(v1);
 			heap.Push(v2);
@@ -581,7 +581,7 @@ namespace unittests {
 	static void
 	UnitTestBinaryHeapUpdateAny()
 	{
-		mg::common::BinaryHeapMinIntrusive<UTBHeapValue> heap;
+		mg::box::BinaryHeapMinIntrusive<UTBHeapValue> heap;
 		heap.Reserve(10);
 
 		UTBHeapValue v1;
@@ -590,32 +590,32 @@ namespace unittests {
 		UTBHeapValue v4;
 		v1.myValue = 0;
 		heap.Push(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == 0);
+		MG_BOX_ASSERT(v1.myIndex == 0);
 
 		heap.Update(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == 0);
+		MG_BOX_ASSERT(v1.myIndex == 0);
 
 		v2.myValue = 1;
 		heap.Push(&v2);
-		MG_COMMON_ASSERT(v2.myIndex == 1);
+		MG_BOX_ASSERT(v2.myIndex == 1);
 		heap.Update(&v1);
 		heap.Update(&v2);
 
 		v2.myValue = -1;
 		heap.Update(&v2);
-		MG_COMMON_ASSERT(v2.myIndex == 0);
-		MG_COMMON_ASSERT(v1.myIndex == 1);
+		MG_BOX_ASSERT(v2.myIndex == 0);
+		MG_BOX_ASSERT(v1.myIndex == 1);
 
 		UTBHeapValue* pop = nullptr;
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIndex == -1);
-		MG_COMMON_ASSERT(pop == &v2);
-		MG_COMMON_ASSERT(v1.myIndex == 0);
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIndex == -1);
+		MG_BOX_ASSERT(pop == &v2);
+		MG_BOX_ASSERT(v1.myIndex == 0);
 
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIndex == -1);
-		MG_COMMON_ASSERT(pop == &v1);
-		MG_COMMON_ASSERT(!heap.Pop(pop));
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIndex == -1);
+		MG_BOX_ASSERT(pop == &v1);
+		MG_BOX_ASSERT(!heap.Pop(pop));
 
 		v1.myValue = 0;
 		v2.myValue = 1;
@@ -625,41 +625,41 @@ namespace unittests {
 		heap.Push(&v2);
 		heap.Push(&v3);
 		heap.Push(&v4);
-		MG_COMMON_ASSERT(v1.myIndex == 0);
-		MG_COMMON_ASSERT(v2.myIndex == 1);
-		MG_COMMON_ASSERT(v3.myIndex == 2);
-		MG_COMMON_ASSERT(v4.myIndex == 3);
+		MG_BOX_ASSERT(v1.myIndex == 0);
+		MG_BOX_ASSERT(v2.myIndex == 1);
+		MG_BOX_ASSERT(v3.myIndex == 2);
+		MG_BOX_ASSERT(v4.myIndex == 3);
 
 		v4.myValue = -4;
 		heap.Update(&v4);
-		MG_COMMON_ASSERT(v4.myIndex == 0);
+		MG_BOX_ASSERT(v4.myIndex == 0);
 
 		v3.myValue = -3;
 		heap.Update(&v3);
-		MG_COMMON_ASSERT(v3.myIndex == 2);
+		MG_BOX_ASSERT(v3.myIndex == 2);
 
 		v2.myValue = -2;
 		heap.Update(&v2);
-		MG_COMMON_ASSERT(v2.myIndex == 1);
+		MG_BOX_ASSERT(v2.myIndex == 1);
 
 		v1.myValue = -1;
 		heap.Update(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == 3);
+		MG_BOX_ASSERT(v1.myIndex == 3);
 
 		pop = nullptr;
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIndex == -1);
-		MG_COMMON_ASSERT(pop == &v4);
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIndex == -1);
-		MG_COMMON_ASSERT(pop == &v3);
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIndex == -1);
-		MG_COMMON_ASSERT(pop == &v2);
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIndex == -1);
-		MG_COMMON_ASSERT(pop == &v1);
-		MG_COMMON_ASSERT(!heap.Pop(pop));
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIndex == -1);
+		MG_BOX_ASSERT(pop == &v4);
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIndex == -1);
+		MG_BOX_ASSERT(pop == &v3);
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIndex == -1);
+		MG_BOX_ASSERT(pop == &v2);
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIndex == -1);
+		MG_BOX_ASSERT(pop == &v1);
+		MG_BOX_ASSERT(!heap.Pop(pop));
 	}
 
 	static void
@@ -675,22 +675,22 @@ namespace unittests {
 			v2.myValue = 2;
 			v3.myValue = 3;
 			v4.myValue = 4;
-			mg::common::BinaryHeapMax<UTBHeapValue> heap;
+			mg::box::BinaryHeapMax<UTBHeapValue> heap;
 			heap.Reserve(10);
 			UTBHeapValue::ResetCounters();
 
 			// NOP on empty.
 			heap.RemoveTop();
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(heap.Count() == 0);
 
 			// Single element remove does not copy nor move
 			// anything.
 			heap.Push(v1);
-			MG_COMMON_ASSERT(heap.Count() == 1);
+			MG_BOX_ASSERT(heap.Count() == 1);
 			UTBHeapValue::UseCopyConstrCount(1);
 			heap.RemoveTop();
 			UTBHeapValue::UseDestrCount(1);
-			MG_COMMON_ASSERT(heap.Count() == 0);
+			MG_BOX_ASSERT(heap.Count() == 0);
 			UTBHeapValue::CheckCounters();
 
 			// Remove() costs less than Pop().
@@ -698,7 +698,7 @@ namespace unittests {
 			heap.Push(v2);
 			heap.Push(v3);
 			heap.Push(v4);
-			MG_COMMON_ASSERT(heap.Count() == 4);
+			MG_BOX_ASSERT(heap.Count() == 4);
 			UTBHeapValue::ResetCounters();
 			heap.RemoveTop();
 			// Move end to the deleted root.
@@ -719,7 +719,7 @@ namespace unittests {
 	static void
 	UnitTestBinaryHeapRemoveAny()
 	{
-		mg::common::BinaryHeapMinIntrusive<UTBHeapValue> heap;
+		mg::box::BinaryHeapMinIntrusive<UTBHeapValue> heap;
 		heap.Reserve(10);
 
 		UTBHeapValue v1;
@@ -728,24 +728,24 @@ namespace unittests {
 		UTBHeapValue v4;
 		v1.myValue = 0;
 		heap.Push(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == 0);
+		MG_BOX_ASSERT(v1.myIndex == 0);
 
 		heap.Remove(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == -1);
-		MG_COMMON_ASSERT(heap.Count() == 0);
+		MG_BOX_ASSERT(v1.myIndex == -1);
+		MG_BOX_ASSERT(heap.Count() == 0);
 
 		v2.myValue = 1;
 		heap.Push(&v1);
 		heap.Push(&v2);
 
 		heap.Remove(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == -1);
-		MG_COMMON_ASSERT(v2.myIndex == 0);
-		MG_COMMON_ASSERT(heap.Count() == 1);
+		MG_BOX_ASSERT(v1.myIndex == -1);
+		MG_BOX_ASSERT(v2.myIndex == 0);
+		MG_BOX_ASSERT(heap.Count() == 1);
 
 		heap.Remove(&v2);
-		MG_COMMON_ASSERT(v2.myIndex == -1);
-		MG_COMMON_ASSERT(heap.Count() == 0);
+		MG_BOX_ASSERT(v2.myIndex == -1);
+		MG_BOX_ASSERT(heap.Count() == 0);
 
 		v1.myValue = 0;
 		v2.myValue = 1;
@@ -755,29 +755,29 @@ namespace unittests {
 		heap.Push(&v2);
 		heap.Push(&v3);
 		heap.Push(&v4);
-		MG_COMMON_ASSERT(v1.myIndex == 0);
-		MG_COMMON_ASSERT(v2.myIndex == 1);
-		MG_COMMON_ASSERT(v3.myIndex == 2);
-		MG_COMMON_ASSERT(v4.myIndex == 3);
+		MG_BOX_ASSERT(v1.myIndex == 0);
+		MG_BOX_ASSERT(v2.myIndex == 1);
+		MG_BOX_ASSERT(v3.myIndex == 2);
+		MG_BOX_ASSERT(v4.myIndex == 3);
 
 		heap.Remove(&v1);
-		MG_COMMON_ASSERT(v1.myIndex == -1);
-		MG_COMMON_ASSERT(v2.myIndex == 0);
-		MG_COMMON_ASSERT(v3.myIndex == 2);
-		MG_COMMON_ASSERT(v4.myIndex == 1);
+		MG_BOX_ASSERT(v1.myIndex == -1);
+		MG_BOX_ASSERT(v2.myIndex == 0);
+		MG_BOX_ASSERT(v3.myIndex == 2);
+		MG_BOX_ASSERT(v4.myIndex == 1);
 
 		heap.Remove(&v2);
-		MG_COMMON_ASSERT(v2.myIndex == -1);
-		MG_COMMON_ASSERT(v3.myIndex == 0);
-		MG_COMMON_ASSERT(v4.myIndex == 1);
+		MG_BOX_ASSERT(v2.myIndex == -1);
+		MG_BOX_ASSERT(v3.myIndex == 0);
+		MG_BOX_ASSERT(v4.myIndex == 1);
 
 		heap.Remove(&v3);
-		MG_COMMON_ASSERT(v3.myIndex == -1);
-		MG_COMMON_ASSERT(v4.myIndex == 0);
+		MG_BOX_ASSERT(v3.myIndex == -1);
+		MG_BOX_ASSERT(v4.myIndex == 0);
 
 		heap.Remove(&v4);
-		MG_COMMON_ASSERT(v4.myIndex == -1);
-		MG_COMMON_ASSERT(heap.Count() == 0);
+		MG_BOX_ASSERT(v4.myIndex == -1);
+		MG_BOX_ASSERT(heap.Count() == 0);
 	}
 
 	static void
@@ -796,7 +796,7 @@ namespace unittests {
 			int myValue;
 			int myIdx;
 		};
-		mg::common::BinaryHeapMinIntrusive<TestValue, &TestValue::myIdx> heap;
+		mg::box::BinaryHeapMinIntrusive<TestValue, &TestValue::myIdx> heap;
 		heap.Reserve(10);
 		TestValue v1;
 		v1.myValue = 1;
@@ -806,36 +806,36 @@ namespace unittests {
 		v2.myIdx = -1;
 		heap.Push(&v1);
 		heap.Push(&v2);
-		MG_COMMON_ASSERT(v1.myIdx == 0);
-		MG_COMMON_ASSERT(v2.myIdx == 1);
+		MG_BOX_ASSERT(v1.myIdx == 0);
+		MG_BOX_ASSERT(v2.myIdx == 1);
 		TestValue* pop = nullptr;
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIdx == -1);
-		MG_COMMON_ASSERT(pop == &v1);
-		MG_COMMON_ASSERT(heap.Pop(pop));
-		MG_COMMON_ASSERT(pop->myIdx == -1);
-		MG_COMMON_ASSERT(pop == &v2);
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIdx == -1);
+		MG_BOX_ASSERT(pop == &v1);
+		MG_BOX_ASSERT(heap.Pop(pop));
+		MG_BOX_ASSERT(pop->myIdx == -1);
+		MG_BOX_ASSERT(pop == &v2);
 
 		heap.Push(&v1);
 		heap.Push(&v2);
 		v2.myValue = 0;
 		heap.Update(&v2);
-		MG_COMMON_ASSERT(v1.myIdx == 1);
-		MG_COMMON_ASSERT(v2.myIdx == 0);
+		MG_BOX_ASSERT(v1.myIdx == 1);
+		MG_BOX_ASSERT(v2.myIdx == 0);
 
 		heap.Remove(&v2);
-		MG_COMMON_ASSERT(v1.myIdx == 0);
-		MG_COMMON_ASSERT(v2.myIdx == -1);
+		MG_BOX_ASSERT(v1.myIdx == 0);
+		MG_BOX_ASSERT(v2.myIdx == -1);
 
 		heap.Remove(&v1);
-		MG_COMMON_ASSERT(v1.myIdx == -1);
+		MG_BOX_ASSERT(v1.myIdx == -1);
 	}
 
 	static void
 	UnitTestBinaryHeapRealloc()
 	{
 		{
-			mg::common::BinaryHeapMin<UTBHeapValue> heap;
+			mg::box::BinaryHeapMin<UTBHeapValue> heap;
 			UTBHeapValue v;
 			v.myValue = 1;
 			heap.Push(v);
@@ -860,10 +860,10 @@ namespace unittests {
 			UTBHeapValue::UseCopyConstrCount(1);
 #if IS_PLATFORM_WIN
 			// Somewhy on Windows it grows not x2 each time.
-			MG_COMMON_ASSERT(heap.GetCapacity() >= 3);
+			MG_BOX_ASSERT(heap.GetCapacity() >= 3);
 #else
 			// Grows x2 at least.
-			MG_COMMON_ASSERT(heap.GetCapacity() == 4);
+			MG_BOX_ASSERT(heap.GetCapacity() == 4);
 #endif
 		}
 		UTBHeapValue::UseDestrCount(4);

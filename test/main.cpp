@@ -1,4 +1,4 @@
-#include "mg/common/Definitions.h"
+#include "mg/box/Definitions.h"
 
 #include "UnitTest.h"
 

@@ -1,6 +1,6 @@
 #include "Bench.h"
 
-#include "mg/common/MultiProducerQueueIntrusive.h"
+#include "mg/box/MultiProducerQueueIntrusive.h"
 
 namespace mg {
 namespace bench {
@@ -12,7 +12,7 @@ namespace bench {
 		BenchValue* myNext;
 	};
 
-	using MultiProducerQueue = mg::common::MultiProducerQueueIntrusive<BenchValue>;
+	using MultiProducerQueue = mg::box::MultiProducerQueueIntrusive<BenchValue>;
 
 	inline
 	BenchValue::BenchValue()
