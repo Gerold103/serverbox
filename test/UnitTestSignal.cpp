@@ -1,6 +1,6 @@
-#include "mg/common/Assert.h"
-#include "mg/common/Signal.h"
-#include "mg/common/ThreadFunc.h"
+#include "mg/box/Assert.h"
+#include "mg/box/Signal.h"
+#include "mg/box/ThreadFunc.h"
 
 #include "UnitTest.h"
 
@@ -12,26 +12,26 @@ namespace unittests {
 	static void
 	UnitTestSignalBasic()
 	{
-		mg::common::Signal s;
-		MG_COMMON_ASSERT(!s.Receive());
+		mg::box::Signal s;
+		MG_BOX_ASSERT(!s.Receive());
 
 		s.Send();
-		MG_COMMON_ASSERT(s.Receive());
-		MG_COMMON_ASSERT(!s.Receive());
+		MG_BOX_ASSERT(s.Receive());
+		MG_BOX_ASSERT(!s.Receive());
 
 		s.Send();
 		s.ReceiveBlocking();
-		MG_COMMON_ASSERT(!s.Receive());
+		MG_BOX_ASSERT(!s.Receive());
 
 		s.Send();
-		MG_COMMON_ASSERT(s.ReceiveTimed(1000000));
-		MG_COMMON_ASSERT(!s.Receive());
+		MG_BOX_ASSERT(s.ReceiveTimed(1000000));
+		MG_BOX_ASSERT(!s.Receive());
 
 		s.Send();
-		MG_COMMON_ASSERT(s.ReceiveTimed(0));
-		MG_COMMON_ASSERT(!s.Receive());
+		MG_BOX_ASSERT(s.ReceiveTimed(0));
+		MG_BOX_ASSERT(!s.Receive());
 
-		MG_COMMON_ASSERT(!s.ReceiveTimed(1));
+		MG_BOX_ASSERT(!s.ReceiveTimed(1));
 	}
 
 	static void
@@ -45,11 +45,11 @@ namespace unittests {
 		// interrupted right after setting the new state, but
 		// before unlocking the mutex.
 		const uint32_t count = 10000000;
-		std::vector<mg::common::Signal*> signals;
+		std::vector<mg::box::Signal*> signals;
 		signals.reserve(count);
 		for (uint32_t i = 0; i < count; ++i)
-			signals.push_back(new mg::common::Signal());
-		mg::common::ThreadFunc worker([&]() {
+			signals.push_back(new mg::box::Signal());
+		mg::box::ThreadFunc worker([&]() {
 			uint32_t count = (uint32_t)signals.size();
 			for (uint32_t i = 0; i < count; ++i)
 				signals[i]->Send();
@@ -61,7 +61,7 @@ namespace unittests {
 			while (!signals[i]->Receive())
 			{
 				if (++yield % 10000 == 0)
-					mg::common::Sleep(1);
+					mg::box::Sleep(1);
 			}
 			delete signals[i];
 		}

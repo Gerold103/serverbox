@@ -2,9 +2,9 @@
 
 #include "Bench.h"
 
-#include "mg/common/Atomic.h"
-#include "mg/common/Mutex.h"
-#include "mg/common/Thread.h"
+#include "mg/box/Atomic.h"
+#include "mg/box/Mutex.h"
+#include "mg/box/Thread.h"
 
 #include <algorithm>
 #include <vector>
@@ -15,7 +15,7 @@ namespace mg {
 namespace bench {
 
 	class BenchConsumerThread
-		: private mg::common::Thread
+		: private mg::box::Thread
 	{
 	public:
 		BenchConsumerThread(
@@ -36,8 +36,8 @@ namespace bench {
 		void Run() override;
 
 		BenchQueueConsumer myConsumer;
-		mg::common::AtomicU64 myCount;
-		mg::common::AtomicU32 myPauseState;
+		mg::box::AtomicU64 myCount;
+		mg::box::AtomicU32 myPauseState;
 		BenchLoadType myLoadType;
 	};
 
@@ -113,16 +113,16 @@ namespace bench {
 	BenchConsumerThread::Pause()
 	{
 		uint32_t old = myPauseState.ExchangeRelease(1);
-		MG_COMMON_ASSERT(old == 0);
+		MG_BOX_ASSERT(old == 0);
 		while (myPauseState.LoadAcquire() != 2)
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 	}
 
 	void
 	BenchConsumerThread::Continue()
 	{
 		uint32_t old = myPauseState.ExchangeRelease(0);
-		MG_COMMON_ASSERT(old == 2);
+		MG_BOX_ASSERT(old == 2);
 	}
 
 	void
@@ -151,10 +151,10 @@ namespace bench {
 			uint32_t pause = myPauseState.LoadAcquire();
 			if (pause != 0)
 			{
-				MG_COMMON_ASSERT(pause == 1);
+				MG_BOX_ASSERT(pause == 1);
 				myPauseState.StoreRelease(2);
 				while (myPauseState.LoadAcquire() != 0)
-					mg::common::Sleep(1);
+					mg::box::Sleep(1);
 			}
 		}
 	}
@@ -213,7 +213,7 @@ namespace bench {
 		uint64_t popCount = 0;
 		while (popCount < MG_WARMUP_ITEM_COUNT)
 		{
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 			popCount = 0;
 			for (BenchConsumerThread* w : aWorkers)
 				popCount += w->StatGetCount();
@@ -234,17 +234,17 @@ namespace bench {
 		uint32_t subQueueSize = 0;
 		if (aCmdLine.IsPresent("subqsize"))
 			subQueueSize = aCmdLine.GetU32("subqsize");
-		if (mg::common::Strcmp(operation, "push") == 0)
+		if (mg::box::Strcmp(operation, "push") == 0)
 			return BenchQueueRunPush(itemCount, subQueueSize);
 
 		BenchLoadType loadType = BenchLoadTypeFromString(aCmdLine.GetStr("load"));
 		uint32_t threadCount = aCmdLine.GetU32("threads");
-		if (mg::common::Strcmp(operation, "pop") == 0)
+		if (mg::box::Strcmp(operation, "pop") == 0)
 			return BenchQueueRunPop(loadType, itemCount, threadCount, subQueueSize);
-		else if (mg::common::Strcmp(operation, "push-pop") == 0)
+		else if (mg::box::Strcmp(operation, "push-pop") == 0)
 			return BenchQueueRunPushPop(loadType, itemCount, threadCount, subQueueSize);
 		else
-			MG_COMMON_ASSERT_F(false, "Uknown operation '%s'", operation);
+			MG_BOX_ASSERT_F(false, "Uknown operation '%s'", operation);
 		return BenchRunReport();
 	}
 
@@ -260,12 +260,12 @@ namespace bench {
 		BenchValue* vals = new BenchValue[aItemCount];
 		BenchRunReport report;
 		{
-			mg::common::MutexStatClear();
+			mg::box::MutexStatClear();
 			TimedGuard timed("Populate");
 			for (uint32_t i = 0; i < aItemCount; ++i)
 				queue.Push(&vals[i]);
 			timed.Stop();
-			report.myMutexContentionCount = mg::common::MutexStatContentionCount();
+			report.myMutexContentionCount = mg::box::MutexStatContentionCount();
 			timed.Report();
 
 			double durationMs = timed.GetMilliseconds();
@@ -302,7 +302,7 @@ namespace bench {
 
 		BenchRunReport report;
 		{
-			mg::common::MutexStatClear();
+			mg::box::MutexStatClear();
 			TimedGuard timed("Consume");
 			// Unleash the consumers. Recreating them wouldn't be a good idea as thread
 			// start takes a lot of time. Better pause + continue existing threads.
@@ -311,13 +311,13 @@ namespace bench {
 			uint64_t popCount = 0;
 			while (popCount != aItemCount)
 			{
-				mg::common::Sleep(1);
+				mg::box::Sleep(1);
 				popCount = 0;
 				for (BenchConsumerThread*& w : workers)
 					popCount += w->StatGetCount();
 			}
 			timed.Stop();
-			report.myMutexContentionCount = mg::common::MutexStatContentionCount();
+			report.myMutexContentionCount = mg::box::MutexStatContentionCount();
 			timed.Report();
 
 			double durationMs = timed.GetMilliseconds();
@@ -359,20 +359,20 @@ namespace bench {
 		BenchValue* vals = new BenchValue[aItemCount];
 		BenchRunReport report;
 		{
-			mg::common::MutexStatClear();
+			mg::box::MutexStatClear();
 			TimedGuard timed("Push and pop");
 			for (uint32_t i = 0; i < aItemCount; ++i)
 				queue.Push(&vals[i]);
 			uint64_t popCount = 0;
 			while (popCount != aItemCount)
 			{
-				mg::common::Sleep(1);
+				mg::box::Sleep(1);
 				popCount = 0;
 				for (BenchConsumerThread*& w : workers)
 					popCount += w->StatGetCount();
 			}
 			timed.Stop();
-			report.myMutexContentionCount = mg::common::MutexStatContentionCount();
+			report.myMutexContentionCount = mg::box::MutexStatContentionCount();
 			timed.Report();
 
 			double durationMs = timed.GetMilliseconds();

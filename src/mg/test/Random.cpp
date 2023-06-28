@@ -1,6 +1,6 @@
 #include "Random.h"
 
-#include "mg/common/Thread.h"
+#include "mg/box/Thread.h"
 
 #include <random>
 #include <ctime>

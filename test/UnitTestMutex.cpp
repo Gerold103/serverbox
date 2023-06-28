@@ -1,5 +1,5 @@
-#include "mg/common/ThreadFunc.h"
-#include "mg/common/Time.h"
+#include "mg/box/ThreadFunc.h"
+#include "mg/box/Time.h"
 
 #include "UnitTest.h"
 
@@ -11,34 +11,34 @@ namespace unittests {
 	static void
 	UnitTestMutexBasic()
 	{
-		mg::common::Mutex mutex;
+		mg::box::Mutex mutex;
 		uint32_t counter = 0;
 		const uint32_t threadCount = 10;
-		std::vector<mg::common::ThreadFunc*> threads;
+		std::vector<mg::box::ThreadFunc*> threads;
 		threads.reserve(threadCount);
 		for (uint32_t i = 0; i < threadCount; ++i)
 		{
-			threads.push_back(new mg::common::ThreadFunc([&]() {
-				uint64_t deadline = mg::common::GetMilliseconds() + 2000;
+			threads.push_back(new mg::box::ThreadFunc([&]() {
+				uint64_t deadline = mg::box::GetMilliseconds() + 2000;
 				uint64_t yield = 0;
-				while (mg::common::GetMilliseconds() < deadline)
+				while (mg::box::GetMilliseconds() < deadline)
 				{
-					mg::common::MutexLock lock(mutex);
-					MG_COMMON_ASSERT(counter == 0);
+					mg::box::MutexLock lock(mutex);
+					MG_BOX_ASSERT(counter == 0);
 					counter++;
-					MG_COMMON_ASSERT(counter == 1);
+					MG_BOX_ASSERT(counter == 1);
 					counter--;
-					MG_COMMON_ASSERT(counter == 0);
+					MG_BOX_ASSERT(counter == 0);
 					if (++yield % 1000 == 0)
-						mg::common::Sleep(1);
+						mg::box::Sleep(1);
 				}
 			}));
 		}
-		for (mg::common::ThreadFunc* f : threads)
+		for (mg::box::ThreadFunc* f : threads)
 			f->Start();
-		for (mg::common::ThreadFunc* f : threads)
+		for (mg::box::ThreadFunc* f : threads)
 			delete f;
-		MG_COMMON_ASSERT(counter == 0);
+		MG_BOX_ASSERT(counter == 0);
 	}
 
 	void

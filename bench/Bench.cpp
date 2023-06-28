@@ -1,8 +1,8 @@
 #include "Bench.h"
 
-#include "mg/common/Assert.h"
-#include "mg/common/Atomic.h"
-#include "mg/common/Util.h"
+#include "mg/box/Assert.h"
+#include "mg/box/Atomic.h"
+#include "mg/box/Util.h"
 
 #include "mg/test/Random.h"
 
@@ -30,7 +30,7 @@ namespace bench {
 		const char *aFormat,
 		va_list aArg)
 	{
-		std::string buf = mg::common::StringVFormat(aFormat, aArg);
+		std::string buf = mg::box::StringVFormat(aFormat, aArg);
 		printf("%s\n", buf.c_str());
 	}
 
@@ -47,7 +47,7 @@ namespace bench {
 	{
 		va_list va;
 		va_start(va, aFormat);
-		std::string buf = mg::common::StringVFormat(aFormat, va);
+		std::string buf = mg::box::StringVFormat(aFormat, va);
 		va_end(va);
 		Report("==== [%s] case", buf.c_str());
 	}
@@ -61,7 +61,7 @@ namespace bench {
 	{
 		va_list va;
 		va_start(va, aFormat);
-		myName = mg::common::StringVFormat(aFormat, va);
+		myName = mg::box::StringVFormat(aFormat, va);
 		va_end(va);
 		myTimer.Start();
 	}
@@ -69,7 +69,7 @@ namespace bench {
 	void
 	TimedGuard::Stop()
 	{
-		MG_COMMON_ASSERT(!myIsStopped);
+		MG_BOX_ASSERT(!myIsStopped);
 		myDuration = myTimer.GetMilliSeconds();
 		myIsStopped = true;
 	}
@@ -77,7 +77,7 @@ namespace bench {
 	void
 	TimedGuard::Report()
 	{
-		MG_COMMON_ASSERT(myIsStopped);
+		MG_BOX_ASSERT(myIsStopped);
 		mg::bench::Report("== [%s] took %.6lf ms",
 			myName.c_str(), myDuration);
 	}
@@ -85,7 +85,7 @@ namespace bench {
 	double
 	TimedGuard::GetMilliseconds()
 	{
-		MG_COMMON_ASSERT(myIsStopped);
+		MG_BOX_ASSERT(myIsStopped);
 		return myTimer.GetMilliSeconds();
 	}
 
@@ -102,11 +102,11 @@ namespace bench {
 				continue;
 			++arg;
 			const char* pos = arg;
-			MG_COMMON_ASSERT_F(*pos != 0, "Argument %d is empty", i);
+			MG_BOX_ASSERT_F(*pos != 0, "Argument %d is empty", i);
 			while (*pos != 0)
 			{
 				char c = *pos;
-				MG_COMMON_ASSERT_F(isalpha(c) || isdigit(c) || c == '-' || c == '_',
+				MG_BOX_ASSERT_F(isalpha(c) || isdigit(c) || c == '-' || c == '_',
 					"Argument %d has invalid chars", i);
 				++pos;
 			}
@@ -141,7 +141,7 @@ namespace bench {
 		const char* aName) const
 	{
 		uint64_t res = 0;
-		MG_COMMON_ASSERT_F(mg::common::StringToNumber(
+		MG_BOX_ASSERT_F(mg::box::StringToNumber(
 			PrivGet(aName).myValue.c_str(), res),
 			"Couldn't convert arg %s to uint64", aName);
 		return res;
@@ -152,7 +152,7 @@ namespace bench {
 		const char* aName) const
 	{
 		uint32_t res = 0;
-		MG_COMMON_ASSERT_F(mg::common::StringToNumber(
+		MG_BOX_ASSERT_F(mg::box::StringToNumber(
 			PrivGet(aName).myValue.c_str(), res),
 			"Couldn't convert arg %s to uint64", aName);
 		return res;
@@ -175,7 +175,7 @@ namespace bench {
 		const char* aName) const
 	{
 		const Pair* p = PrivFind(aName);
-		MG_COMMON_ASSERT_F(p != nullptr, "Couldn't get arg %s", aName);
+		MG_BOX_ASSERT_F(p != nullptr, "Couldn't get arg %s", aName);
 		return *p;
 	}
 
@@ -189,7 +189,7 @@ namespace bench {
 		case BENCH_LOAD_NANO: return "nano";
 		case BENCH_LOAD_MICRO: return "micro";
 		case BENCH_LOAD_HEAVY: return "heavy";
-		default: MG_COMMON_ASSERT(false); return nullptr;
+		default: MG_BOX_ASSERT(false); return nullptr;
 		}
 	}
 
@@ -197,15 +197,15 @@ namespace bench {
 	BenchLoadTypeFromString(
 		const char* aVal)
 	{
-		if (mg::common::Strcmp(aVal, "empty") == 0)
+		if (mg::box::Strcmp(aVal, "empty") == 0)
 			return BENCH_LOAD_EMPTY;
-		if (mg::common::Strcmp(aVal, "nano") == 0)
+		if (mg::box::Strcmp(aVal, "nano") == 0)
 			return BENCH_LOAD_NANO;
-		if (mg::common::Strcmp(aVal, "micro") == 0)
+		if (mg::box::Strcmp(aVal, "micro") == 0)
 			return BENCH_LOAD_MICRO;
-		if (mg::common::Strcmp(aVal, "heavy") == 0)
+		if (mg::box::Strcmp(aVal, "heavy") == 0)
 			return BENCH_LOAD_HEAVY;
-		MG_COMMON_ASSERT_F(false, "Uknown load type '%s'", aVal);
+		MG_BOX_ASSERT_F(false, "Uknown load type '%s'", aVal);
 		return BENCH_LOAD_EMPTY;
 	}
 
@@ -215,7 +215,7 @@ namespace bench {
 	{
 		for (int i = 0; i < aCount; ++i)
 		{
-			mg::common::AtomicBool flag(mg::test::RandomBool());
+			mg::box::AtomicBool flag(mg::test::RandomBool());
 			flag.Store(true);
 		}
 	}

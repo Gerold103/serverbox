@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mg/common/QPTimer.h"
+#include "mg/box/QPTimer.h"
 
 #include <cstdarg>
 
@@ -35,7 +35,7 @@ namespace unittests {
 		~TestSuiteGuard();
 
 	private:
-		mg::common::QPTimer myTimer;
+		mg::box::QPTimer myTimer;
 	};
 
 	struct TestCaseGuard
@@ -48,7 +48,7 @@ namespace unittests {
 		~TestCaseGuard();
 
 	private:
-		mg::common::QPTimer myTimer;
+		mg::box::QPTimer myTimer;
 	};
 
 }

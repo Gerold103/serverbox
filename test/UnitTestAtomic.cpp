@@ -1,9 +1,9 @@
-#include "mg/common/Assert.h"
-#include "mg/common/Atomic.h"
+#include "mg/box/Assert.h"
+#include "mg/box/Atomic.h"
 
 #include "UnitTest.h"
 
-#define TEST_CHECK MG_COMMON_ASSERT
+#define TEST_CHECK MG_BOX_ASSERT
 
 namespace mg {
 namespace unittests {
@@ -13,13 +13,13 @@ namespace unittests {
 	{
 		// Default.
 		{
-			mg::common::Atomic<int> value;
+			mg::box::Atomic<int> value;
 			value.Store(123);
 			TEST_CHECK(value.Load() == 123);
 		}
 		// With a value
 		{
-			mg::common::Atomic<int> value(123);
+			mg::box::Atomic<int> value(123);
 			TEST_CHECK(value.Load() == 123);
 		}
 	}
@@ -27,7 +27,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicLoad()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.LoadRelaxed() == 123);
 		TEST_CHECK(value.LoadAcquire() == 123);
 		TEST_CHECK(value.Load() == 123);
@@ -36,7 +36,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicStore()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		value.StoreRelaxed(4);
 		TEST_CHECK(value.LoadRelaxed() == 4);
 		value.StoreRelease(5);
@@ -48,7 +48,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicExchange()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.ExchangeRelaxed(4) == 123);
 		TEST_CHECK(value.ExchangeAcqRel(5) == 4);
 		TEST_CHECK(value.ExchangeRelease(6) == 5);
@@ -59,7 +59,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicFetchAdd()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.FetchAddRelaxed(2) == 123);
 		TEST_CHECK(value.FetchAddAcqRel(3) == 125);
 		TEST_CHECK(value.FetchAddRelease(4) == 128);
@@ -70,7 +70,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicAddFetch()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.AddFetchRelaxed(2) == 125);
 		TEST_CHECK(value.AddFetchAcqRel(3) == 128);
 		TEST_CHECK(value.AddFetchRelease(4) == 132);
@@ -81,7 +81,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicAdd()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		value.AddRelaxed(1);
 		TEST_CHECK(value.LoadRelaxed() == 124);
 		value.AddAcqRel(2);
@@ -95,7 +95,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicFetchSub()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.FetchSubRelaxed(2) == 123);
 		TEST_CHECK(value.FetchSubAcqRel(3) == 121);
 		TEST_CHECK(value.FetchSubRelease(4) == 118);
@@ -106,7 +106,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicSubFetch()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.SubFetchRelaxed(2) == 121);
 		TEST_CHECK(value.SubFetchAcqRel(3) == 118);
 		TEST_CHECK(value.SubFetchRelease(4) == 114);
@@ -117,7 +117,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicSub()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		value.SubRelaxed(1);
 		TEST_CHECK(value.LoadRelaxed() == 122);
 		value.SubAcqRel(2);
@@ -131,7 +131,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicIncrement()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		value.IncrementRelaxed();
 		TEST_CHECK(value.LoadRelaxed() == 124);
 		value.IncrementAcqRel();
@@ -145,7 +145,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicFetchIncrement()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.FetchIncrementRelaxed() == 123);
 		TEST_CHECK(value.FetchIncrementAcqRel() == 124);
 		TEST_CHECK(value.FetchIncrementRelease() == 125);
@@ -156,7 +156,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicIncrementFetch()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.IncrementFetchRelaxed() == 124);
 		TEST_CHECK(value.IncrementFetchAcqRel() == 125);
 		TEST_CHECK(value.IncrementFetchRelease() == 126);
@@ -167,7 +167,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicDecrement()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		value.DecrementRelaxed();
 		TEST_CHECK(value.LoadRelaxed() == 122);
 		value.DecrementAcqRel();
@@ -181,7 +181,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicFetchDecrement()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.FetchDecrementRelaxed() == 123);
 		TEST_CHECK(value.FetchDecrementAcqRel() == 122);
 		TEST_CHECK(value.FetchDecrementRelease() == 121);
@@ -192,7 +192,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicDecrementFetch()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		TEST_CHECK(value.DecrementFetchRelaxed() == 122);
 		TEST_CHECK(value.DecrementFetchAcqRel() == 121);
 		TEST_CHECK(value.DecrementFetchRelease() == 120);
@@ -203,7 +203,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicCmpExchgWeak()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		int expected = 100;
 		TEST_CHECK(!value.CmpExchgWeakAcquire(expected, 124));
 		TEST_CHECK(value.LoadRelaxed() == 123);
@@ -247,7 +247,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicCmpExchgStrong()
 	{
-		mg::common::Atomic<int> value(123);
+		mg::box::Atomic<int> value(123);
 		int expected = 100;
 		TEST_CHECK(!value.CmpExchgStrongAcquire(expected, 124));
 		TEST_CHECK(value.LoadRelaxed() == 123);
@@ -291,7 +291,7 @@ namespace unittests {
 	static void
 	UnitTestAtomicBool()
 	{
-		mg::common::Atomic<bool> value(true);
+		mg::box::Atomic<bool> value(true);
 		TEST_CHECK(value.LoadRelaxed());
 
 		value.StoreRelaxed(false);
@@ -327,7 +327,7 @@ namespace unittests {
 		void* val1 = (void*)&i1;
 		void* val2 = (void*)&i2;
 
-		mg::common::Atomic<void*> value(val1);
+		mg::box::Atomic<void*> value(val1);
 		TEST_CHECK(value.LoadRelaxed() == val1);
 
 		value.StoreRelaxed(val2);

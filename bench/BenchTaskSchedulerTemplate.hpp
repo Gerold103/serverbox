@@ -2,8 +2,8 @@
 
 #include "Bench.h"
 
-#include "mg/common/Atomic.h"
-#include "mg/common/Mutex.h"
+#include "mg/box/Atomic.h"
+#include "mg/box/Mutex.h"
 
 #include "mg/test/Random.h"
 
@@ -46,8 +46,8 @@ namespace bench {
 		BenchTask* myTasks;
 		const uint32_t myTaskCount;
 		const uint32_t myExecuteCount;
-		mg::common::AtomicU32 myStopCount;
-		mg::common::AtomicU64 myTotalExecuteCount;
+		mg::box::AtomicU32 myStopCount;
+		mg::box::AtomicU64 myTotalExecuteCount;
 		TaskScheduler* myScheduler;
 	};
 
@@ -132,7 +132,7 @@ namespace bench {
 	void
 	BenchTaskCtl::Warmup()
 	{
-		mg::common::AtomicU32 execCount(0);
+		mg::box::AtomicU32 execCount(0);
 		for (int i = 0; i < MG_WARMUP_TASK_COUNT; ++i)
 		{
 			myScheduler->PostOneShot([&]() {
@@ -140,7 +140,7 @@ namespace bench {
 			});
 		}
 		while (execCount.LoadRelaxed() != MG_WARMUP_TASK_COUNT)
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 		// Cleanup the stats to make the bench's results clean.
 		uint32_t count = 0;
 		TaskSchedulerThread*const* threads = myScheduler->GetThreads(count);
@@ -177,7 +177,7 @@ namespace bench {
 	{
 		uint64_t total = myExecuteCount * myTaskCount;
 		WaitExecuteCount(total);
-		MG_COMMON_ASSERT(total == myTotalExecuteCount.LoadRelaxed());
+		MG_BOX_ASSERT(total == myTotalExecuteCount.LoadRelaxed());
 	}
 
 	void
@@ -185,16 +185,16 @@ namespace bench {
 		uint64_t aCount)
 	{
 		while (myTotalExecuteCount.LoadRelaxed() < aCount)
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 	}
 
 	void
 	BenchTaskCtl::WaitAllStopped()
 	{
 		while (myStopCount.LoadAcquire() != myTaskCount)
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 		for (uint32_t i = 0; i < myTaskCount; ++i)
-			MG_COMMON_ASSERT(myTasks[i].myExecuteCount == myExecuteCount);
+			MG_BOX_ASSERT(myTasks[i].myExecuteCount == myExecuteCount);
 	}
 
 	void
@@ -253,7 +253,7 @@ namespace bench {
 	BenchTask::ExecuteNano(
 		Task* aTask)
 	{
-		MG_COMMON_ASSERT(aTask == this);
+		MG_BOX_ASSERT(aTask == this);
 		++myExecuteCount;
 		myCtx->myTotalExecuteCount.IncrementRelaxed();
 		if (myExecuteCount >= myCtx->myExecuteCount)
@@ -265,7 +265,7 @@ namespace bench {
 	BenchTask::ExecuteMicro(
 		Task* aTask)
 	{
-		MG_COMMON_ASSERT(aTask == this);
+		MG_BOX_ASSERT(aTask == this);
 		++myExecuteCount;
 		myCtx->myTotalExecuteCount.IncrementRelaxed();
 		BenchMakeMicroWork();
@@ -278,7 +278,7 @@ namespace bench {
 	BenchTask::ExecuteHeavy(
 		Task* aTask)
 	{
-		MG_COMMON_ASSERT(aTask == this);
+		MG_BOX_ASSERT(aTask == this);
 		aTask->ReceiveSignal();
 		++myExecuteCount;
 		myCtx->myTotalExecuteCount.IncrementRelaxed();
@@ -382,19 +382,19 @@ namespace bench {
 			break;
 		case BENCH_LOAD_EMPTY:
 		default:
-			MG_COMMON_ASSERT(!"Unsupported load type");
+			MG_BOX_ASSERT(!"Unsupported load type");
 			break;
 		}
 		BenchCaseGuard guard("Load %s, thread=%u, task=%u, exec=%u",
 			BenchLoadTypeToString(aType), aThreadCount, aTaskCount, aExecuteCount);
 		BenchRunReport report;
 
-		mg::common::MutexStatClear();
+		mg::box::MutexStatClear();
 		TimedGuard timed("Post and wait");
 		ctl.PostAll();
 		ctl.WaitAllStopped();
 		timed.Stop();
-		report.myMutexContentionCount = mg::common::MutexStatContentionCount();
+		report.myMutexContentionCount = mg::box::MutexStatContentionCount();
 		timed.Report();
 		double durationMs = timed.GetMilliseconds();
 

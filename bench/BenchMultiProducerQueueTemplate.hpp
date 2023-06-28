@@ -2,9 +2,9 @@
 
 #include "Bench.h"
 
-#include "mg/common/ForwardList.h"
-#include "mg/common/Signal.h"
-#include "mg/common/Thread.h"
+#include "mg/box/ForwardList.h"
+#include "mg/box/Signal.h"
+#include "mg/box/Thread.h"
 
 #include <algorithm>
 #include <vector>
@@ -12,16 +12,16 @@
 namespace mg {
 namespace bench {
 
-	using BenchValueList = mg::common::ForwardList<BenchValue>;
+	using BenchValueList = mg::box::ForwardList<BenchValue>;
 
 	class BenchThreadSender
-		: public mg::common::Thread
+		: public mg::box::Thread
 	{
 	public:
 		BenchThreadSender(
 			MultiProducerQueue& aQueue,
-			mg::common::Signal* aSignal,
-			mg::common::AtomicU64& aSharedQueueSize,
+			mg::box::Signal* aSignal,
+			mg::box::AtomicU64& aSharedQueueSize,
 			uint64_t aItemCount,
 			BenchLoadType aLoadType);
 
@@ -34,24 +34,24 @@ namespace bench {
 
 		MultiProducerQueue& myQueue;
 		MG_BENCH_FALSE_SHARING_BARRIER(myPadding1);
-		mg::common::AtomicU64& mySharedQueueSize;
+		mg::box::AtomicU64& mySharedQueueSize;
 		MG_BENCH_FALSE_SHARING_BARRIER(myPadding2);
 		const uint64_t myItemCount;
 		BenchValueList myItems;
 		MG_BENCH_FALSE_SHARING_BARRIER(myPadding3);
-		mg::common::Signal* mySignal;
+		mg::box::Signal* mySignal;
 		BenchLoadType myLoadType;
-		mg::common::AtomicBool myIsPaused;
+		mg::box::AtomicBool myIsPaused;
 	};
 
 	class BenchThreadReceiver
-		: public mg::common::Thread
+		: public mg::box::Thread
 	{
 	public:
 		BenchThreadReceiver(
 			MultiProducerQueue& aQueue,
-			mg::common::Signal* aSignal,
-			mg::common::AtomicU64& aSharedQueueSize,
+			mg::box::Signal* aSignal,
+			mg::box::AtomicU64& aSharedQueueSize,
 			BenchLoadType aLoadType);
 
 		~BenchThreadReceiver() override;
@@ -65,14 +65,14 @@ namespace bench {
 
 		MultiProducerQueue& myQueue;
 		MG_BENCH_FALSE_SHARING_BARRIER(myPadding1);
-		mg::common::AtomicU64& mySharedQueueSize;
+		mg::box::AtomicU64& mySharedQueueSize;
 		MG_BENCH_FALSE_SHARING_BARRIER(myPadding2);
-		mg::common::AtomicU64 myItemCount;
+		mg::box::AtomicU64 myItemCount;
 		BenchValueList myItems;
 		MG_BENCH_FALSE_SHARING_BARRIER(myPadding3);
-		mg::common::Signal* mySignal;
+		mg::box::Signal* mySignal;
 		BenchLoadType myLoadType;
-		mg::common::AtomicBool myIsPaused;
+		mg::box::AtomicBool myIsPaused;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -102,8 +102,8 @@ namespace bench {
 
 	BenchThreadSender::BenchThreadSender(
 		MultiProducerQueue& aQueue,
-		mg::common::Signal* aSignal,
-		mg::common::AtomicU64& aSharedQueueSize,
+		mg::box::Signal* aSignal,
+		mg::box::AtomicU64& aSharedQueueSize,
 		uint64_t aItemCount,
 		BenchLoadType aLoadType)
 		: myQueue(aQueue)
@@ -115,7 +115,7 @@ namespace bench {
 	{
 		Start();
 		while (!myIsPaused.LoadAcquire())
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 	}
 
 	BenchThreadSender::~BenchThreadSender()
@@ -126,7 +126,7 @@ namespace bench {
 	void
 	BenchThreadSender::Begin()
 	{
-		MG_COMMON_ASSERT(myIsPaused.ExchangeRelease(false));
+		MG_BOX_ASSERT(myIsPaused.ExchangeRelease(false));
 	}
 
 	void
@@ -134,7 +134,7 @@ namespace bench {
 	{
 		for (uint64_t i = 0; i < myItemCount; ++i)
 			myItems.Append(new BenchValue());
-		MG_COMMON_ASSERT(!myIsPaused.ExchangeRelease(true));
+		MG_BOX_ASSERT(!myIsPaused.ExchangeRelease(true));
 		while (myIsPaused.LoadAcquire());
 
 		while (!StopRequested() && !myItems.IsEmpty())
@@ -151,7 +151,7 @@ namespace bench {
 					break;
 				case BENCH_LOAD_HEAVY:
 				default:
-					MG_COMMON_ASSERT(false);
+					MG_BOX_ASSERT(false);
 					break;
 			}
 			mySharedQueueSize.IncrementRelaxed();
@@ -162,8 +162,8 @@ namespace bench {
 
 	BenchThreadReceiver::BenchThreadReceiver(
 		MultiProducerQueue& aQueue,
-		mg::common::Signal* aSignal,
-		mg::common::AtomicU64& aSharedQueueSize,
+		mg::box::Signal* aSignal,
+		mg::box::AtomicU64& aSharedQueueSize,
 		BenchLoadType aLoadType)
 		: myQueue(aQueue)
 		, mySharedQueueSize(aSharedQueueSize)
@@ -174,7 +174,7 @@ namespace bench {
 	{
 		Start();
 		while (!myIsPaused.LoadAcquire())
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 	}
 
 	BenchThreadReceiver::~BenchThreadReceiver()
@@ -184,7 +184,7 @@ namespace bench {
 		{
 			if (mySignal != nullptr)
 				mySignal->Send();
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 		}
 		BlockingStop();
 		while (!myItems.IsEmpty())
@@ -194,7 +194,7 @@ namespace bench {
 	void
 	BenchThreadReceiver::Begin()
 	{
-		MG_COMMON_ASSERT(myIsPaused.ExchangeRelease(false));
+		MG_BOX_ASSERT(myIsPaused.ExchangeRelease(false));
 	}
 
 	uint64_t
@@ -206,7 +206,7 @@ namespace bench {
 	void
 	BenchThreadReceiver::Run()
 	{
-		MG_COMMON_ASSERT(!myIsPaused.ExchangeRelease(true));
+		MG_BOX_ASSERT(!myIsPaused.ExchangeRelease(true));
 		while (myIsPaused.LoadAcquire());
 
 		while (!StopRequested())
@@ -223,7 +223,7 @@ namespace bench {
 					break;
 				case BENCH_LOAD_HEAVY:
 				default:
-					MG_COMMON_ASSERT(false);
+					MG_BOX_ASSERT(false);
 					break;
 			}
 			if (mySignal != nullptr)
@@ -269,13 +269,13 @@ namespace bench {
 		uint64_t aItemCount,
 		uint32_t aSenderCount)
 	{
-		mg::common::Signal signal;
-		mg::common::Signal* signalPtr = nullptr;
+		mg::box::Signal signal;
+		mg::box::Signal* signalPtr = nullptr;
 		if (aDoUseSignal)
 			signalPtr = &signal;
 
 		MultiProducerQueue queue;
-		mg::common::AtomicU64 sharedQueueSize(0);
+		mg::box::AtomicU64 sharedQueueSize(0);
 		BenchThreadReceiver* receiver = new BenchThreadReceiver(queue, signalPtr,
 			sharedQueueSize, aLoadType);
 		std::vector<BenchThreadSender*> senders;
@@ -292,7 +292,7 @@ namespace bench {
 			(unsigned long long)aItemCount, (int)aDoUseSignal);
 		BenchRunReport report;
 
-		mg::common::MutexStatClear();
+		mg::box::MutexStatClear();
 		TimedGuard timed("Wait receipt");
 		receiver->Begin();
 		for (BenchThreadSender* s : senders)
@@ -301,10 +301,10 @@ namespace bench {
 		while (progress < aItemCount)
 		{
 			progress += receiver->StatPopItemCount();
-			mg::common::Sleep(1);
+			mg::box::Sleep(1);
 		}
 		timed.Stop();
-		uint64_t mutexContentionCount = mg::common::MutexStatContentionCount();
+		uint64_t mutexContentionCount = mg::box::MutexStatContentionCount();
 		timed.Report();
 		double durationMs = timed.GetMilliseconds();
 

@@ -1,7 +1,7 @@
 #include "Task.h"
 
-#include "mg/common/Assert.h"
-#include "mg/common/Time.h"
+#include "mg/box/Assert.h"
+#include "mg/box/Time.h"
 
 namespace mg {
 namespace sch {
@@ -11,14 +11,14 @@ namespace sch {
 		uint32_t aDelay)
 	{
 		PrivTouch();
-		myDeadline = mg::common::GetMilliseconds() + aDelay;
+		myDeadline = mg::box::GetMilliseconds() + aDelay;
 	}
 
 	void
 	Task::AdjustDelay(
 		uint32_t aDelay)
 	{
-		AdjustDeadline(mg::common::GetMilliseconds() + aDelay);
+		AdjustDeadline(mg::box::GetMilliseconds() + aDelay);
 	}
 
 	void

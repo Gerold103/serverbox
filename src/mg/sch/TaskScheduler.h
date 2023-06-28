@@ -1,11 +1,11 @@
 #pragma once
 
-#include "mg/common/BinaryHeap.h"
-#include "mg/common/ForwardList.h"
-#include "mg/common/MultiConsumerQueue.h"
-#include "mg/common/MultiProducerQueueIntrusive.h"
-#include "mg/common/Signal.h"
-#include "mg/common/Thread.h"
+#include "mg/box/BinaryHeap.h"
+#include "mg/box/ForwardList.h"
+#include "mg/box/MultiConsumerQueue.h"
+#include "mg/box/MultiProducerQueueIntrusive.h"
+#include "mg/box/Signal.h"
+#include "mg/box/Thread.h"
 
 #include "mg/sch/Task.h"
 
@@ -18,26 +18,26 @@ namespace sch {
 	// threads. So it is multi-producer. It is dispatched by
 	// sched-thread only, so it is single-consumer. Each task goes
 	// firstly to the front queue.
-	using TaskSchedulerQueueFront = mg::common::MultiProducerQueueIntrusive<Task>;
+	using TaskSchedulerQueueFront = mg::box::MultiProducerQueueIntrusive<Task>;
 	// Waiting queue is only used by one worker thread at a time,
 	// so it has no concurrent access and is therefore not
 	// protected with a lock. Tasks move from the front queue to
 	// the waiting queue only if they have a deadline in the
 	// future.
-	using TaskSchedulerQueueWaiting = mg::common::BinaryHeapMinIntrusive<Task>;
+	using TaskSchedulerQueueWaiting = mg::box::BinaryHeapMinIntrusive<Task>;
 	// Ready queue is populated only by the sched-thread and
 	// consumed by all workers when dispatching tasks. Tasks move
 	// to the ready queue from either the front queue if a task is
 	// due to execute right away or from the waiting queue if a
 	// task deadline is met (or it was woken up or signaled).
-	using TaskSchedulerQueueReady = mg::common::MultiConsumerQueue<Task>;
-	using TaskSchedulerQueueReadyConsumer = mg::common::MultiConsumerQueueConsumer<Task>;
+	using TaskSchedulerQueueReady = mg::box::MultiConsumerQueue<Task>;
+	using TaskSchedulerQueueReadyConsumer = mg::box::MultiConsumerQueueConsumer<Task>;
 	// Pending queue is populated from the front queue for further processing. Normally
 	// all its tasks are just handled right away, but if there is a particularly huge wave
 	// of new tasks, then the scheduler might start buffering them in the pending queue
 	// for processing in pieces of a limited size. It is accessed only by the
 	// sched-thread.
-	using TaskSchedulerQueuePending = mg::common::ForwardList<Task>;
+	using TaskSchedulerQueuePending = mg::box::ForwardList<Task>;
 
 	// Special type to post callbacks not bound to a task. The
 	// scheduler creates tasks for them inside. Keep in mind, that
@@ -261,7 +261,7 @@ namespace sch {
 		// Each task firstly goes to the front queue, from where
 		// it is dispatched to the other queues by sched-thread.
 		TaskSchedulerQueueFront myQueueFront;
-		mg::common::Signal mySignalFront;
+		mg::box::Signal mySignalFront;
 
 		// Front queue is very hot, it is updated by all threads -
 		// external ones and workers. Should not invalidate the
@@ -274,7 +274,7 @@ namespace sch {
 		TaskSchedulerQueuePending myQueuePending;
 		TaskSchedulerQueueWaiting myQueueWaiting;
 		TaskSchedulerQueueReady myQueueReady;
-		mg::common::Signal mySignalReady;
+		mg::box::Signal mySignalReady;
 		// Threads try to execute not just all ready tasks in a row - periodically they
 		// try to take care of the scheduling too. It helps to prevent the front-queue
 		// from growing too much.
@@ -299,14 +299,14 @@ namespace sch {
 		//
 		// The worker thread, doing the scheduling right now, is
 		// called 'sched-thread' throughout the code.
-		mg::common::AtomicBool myIsSchedulerWorking;
-		mg::common::AtomicBool myIsStopped;
+		mg::box::AtomicBool myIsSchedulerWorking;
+		mg::box::AtomicBool myIsStopped;
 
 		friend class TaskSchedulerThread;
 	};
 
 	class TaskSchedulerThread
-		: public mg::common::Thread
+		: public mg::box::Thread
 	{
 	public:
 		TaskSchedulerThread(
@@ -322,8 +322,8 @@ namespace sch {
 
 		TaskScheduler* myScheduler;
 		TaskSchedulerQueueReadyConsumer myConsumer;
-		mg::common::AtomicU64 myExecuteCount;
-		mg::common::AtomicU64 myScheduleCount;
+		mg::box::AtomicU64 myExecuteCount;
+		mg::box::AtomicU64 myScheduleCount;
 	};
 
 	struct TaskOneShot

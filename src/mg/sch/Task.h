@@ -1,7 +1,7 @@
 #pragma once
 
-#include "mg/common/Atomic.h"
-#include "mg/common/TypeTraits.h"
+#include "mg/box/Atomic.h"
+#include "mg/box/TypeTraits.h"
 
 #include <functional>
 
@@ -156,7 +156,7 @@ namespace sch {
 		// waiting queue.
 		int32_t myIndex;
 	private:
-		mg::common::Atomic<TaskStatus> myStatus;
+		mg::box::Atomic<TaskStatus> myStatus;
 		uint64_t myDeadline;
 		TaskCallback myCallback;
 		// True if the task is inside the scheduler in one of its

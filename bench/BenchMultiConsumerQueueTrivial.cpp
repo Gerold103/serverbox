@@ -1,7 +1,7 @@
 #include "Bench.h"
 
-#include "mg/common/ForwardList.h"
-#include "mg/common/Mutex.h"
+#include "mg/box/ForwardList.h"
+#include "mg/box/Mutex.h"
 
 namespace mg {
 namespace bench {
@@ -13,7 +13,7 @@ namespace bench {
 		BenchValue* myNext;
 	};
 
-	using BenchValueList = mg::common::ForwardList<BenchValue>;
+	using BenchValueList = mg::box::ForwardList<BenchValue>;
 
 	// Trivial queue takes a mutex lock on each operation. The simplest possible
 	// implementation and the most typical one. And most of the time it is enough.
@@ -33,7 +33,7 @@ namespace bench {
 			uint32_t aCount);
 
 	private:
-		mg::common::Mutex myMutex;
+		mg::box::Mutex myMutex;
 		BenchValueList myItems;
 	};
 

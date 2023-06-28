@@ -1,7 +1,7 @@
 #include "TaskScheduler.h"
 
-#include "mg/common/Time.h"
-#include "mg/common/Util.h"
+#include "mg/box/Time.h"
+#include "mg/box/Util.h"
 
 namespace mg {
 namespace sch {
@@ -35,10 +35,10 @@ namespace sch {
 		mySignalFront.Send();
 		for (TaskSchedulerThread* t : myThreads)
 			t->StopAndDelete();
-		MG_COMMON_ASSERT(myQueuePending.IsEmpty());
-		MG_COMMON_ASSERT(myQueueFront.PopAllFastReversed() == nullptr);
-		MG_COMMON_ASSERT(myQueueWaiting.Count() == 0);
-		MG_COMMON_ASSERT(myQueueReady.Count() == 0);
+		MG_BOX_ASSERT(myQueuePending.IsEmpty());
+		MG_BOX_ASSERT(myQueueFront.PopAllFastReversed() == nullptr);
+		MG_BOX_ASSERT(myQueueWaiting.Count() == 0);
+		MG_BOX_ASSERT(myQueueReady.Count() == 0);
 	}
 
 	void
@@ -131,7 +131,7 @@ namespace sch {
 		Task* tail;
 		TaskSchedulerQueuePending ready;
 		uint64_t deadline;
-		uint64_t timestamp = mg::common::GetMilliseconds();
+		uint64_t timestamp = mg::box::GetMilliseconds();
 		uint32_t batch;
 		uint32_t maxBatch = mySchedBatchSize;
 
@@ -269,7 +269,7 @@ namespace sch {
 			else
 			{
 				deadline = myQueueWaiting.GetTop()->myDeadline;
-				timestamp = mg::common::GetMilliseconds();
+				timestamp = mg::box::GetMilliseconds();
 				if (deadline > timestamp)
 					mySignalFront.ReceiveTimed((uint32_t)(deadline - timestamp));
 			}
@@ -348,7 +348,7 @@ namespace sch {
 	TaskSchedulerThread::TaskSchedulerThread(
 		const char* aSchedulerName,
 		TaskScheduler* aScheduler)
-		: Thread(mg::common::StringFormat(
+		: Thread(mg::box::StringFormat(
 			"mgsch.wrk%s", aSchedulerName).c_str())
 		, myScheduler(aScheduler)
 		, myExecuteCount(0)
