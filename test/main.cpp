@@ -15,6 +15,7 @@ namespace unittests {
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
 	void UnitTestSignal();
+	void UnitTestString();
 	void UnitTestTaskScheduler();
 	void UnitTestUtil();
 
@@ -36,6 +37,7 @@ main()
 	UnitTestMultiProducerQueue();
 	UnitTestMutex();
 	UnitTestSignal();
+	UnitTestString();
 	UnitTestTaskScheduler();
 	UnitTestUtil();
 	return 0;
