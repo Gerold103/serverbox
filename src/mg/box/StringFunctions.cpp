@@ -73,18 +73,35 @@ namespace box {
 		return errno == 0 && *aString != 0 && *end == 0;
 	}
 
+	template<typename ResT, ResT aMax>
+	static bool
+	StringToUnsignedNumberTemplate(
+		const char* aString,
+		ResT& aOutNumber)
+	{
+		uint64_t res;
+		if (StringToNumber(aString, res) && res <= aMax)
+		{
+			aOutNumber = (ResT)res;
+			return true;
+		}
+		return false;
+	}
+
+	bool
+	StringToNumber(
+		const char* aString,
+		uint16_t& aOutNumber)
+	{
+		return StringToUnsignedNumberTemplate<uint16_t, UINT16_MAX>(aString, aOutNumber);
+	}
+
 	bool
 	StringToNumber(
 		const char* aString,
 		uint32_t& aOutNumber)
 	{
-		uint64_t res;
-		if (StringToNumber(aString, res) && res <= UINT32_MAX)
-		{
-			aOutNumber = (uint32_t)res;
-			return true;
-		}
-		return false;
+		return StringToUnsignedNumberTemplate<uint32_t, UINT32_MAX>(aString, aOutNumber);
 	}
 
 }

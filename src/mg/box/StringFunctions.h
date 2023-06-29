@@ -52,6 +52,10 @@ namespace box {
 
 	bool StringToNumber(
 		const char* aString,
+		uint16_t& aOutNumber);
+
+	bool StringToNumber(
+		const char* aString,
 		uint32_t& aOutNumber);
 
 	bool StringToNumber(

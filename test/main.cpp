@@ -32,6 +32,7 @@ namespace unittests {
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
 	void UnitTestSignal();
+	void UnitTestString();
 	void UnitTestTaskScheduler();
 	void UnitTestUtil();
 
@@ -60,6 +61,7 @@ main(
 	MG_RUN_TEST(UnitTestMultiProducerQueue);
 	MG_RUN_TEST(UnitTestMutex);
 	MG_RUN_TEST(UnitTestSignal);
+	MG_RUN_TEST(UnitTestString);
 	MG_RUN_TEST(UnitTestTaskScheduler);
 	MG_RUN_TEST(UnitTestUtil);
 	return 0;
