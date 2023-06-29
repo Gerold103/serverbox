@@ -36,6 +36,9 @@ namespace box {
 	void UnitTestSignal();
 	void UnitTestString();
 }
+namespace net {
+	void UnitTestHost();
+}
 namespace sch {
 	void UnitTestTaskScheduler();
 }
@@ -66,6 +69,7 @@ main(
 	MG_RUN_TEST(box, UnitTestMutex);
 	MG_RUN_TEST(box, UnitTestSignal);
 	MG_RUN_TEST(box, UnitTestString);
+	MG_RUN_TEST(net, UnitTestHost);
 	MG_RUN_TEST(sch, UnitTestTaskScheduler);
 	return 0;
 }

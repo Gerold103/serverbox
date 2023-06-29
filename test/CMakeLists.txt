@@ -13,6 +13,7 @@ add_executable(test
 	box/UnitTestMutex.cpp
 	box/UnitTestSignal.cpp
 	box/UnitTestString.cpp
+	net/UnitTestHost.cpp
 	sch/UnitTestTaskScheduler.cpp
 )
 
@@ -22,6 +23,7 @@ target_include_directories(test PUBLIC
 )
 
 target_link_libraries(test
+	mgnet
 	mgsch
 	mgtest
 )
