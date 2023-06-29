@@ -8,6 +8,7 @@ add_executable(test
 	UnitTestBinaryHeap.cpp
 	UnitTestConditionVariable.cpp
 	UnitTestForwardList.cpp
+	UnitTestHost.cpp
 	UnitTestMultiConsumerQueue.cpp
 	UnitTestMultiProducerQueue.cpp
 	UnitTestMutex.cpp
@@ -22,6 +23,7 @@ target_include_directories(test PUBLIC
 )
 
 target_link_libraries(test
+	mgnet
 	mgsched
 	mgtest
 )
