@@ -29,6 +29,7 @@ namespace box {
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
 	void UnitTestConditionVariable();
+	void UnitTestDoublyList();
 	void UnitTestForwardList();
 	void UnitTestMultiConsumerQueue();
 	void UnitTestMultiProducerQueue();
@@ -65,6 +66,7 @@ main(
 	MG_RUN_TEST(box, UnitTestAtomic);
 	MG_RUN_TEST(box, UnitTestBinaryHeap);
 	MG_RUN_TEST(box, UnitTestConditionVariable);
+	MG_RUN_TEST(box, UnitTestDoublyList);
 	MG_RUN_TEST(box, UnitTestForwardList);
 	MG_RUN_TEST(box, UnitTestMultiConsumerQueue);
 	MG_RUN_TEST(box, UnitTestMultiProducerQueue);
