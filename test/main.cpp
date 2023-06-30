@@ -33,6 +33,7 @@ namespace box {
 	void UnitTestMultiConsumerQueue();
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
+	void UnitTestRefCount();
 	void UnitTestSignal();
 	void UnitTestString();
 }
@@ -67,6 +68,7 @@ main(
 	MG_RUN_TEST(box, UnitTestMultiConsumerQueue);
 	MG_RUN_TEST(box, UnitTestMultiProducerQueue);
 	MG_RUN_TEST(box, UnitTestMutex);
+	MG_RUN_TEST(box, UnitTestRefCount);
 	MG_RUN_TEST(box, UnitTestSignal);
 	MG_RUN_TEST(box, UnitTestString);
 	MG_RUN_TEST(net, UnitTestHost);
