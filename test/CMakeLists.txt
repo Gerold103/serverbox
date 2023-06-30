@@ -7,6 +7,7 @@ add_executable(test
 	UnitTestAtomic.cpp
 	UnitTestBinaryHeap.cpp
 	UnitTestConditionVariable.cpp
+	UnitTestDoublyList.cpp
 	UnitTestForwardList.cpp
 	UnitTestHost.cpp
 	UnitTestMultiConsumerQueue.cpp

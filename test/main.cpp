@@ -10,6 +10,7 @@ namespace unittests {
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
 	void UnitTestConditionVariable();
+	void UnitTestDoublyList();
 	void UnitTestHost();
 	void UnitTestForwardList();
 	void UnitTestMultiConsumerQueue();
@@ -32,11 +33,12 @@ main()
 
 	Report("======== Unit tests ========");
 
-	UnitTestSharedPtr();
+	UnitTestDoublyList();
 
 	UnitTestAtomic();
 	UnitTestBinaryHeap();
 	UnitTestConditionVariable();
+	UnitTestDoublyList();
 	UnitTestHost();
 	UnitTestForwardList();
 	UnitTestMultiConsumerQueue();
