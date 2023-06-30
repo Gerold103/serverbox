@@ -8,6 +8,7 @@ set(mgbox_src
 	ConditionVariable.cpp
 	ConditionVariable.h
 	Definitions.h
+	DoublyList.h
 	ForwardList.h
 	MultiConsumerQueue.h
 	MultiConsumerQueueBase.cpp
@@ -52,6 +53,7 @@ set(install_headers
 	BinaryHeap.h
 	ConditionVariable.h
 	Definitions.h
+	DoublyList.h
 	ForwardList.h
 	MultiConsumerQueue.h
 	MultiConsumerQueueBase.h
