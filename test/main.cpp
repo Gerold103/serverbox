@@ -16,6 +16,7 @@ namespace unittests {
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
 	void UnitTestRefCount();
+	void UnitTestSharedPtr();
 	void UnitTestSignal();
 	void UnitTestString();
 	void UnitTestTaskScheduler();
@@ -31,6 +32,8 @@ main()
 
 	Report("======== Unit tests ========");
 
+	UnitTestSharedPtr();
+
 	UnitTestAtomic();
 	UnitTestBinaryHeap();
 	UnitTestConditionVariable();
@@ -40,6 +43,7 @@ main()
 	UnitTestMultiProducerQueue();
 	UnitTestMutex();
 	UnitTestRefCount();
+	UnitTestSharedPtr();
 	UnitTestSignal();
 	UnitTestString();
 	UnitTestTaskScheduler();
