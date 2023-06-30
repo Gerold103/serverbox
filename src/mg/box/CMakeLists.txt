@@ -16,6 +16,7 @@ set(mgbox_src
 	Mutex.cpp
 	Mutex.h
 	RefCount.h
+	SharedPtr.h
 	Signal.cpp
 	Signal.h
 	StringFunctions.cpp
@@ -57,6 +58,7 @@ set(install_headers
 	MultiProducerQueueIntrusive.h
 	Mutex.h
 	RefCount.h
+	SharedPtr.h
 	Signal.h
 	Thread.h
 	TypeTraits.h

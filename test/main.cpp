@@ -34,6 +34,7 @@ namespace box {
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
 	void UnitTestRefCount();
+	void UnitTestSharedPtr();
 	void UnitTestSignal();
 	void UnitTestString();
 }
@@ -69,6 +70,7 @@ main(
 	MG_RUN_TEST(box, UnitTestMultiProducerQueue);
 	MG_RUN_TEST(box, UnitTestMutex);
 	MG_RUN_TEST(box, UnitTestRefCount);
+	MG_RUN_TEST(box, UnitTestSharedPtr);
 	MG_RUN_TEST(box, UnitTestSignal);
 	MG_RUN_TEST(box, UnitTestString);
 	MG_RUN_TEST(net, UnitTestHost);

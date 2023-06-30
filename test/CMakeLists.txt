@@ -12,6 +12,7 @@ add_executable(test
 	box/UnitTestMultiProducerQueue.cpp
 	box/UnitTestMutex.cpp
 	box/UnitTestRefCount.cpp
+	box/UnitTestSharedPtr.cpp
 	box/UnitTestSignal.cpp
 	box/UnitTestString.cpp
 	net/UnitTestHost.cpp
