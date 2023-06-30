@@ -12,6 +12,7 @@ add_executable(test
 	UnitTestMultiConsumerQueue.cpp
 	UnitTestMultiProducerQueue.cpp
 	UnitTestMutex.cpp
+	UnitTestRefCount.cpp
 	UnitTestSignal.cpp
 	UnitTestString.cpp
 	UnitTestTaskScheduler.cpp

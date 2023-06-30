@@ -15,6 +15,7 @@ namespace unittests {
 	void UnitTestMultiConsumerQueue();
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
+	void UnitTestRefCount();
 	void UnitTestSignal();
 	void UnitTestString();
 	void UnitTestTaskScheduler();
@@ -38,6 +39,7 @@ main()
 	UnitTestMultiConsumerQueue();
 	UnitTestMultiProducerQueue();
 	UnitTestMutex();
+	UnitTestRefCount();
 	UnitTestSignal();
 	UnitTestString();
 	UnitTestTaskScheduler();
