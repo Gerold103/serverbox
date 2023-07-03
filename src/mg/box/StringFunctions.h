@@ -2,8 +2,8 @@
 
 #include "mg/box/Definitions.h"
 
-#include <stdarg.h>
-#include <string.h>
+#include <cstdarg>
+#include <string>
 
 namespace mg {
 namespace box {
@@ -31,6 +31,9 @@ namespace box {
 	{
 		return strncmp(aA, aB, aCount);
 	}
+
+	void StringTrim(
+		std::string& aStr);
 
 	MG_STRFORMAT_PRINTF(2, 0)
 	uint32_t Vsprintf(

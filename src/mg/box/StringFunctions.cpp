@@ -8,6 +8,32 @@
 namespace mg {
 namespace box {
 
+	void
+	StringTrim(
+		std::string& aStr)
+	{
+		size_t len = aStr.length();
+		while (true)
+		{
+			if (len == 0)
+			{
+				aStr.clear();
+				return;
+			}
+			size_t pos = len - 1;
+			if (!isspace(aStr[pos]))
+			{
+				aStr.resize(len);
+				break;
+			}
+			--len;
+		}
+		size_t toCut = 0;
+		while (toCut <= len && isspace(aStr[toCut]))
+			++toCut;
+		aStr.erase(toCut);
+	}
+
 	uint32_t
 	Vsprintf(
 		char* aBuffer,
