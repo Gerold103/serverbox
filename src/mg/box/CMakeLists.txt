@@ -27,6 +27,7 @@ set(mgbox_src
 	Thread.cpp
 	Thread.h
 	ThreadFunc.h
+	ThreadLocalPool.h
 	Time.h
 	TypeTraits.h
 )
@@ -66,6 +67,7 @@ set(install_headers
 	SharedPtr.h
 	Signal.h
 	Thread.h
+	ThreadLocalPool.h
 	TypeTraits.h
 )
 
