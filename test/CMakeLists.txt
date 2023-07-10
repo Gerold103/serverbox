@@ -17,6 +17,7 @@ add_executable(test
 	box/UnitTestSharedPtr.cpp
 	box/UnitTestSignal.cpp
 	box/UnitTestString.cpp
+	box/UnitTestThreadLocalPool.cpp
 	net/UnitTestHost.cpp
 	sch/UnitTestTaskScheduler.cpp
 )
