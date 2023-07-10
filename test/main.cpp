@@ -22,6 +22,7 @@ namespace unittests {
 	void UnitTestSignal();
 	void UnitTestString();
 	void UnitTestTaskScheduler();
+	void UnitTestThreadLocalPool();
 	void UnitTestUtil();
 
 }
@@ -34,7 +35,7 @@ main()
 
 	Report("======== Unit tests ========");
 
-	UnitTestError();
+	UnitTestThreadLocalPool();
 
 	UnitTestAtomic();
 	UnitTestBinaryHeap();
@@ -51,6 +52,7 @@ main()
 	UnitTestSignal();
 	UnitTestString();
 	UnitTestTaskScheduler();
+	UnitTestThreadLocalPool();
 	UnitTestUtil();
 	return 0;
 }

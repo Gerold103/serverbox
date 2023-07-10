@@ -19,6 +19,7 @@ add_executable(test
 	UnitTestSignal.cpp
 	UnitTestString.cpp
 	UnitTestTaskScheduler.cpp
+	UnitTestThreadLocalPool.cpp
 	UnitTestUtil.cpp
 )
 
