@@ -32,6 +32,7 @@ namespace box {
 	void UnitTestDoublyList();
 	void UnitTestError();
 	void UnitTestForwardList();
+	void UnitTestIOVec();
 	void UnitTestMultiConsumerQueue();
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
@@ -71,6 +72,7 @@ main(
 	MG_RUN_TEST(box, UnitTestDoublyList);
 	MG_RUN_TEST(box, UnitTestError);
 	MG_RUN_TEST(box, UnitTestForwardList);
+	MG_RUN_TEST(box, UnitTestIOVec);
 	MG_RUN_TEST(box, UnitTestMultiConsumerQueue);
 	MG_RUN_TEST(box, UnitTestMultiProducerQueue);
 	MG_RUN_TEST(box, UnitTestMutex);
