@@ -12,6 +12,8 @@ set(mgbox_src
 	Error.cpp
 	Error.h
 	ForwardList.h
+	IOVec.cpp
+	IOVec.h
 	MultiConsumerQueue.h
 	MultiConsumerQueueBase.cpp
 	MultiConsumerQueueBase.h
@@ -59,6 +61,7 @@ set(install_headers
 	DoublyList.h
 	Error.h
 	ForwardList.h
+	IOVec.h
 	MultiConsumerQueue.h
 	MultiConsumerQueueBase.h
 	MultiProducerQueueIntrusive.h
