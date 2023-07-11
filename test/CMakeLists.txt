@@ -6,6 +6,7 @@ add_executable(test
 	UnitTest.h
 	UnitTestAtomic.cpp
 	UnitTestBinaryHeap.cpp
+	UnitTestBuffer.cpp
 	UnitTestConditionVariable.cpp
 	UnitTestDoublyList.cpp
 	UnitTestError.cpp

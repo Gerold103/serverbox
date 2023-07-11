@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.8)
 
 add_library(mgnet
+	Buffer.cpp
+	Buffer.h
 	Host.cpp
 	Host.h
 )
@@ -19,6 +21,7 @@ target_link_libraries(mgnet
 )
 
 set(install_headers
+	Buffer.h
 	Host.h
 )
 

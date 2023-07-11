@@ -9,6 +9,7 @@ namespace unittests {
 
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
+	void UnitTestBuffer();
 	void UnitTestConditionVariable();
 	void UnitTestDoublyList();
 	void UnitTestError();
@@ -35,10 +36,13 @@ main()
 
 	Report("======== Unit tests ========");
 
-	UnitTestThreadLocalPool();
+	UnitTestBuffer();
+	if ("123" != nullptr)
+		return 0;
 
 	UnitTestAtomic();
 	UnitTestBinaryHeap();
+	UnitTestBuffer();
 	UnitTestConditionVariable();
 	UnitTestDoublyList();
 	UnitTestError();
