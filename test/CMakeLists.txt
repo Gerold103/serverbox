@@ -12,6 +12,7 @@ add_executable(test
 	UnitTestError.cpp
 	UnitTestForwardList.cpp
 	UnitTestHost.cpp
+	UnitTestIOVec.cpp
 	UnitTestMultiConsumerQueue.cpp
 	UnitTestMultiProducerQueue.cpp
 	UnitTestMutex.cpp
