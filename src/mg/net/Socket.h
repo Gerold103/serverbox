@@ -1,0 +1,72 @@
+#pragma once
+
+#include "mg/box/Error.h"
+
+#include "mg/net/Host.h"
+
+#if IS_PLATFORM_WIN
+#include <winsock.h>
+#endif
+
+namespace mg {
+namespace net {
+
+#if IS_PLATFORM_WIN
+	using Socket = SOCKET;
+	static constexpr Socket theInvalidSocket = INVALID_SOCKET;
+#else
+	using Socket = int;
+	static constexpr Socket theInvalidSocket = -1;
+#endif
+
+	enum TransportProtocol
+	{
+		TRANSPORT_PROT_DEFAULT,
+		TRANSPORT_PROT_TCP,
+	};
+
+	Socket SocketCreate(
+		SockAddrFamily aAddrFamily,
+		TransportProtocol aProtocol,
+		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketBind(
+		Socket aSock,
+		const Host& aHost,
+		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketBindAny(
+		Socket aSock,
+		SockAddrFamily aAddrFamily,
+		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketSetKeepAlive(
+		Socket aSock,
+		bool aValue,
+		uint32_t aTimeout,
+		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketSetFixReuseAddr(
+		Socket aSock,
+		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketSetDualStack(
+		Socket aSock,
+		bool aValue,
+		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketShutdown(
+		Socket aSock,
+		mg::box::Error::Ptr& aOutErr);
+
+	void SocketClose(
+		Socket aSock);
+
+#if !IS_PLATFORM_WIN
+	bool SocketCheckState(
+		Socket aSock,
+		mg::box::Error::Ptr& aOutErr);
+#endif
+
+}
+}

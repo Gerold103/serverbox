@@ -16,6 +16,9 @@ namespace box {
 
 	std::string ErrorWinToString(
 		int aCode);
+
+	std::string ErrorWSAToString(
+		int aCode);
 #endif
 
 	//
@@ -81,6 +84,12 @@ namespace box {
 		ERR_SYS_OVERFLOW					= _ERR_SYS_BEGIN + 20,
 		ERR_SYS_LOOP						= _ERR_SYS_BEGIN + 21,
 					_ERR_SYS_END,
+					_ERR_NET_BEGIN			= 2000,
+		ERR_NET								= _ERR_NET_BEGIN + 0,
+		ERR_NET_CLOSE_BY_PEER				= _ERR_NET_BEGIN + 1,
+		ERR_NET_ADDR_IN_USE					= _ERR_NET_BEGIN + 2,
+		ERR_NET_ABORTED						= _ERR_NET_BEGIN + 3,
+					_ERR_NET_END,
 	};
 
 #if IS_PLATFORM_WIN
@@ -88,6 +97,11 @@ namespace box {
 
 	ErrorCode ErrorCodeFromWin(
 		uint32_t aWinCode);
+
+	ErrorCode ErrorCodeWSAGetLast();
+
+	ErrorCode ErrorCodeFromWSA(
+		uint32_t aWSACode);
 #endif
 
 	ErrorCode ErrorCodeErrno();
@@ -177,6 +191,37 @@ namespace box {
 	// GetLastError() + a comment format.
 	MG_STRFORMAT_PRINTF(1, 2)
 	ErrorPtrRaised ErrorRaiseFormatWin(
+		const char* aCommentFormat,
+		...);
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	// WSAGetLastError() + built-in message.
+	ErrorPtrRaised ErrorRaiseWSA();
+
+	// Existing built-in error + built-in message.
+	ErrorPtrRaised ErrorRaiseWSA(
+		uint32_t aValue);
+
+	// Existing built-in error + a comment.
+	ErrorPtrRaised ErrorRaiseWSA(
+		uint32_t aValue,
+		const char* aComment);
+
+	// WSAGetLastError() + a comment.
+	ErrorPtrRaised ErrorRaiseWSA(
+		const char* aComment);
+
+	// Existing built-in error + a comment format.
+	MG_STRFORMAT_PRINTF(2, 3)
+	ErrorPtrRaised ErrorRaiseFormatWSA(
+		uint32_t aValue,
+		const char* aCommentFormat,
+		...);
+
+	// WSAGetLastError() + a comment format.
+	MG_STRFORMAT_PRINTF(1, 2)
+	ErrorPtrRaised ErrorRaiseFormatWSA(
 		const char* aCommentFormat,
 		...);
 
