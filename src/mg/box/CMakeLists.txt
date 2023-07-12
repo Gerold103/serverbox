@@ -14,6 +14,8 @@ set(mgbox_src
 	ForwardList.h
 	IOVec.cpp
 	IOVec.h
+	Log.cpp
+	Log.h
 	MultiConsumerQueue.h
 	MultiConsumerQueueBase.cpp
 	MultiConsumerQueueBase.h
@@ -62,6 +64,7 @@ set(install_headers
 	Error.h
 	ForwardList.h
 	IOVec.h
+	Log.h
 	MultiConsumerQueue.h
 	MultiConsumerQueueBase.h
 	MultiProducerQueueIntrusive.h
