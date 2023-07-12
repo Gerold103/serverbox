@@ -11,6 +11,7 @@ add_executable(test
 	box/UnitTestError.cpp
 	box/UnitTestForwardList.cpp
 	box/UnitTestIOVec.cpp
+	box/UnitTestLog.cpp
 	box/UnitTestMultiConsumerQueue.cpp
 	box/UnitTestMultiProducerQueue.cpp
 	box/UnitTestMutex.cpp
@@ -29,6 +30,8 @@ target_include_directories(test PUBLIC
 )
 
 target_link_libraries(test
+	mgbox
+	mgboxstub
 	mgnet
 	mgsch
 	mgtest
