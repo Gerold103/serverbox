@@ -16,6 +16,7 @@ namespace unittests {
 	void UnitTestForwardList();
 	void UnitTestHost();
 	void UnitTestIOVec();
+	void UnitTestLog();
 	void UnitTestMultiConsumerQueue();
 	void UnitTestMultiProducerQueue();
 	void UnitTestMutex();
@@ -37,7 +38,7 @@ main()
 
 	Report("======== Unit tests ========");
 
-	UnitTestIOVec();
+	UnitTestLog();
 	if ("123" != nullptr)
 		return 0;
 
@@ -50,6 +51,7 @@ main()
 	UnitTestForwardList();
 	UnitTestHost();
 	UnitTestIOVec();
+	UnitTestLog();
 	UnitTestMultiConsumerQueue();
 	UnitTestMultiProducerQueue();
 	UnitTestMutex();
