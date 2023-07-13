@@ -24,6 +24,7 @@ namespace unittests {
 	void UnitTestSharedPtr();
 	void UnitTestSignal();
 	void UnitTestString();
+	void UnitTestSysinfo();
 	void UnitTestTaskScheduler();
 	void UnitTestThreadLocalPool();
 	void UnitTestUtil();
@@ -38,7 +39,7 @@ main()
 
 	Report("======== Unit tests ========");
 
-	UnitTestLog();
+	UnitTestSysinfo();
 	if ("123" != nullptr)
 		return 0;
 
@@ -59,6 +60,7 @@ main()
 	UnitTestSharedPtr();
 	UnitTestSignal();
 	UnitTestString();
+	UnitTestSysinfo();
 	UnitTestTaskScheduler();
 	UnitTestThreadLocalPool();
 	UnitTestUtil();

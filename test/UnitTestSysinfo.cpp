@@ -1,0 +1,21 @@
+#include "mg/box/Sysinfo.h"
+
+#include "UnitTest.h"
+
+#define TEST_CHECK MG_BOX_ASSERT
+
+namespace mg {
+namespace unittests {
+
+	void
+	UnitTestSysinfo()
+	{
+		TestSuiteGuard suite("Sysinfo");
+
+		// Just ensure it is not crashing.
+		Report("Is WSL:     %d", (int)mg::box::SysIsWSL());
+		Report("Core count: %u", mg::box::SysGetCPUCoreCount());
+	}
+
+}
+}

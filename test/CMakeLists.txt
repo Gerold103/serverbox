@@ -21,6 +21,7 @@ add_executable(test
 	UnitTestSharedPtr.cpp
 	UnitTestSignal.cpp
 	UnitTestString.cpp
+	UnitTestSysinfo.cpp
 	UnitTestTaskScheduler.cpp
 	UnitTestThreadLocalPool.cpp
 	UnitTestUtil.cpp

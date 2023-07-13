@@ -29,6 +29,7 @@ set(mgbox_src
 	Signal.h
 	StringFunctions.cpp
 	StringFunctions.h
+	Sysinfo.h
 	Thread.cpp
 	Thread.h
 	ThreadFunc.h
@@ -42,12 +43,14 @@ set(mgbox_src
 if(WIN32)
 	set(mgbox_src ${mgbox_src}
 		QPTimer_Win.cpp
+		Sysinfo_Win.cpp
 		Thread_Win.cpp
 		Time_Win.cpp
 	)
 else()
 	set(mgbox_src ${mgbox_src}
 		QPTimer_Posix.cpp
+		Sysinfo_Posix.cpp
 		Thread_Posix.cpp
 		Time_Posix.cpp
 	)
