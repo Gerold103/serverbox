@@ -176,6 +176,18 @@ namespace asio {
 		myReadySignal.ReceiveBlocking();
 	}
 
+	void
+	IOCore::PrivPostFirst(
+		IOTask* aOutTask)
+	{
+		MG_DEV_ASSERT(aOutTask->myCore == nullptr);
+		aOutTask->myCore = this;
+		if (aOutTask->HasSocket())
+			PrivKernelRegister(aOutTask);
+		myDescriptorCount.IncrementRelaxed();
+		PrivPost(aOutTask);
+	}
+
 	bool
 	IOCore::PrivExecute(
 		IOTask* aTask)
@@ -207,128 +219,6 @@ namespace asio {
 			myDescriptorCount.DecrementRelaxed();
 		}
 		return true;
-	}
-
-	void
-	IOCore::PostTask(
-		IOTask* aOutTask,
-		mg::net::Socket aSocket,
-		IOSubscription* aSub)
-	{
-		MG_DEV_ASSERT(aSocket != mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(aOutTask->myCore == nullptr || aOutTask->myCore == this);
-		aOutTask->myCore = this;
-		aOutTask->PrivAttach(aSub, aSocket);
-		PrivKernelRegister(aOutTask);
-		PrivPost(aOutTask);
-		myDescriptorCount.IncrementRelaxed();
-	}
-
-	void
-	IOCore::PostTask(
-		IOTask* aOutTask,
-		IOServerSocket* aSocket,
-		IOSubscription* aSub)
-	{
-		MG_DEV_ASSERT(aSocket->mySock != mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(aOutTask->myCore == nullptr || aOutTask->myCore == this);
-		aOutTask->myCore = this;
-		// Move the socket ownership to the task.
-		aOutTask->PrivAttach(aSub, aSocket->mySock);
-		aSocket->mySock = mg::net::theInvalidSocket;
-#if MG_IOCORE_USE_IOCP
-		// Only IOCP with its weird WSA API needs the context to be kept. Unix-based
-		// implementations are simpler in this sense. Can just delete its context.
-		MG_DEV_ASSERT(aOutTask->myServerSock == nullptr);
-		aOutTask->myServerSock = aSocket;
-#else
-		delete aSocket;
-#endif
-		PrivKernelRegister(aOutTask);
-		PrivPost(aOutTask);
-		myDescriptorCount.IncrementRelaxed();
-	}
-
-	void
-	IOCore::PostTask(
-		IOTask* aOutTask,
-		IOSubscription* aSub)
-	{
-		MG_DEV_ASSERT(aOutTask->myCore == nullptr || aOutTask->myCore == this);
-		aOutTask->myCore = this;
-		aOutTask->PrivAttach(aSub, mg::net::theInvalidSocket);
-		PrivPost(aOutTask);
-		myDescriptorCount.IncrementRelaxed();
-	}
-
-	void
-	IOCore::AttachSocket(
-		mg::net::Socket aSocket,
-		IOTask* aTask)
-	{
-		MG_DEV_ASSERT(aTask->IsInWorkerNow());
-		MG_DEV_ASSERT(!aTask->IsClosed());
-		MG_DEV_ASSERT(aTask->mySocket == mg::net::theInvalidSocket);
-
-		aTask->mySocket = aSocket;
-		PrivKernelRegister(aTask);
-	}
-
-	void
-	IOCore::CloseTask(
-		IOTask* aTask)
-	{
-		MG_DEV_ASSERT(aTask != nullptr);
-		if (!aTask->PrivCloseStart())
-			return;
-		MG_DEV_ASSERT(aTask->myCore == this);
-		// It is important to have close start and set of CLOSING state separated. Between
-		// them can provide close parameters like whether it should be immediate or
-		// graceful. Otherwise if CLOSING would be set right away, then it could be
-		// immediately noticed by the scheduler (if the task was already in the front
-		// queue) and would be actually closed + deleted in some worker thread even before
-		// this function ends.
-		IOTaskStatus oldStatus = aTask->myStatus.ExchangeRelaxed(IOTASK_STATUS_CLOSING);
-		MG_DEV_ASSERT_F(
-			oldStatus == IOTASK_STATUS_PENDING ||
-			oldStatus == IOTASK_STATUS_READY ||
-			oldStatus == IOTASK_STATUS_WAITING, "status: %d", (int)oldStatus);
-
-		if (oldStatus == IOTASK_STATUS_WAITING)
-			return PrivRePost(aTask);
-	}
-
-	void
-	IOCore::WakeupTask(
-		IOTask* aTask)
-	{
-		// Fast path.
-		IOTaskStatus oldStatus = IOTASK_STATUS_WAITING;
-		if (aTask->myStatus.CmpExchgStrongRelaxed(oldStatus, IOTASK_STATUS_READY))
-			return PrivRePost(aTask);
-		// Fail, but the task was awake anyway.
-		if (oldStatus == IOTASK_STATUS_READY)
-			return;
-
-		// Slow path. If meet CLOSED then nothing to wakeup anymore. If meet CLOSING, then
-		// it is same as READY - the task is already awake.
-		while (oldStatus == IOTASK_STATUS_PENDING ||
-			oldStatus == IOTASK_STATUS_WAITING)
-		{
-			IOTaskStatus newStatus = oldStatus;
-			if (!aTask->myStatus.CmpExchgStrongRelaxed(newStatus, IOTASK_STATUS_READY))
-			{
-				// Fail. Retry.
-				oldStatus = newStatus;
-				continue;
-			}
-			// Success.
-			if (oldStatus == IOTASK_STATUS_PENDING)
-				return;
-			if (oldStatus == IOTASK_STATUS_WAITING)
-				return PrivRePost(aTask);
-			MG_DEV_ASSERT_F(false, "status: %d", (int)oldStatus);
-		}
 	}
 
 	IOCoreWorker::IOCoreWorker(

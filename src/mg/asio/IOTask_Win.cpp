@@ -183,7 +183,7 @@ namespace asio {
 			// No accept in progress right now. Start one.
 			MG_DEV_ASSERT(myServerSock->myPeerSock == mg::net::theInvalidSocket);
 			mg::box::Error::Ptr err;
-			myServerSock->myPeerSock = mg::net::SocketCreate(mg::net::ADDR_FAMILY_IPV6,
+			myServerSock->myPeerSock = SocketCreate(mg::net::ADDR_FAMILY_IPV6,
 				mg::net::TRANSPORT_PROT_TCP, err);
 
 			DWORD unused = 0;
@@ -296,8 +296,34 @@ namespace asio {
 		myServerSock = nullptr;
 	}
 
+	mg::net::Socket
+	SocketCreate(
+		mg::net::SockAddrFamily aAddrFamily,
+		mg::net::TransportProtocol aProtocol,
+		mg::box::Error::Ptr& aOutErr)
+	{
+		int flags = 0;
+		switch(aProtocol)
+		{
+		case mg::net::TRANSPORT_PROT_DEFAULT:
+		case mg::net::TRANSPORT_PROT_TCP:
+			flags |= SOCK_STREAM;
+			break;
+		default:
+			MG_BOX_ASSERT(!"Unknown protocol");
+			break;
+		}
+		mg::net::Socket res = WSASocket(aAddrFamily, flags, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
+		if (res == mg::net::theInvalidSocket)
+		{
+			aOutError = mg::box::ErrorRaiseWSA("socket()");
+			return false;
+		}
+		return true;
+	}
+
 	bool
-	IOListen(
+	SocketListen(
 		IOServerSocket* aSock,
 		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)

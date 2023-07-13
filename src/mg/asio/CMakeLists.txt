@@ -5,6 +5,8 @@ set(mgasio_src
 	IOCore.h
 	IOTask.cpp
 	IOTask.h
+	TCPServer.cpp
+	TCPServer.h
 )
 
 if(WIN32)
@@ -39,6 +41,7 @@ target_link_libraries(mgasio
 set(install_headers
 	IOCore.h
 	IOTask.h
+	TCPServer.h
 )
 
 install(TARGETS mgasio DESTINATION "${install_lib_root}")

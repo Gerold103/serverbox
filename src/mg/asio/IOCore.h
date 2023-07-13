@@ -74,57 +74,7 @@ namespace asio {
 		// not designed to be used during destruction.
 		void Stop();
 
-		// After post the task can't be deleted and its socket can't be closed manually.
-		// It is owned by IOCore now, and must be closed only via CloseTask() method.
-		void PostTask(
-			IOTask* aOutTask,
-			mg::net::Socket aSocket,
-			IOSubscription* aSub);
-
-		void PostTask(
-			IOTask* aOutTask,
-			IOServerSocket* aSocket,
-			IOSubscription* aSub);
-
-		// Socket can be omitted in case it is not ready for listening to kernel events,
-		// or is not created yet. It is useful when socket creation can be heavy - need to
-		// create socket handle, setup options, register in IOCP or epoll, start
-		// connecting. Then the task can be posted empty, woken up, and in a worker thread
-		// attached to socket.
-		void PostTask(
-			IOTask* aOutTask,
-			IOSubscription* aSub);
-
-		void AttachSocket(
-			mg::net::Socket aSocket,
-			IOTask* aTask);
-
-		// Schedule close of a socket. It will be eventually closed when requests,
-		// currently working with it, are finished.
-		//
-		// The task can't be just 'unregistered'. It can only be closed. Because on
-		// Windows there is no a legal way to remove a socket from IOCP without closing
-		// it.
-		//
-		// Note:
-		// * Can be called multiple times and any time.
-		// * When called even before the task is posted first time, the task is closed in
-		//   a worker thread right after the post.
-		void CloseTask(
-			IOTask* aTask);
-
-		// Make the task wakeup as soon as possible regardless of where it is right now.
-		// Even if the task currently is being executed, it will be scheduled for another
-		// execution. After this call the task owner can be sure the listener will be
-		// invoked again unless the task is already closed for good.
-		// Note:
-		//
-		// * Can be called multiples times and any time.
-		// * If done after closure, then it is nop.
-		void WakeupTask(
-			IOTask* aTask);
-
-	private: 
+	private:
 		void PrivPlatformCreate();
 		void PrivPlatformDestroy();
 		void PrivKernelRegister(
@@ -137,6 +87,8 @@ namespace asio {
 		void PrivScheduleEnd();
 		void PrivSignalReady();
 		void PrivWaitReady();
+		void PrivPostFirst(
+			IOTask* aOutTask);
 		bool PrivExecute(
 			IOTask* aTask);
 		void PrivPost(
@@ -182,6 +134,7 @@ namespace asio {
 		std::vector<IOCoreWorker*> myWorkers;
 
 		friend IOCoreWorker;
+		friend IOTask;
 	};
 
 }

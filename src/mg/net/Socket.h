@@ -25,11 +25,6 @@ namespace net {
 		TRANSPORT_PROT_TCP,
 	};
 
-	Socket SocketCreate(
-		SockAddrFamily aAddrFamily,
-		TransportProtocol aProtocol,
-		mg::box::Error::Ptr& aOutErr);
-
 	bool SocketBind(
 		Socket aSock,
 		const Host& aHost,
@@ -66,6 +61,9 @@ namespace net {
 	bool SocketCheckState(
 		Socket aSock,
 		mg::box::Error::Ptr& aOutErr);
+
+	bool SocketIsAcceptErrorCritical(
+		int aError);
 #endif
 
 }

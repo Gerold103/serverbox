@@ -1,11 +1,12 @@
 #include "IOTask.h"
 
+#include "mg/asio/IOCore.h"
+
 #include "mg/box/IOVec.h"
 #include "mg/box/Log.h"
 #include "mg/box/Thread.h"
 
 #include "mg/net/Buffer.h"
-#include "mg/net/Socket.h"
 
 namespace mg {
 namespace asio {
@@ -60,10 +61,118 @@ namespace asio {
 		PrivDestructPlatform();
 	}
 
+	void
+	IOTask::Post(
+		IOCore& aCore,
+		mg::net::Socket aSocket,
+		IOSubscription* aSub)
+	{
+		MG_DEV_ASSERT(myCore == nullptr);
+		MG_DEV_ASSERT(aSocket != mg::net::theInvalidSocket);
+		PrivAttach(aSub, aSocket);
+		aCore.PrivPostFirst(this);
+	}
+
+	void
+	IOTask::Post(
+		IOCore& aCore,
+		IOServerSocket* aSocket,
+		IOSubscription* aSub)
+	{
+		MG_DEV_ASSERT(myCore == nullptr);
+		MG_DEV_ASSERT(aSocket->mySock != mg::net::theInvalidSocket);
+		// Move the socket ownership to the task.
+		PrivAttach(aSub, aSocket->mySock);
+		aSocket->mySock = mg::net::theInvalidSocket;
+#if MG_IOCORE_USE_IOCP
+		// Only IOCP with its weird WSA API needs the context to be kept. Unix-based
+		// implementations are simpler in this sense. Can just delete its context.
+		MG_DEV_ASSERT(myServerSock == nullptr);
+		myServerSock = aSocket;
+#else
+		delete aSocket;
+#endif
+		aCore.PrivPostFirst(this);
+	}
+
+	void
+	IOTask::Post(
+		IOCore& aCore,
+		IOSubscription* aSub)
+	{
+		MG_DEV_ASSERT(myCore == nullptr);
+		PrivAttach(aSub, mg::net::theInvalidSocket);
+		aCore.PrivPostFirst(this);
+	}
+
+	void
+	IOTask::Close()
+	{
+		if (!PrivCloseStart())
+			return;
+		// It is important to have close start and set of CLOSING state separated. Between
+		// them can provide close parameters like whether it should be immediate or
+		// graceful. Otherwise if CLOSING would be set right away, then it could be
+		// immediately noticed by the scheduler (if the task was already in the front
+		// queue) and would be actually closed + deleted in some worker thread even before
+		// this function ends.
+		IOTaskStatus oldStatus = myStatus.ExchangeRelaxed(IOTASK_STATUS_CLOSING);
+		MG_DEV_ASSERT_F(
+			oldStatus == IOTASK_STATUS_PENDING ||
+			oldStatus == IOTASK_STATUS_READY ||
+			oldStatus == IOTASK_STATUS_WAITING, "status: %d", (int)oldStatus);
+
+		if (oldStatus == IOTASK_STATUS_WAITING)
+			return myCore->PrivRePost(this);
+	}
+
+	void
+	IOTask::Wakeup()
+	{
+		// Fast path.
+		IOTaskStatus oldStatus = IOTASK_STATUS_WAITING;
+		if (myStatus.CmpExchgStrongRelaxed(oldStatus, IOTASK_STATUS_READY))
+			return myCore->PrivRePost(this);
+		// Fail, but the task was awake anyway.
+		if (oldStatus == IOTASK_STATUS_READY)
+			return;
+
+		// Slow path. If meet CLOSED then nothing to wakeup anymore. If meet CLOSING, then
+		// it is same as READY - the task is already awake.
+		while (oldStatus == IOTASK_STATUS_PENDING ||
+			oldStatus == IOTASK_STATUS_WAITING)
+		{
+			IOTaskStatus newStatus = oldStatus;
+			if (!myStatus.CmpExchgStrongRelaxed(newStatus, IOTASK_STATUS_READY))
+			{
+				// Fail. Retry.
+				oldStatus = newStatus;
+				continue;
+			}
+			// Success.
+			if (oldStatus == IOTASK_STATUS_PENDING)
+				return;
+			if (oldStatus == IOTASK_STATUS_WAITING)
+				return myCore->PrivRePost(this);
+			MG_DEV_ASSERT_F(false, "status: %d", (int)oldStatus);
+		}
+	}
+
 	bool
 	IOTask::IsInWorkerNow() const
 	{
 		return theCurrentIOTask == this;
+	}
+
+	void
+	IOTask::AttachSocket(
+		mg::net::Socket aSocket)
+	{
+		MG_DEV_ASSERT(IsInWorkerNow());
+		MG_DEV_ASSERT(!IsClosed());
+		MG_DEV_ASSERT(mySocket == mg::net::theInvalidSocket);
+		mySocket = aSocket;
+		myCore->PrivKernelRegister(this);
 	}
 
 	bool
@@ -72,22 +181,10 @@ namespace asio {
 		uint32_t aByteOffset,
 		IOEvent& aEvent)
 	{
-		mg::box::IOVec bufs[theIOSendBatch];
-		mg::box::IOVec* buf = bufs;
-		mg::box::IOVec* bufEnd = bufs + theIOSendBatch;
-		buf->myData = aHead->myWData + aByteOffset;
-		MG_DEV_ASSERT(aHead->myPos >= aByteOffset);
-		buf->mySize = aHead->myPos - aByteOffset;
-		++buf;
-		aHead = aHead->myNext.GetPointer();
-		while (buf < bufEnd && aHead != nullptr)
-		{
-			buf->myData = aHead->myWData;
-			buf->mySize = aHead->myPos;
-			++buf;
-			aHead = aHead->myNext.GetPointer();
-		}
-		return Send(bufs, (uint32_t)(buf - bufs), aEvent);
+		mg::box::IOVec bufs[mg::box::theIOVecMaxCount];
+		uint32_t count = mg::net::BuffersToIOVecsForWrite(
+			aHead, aByteOffset, bufs, mg::box::theIOVecMaxCount);
+		return Send(bufs, count, aEvent);
 	}
 
 	bool
@@ -95,23 +192,10 @@ namespace asio {
 		mg::net::Buffer* aHead,
 		IOEvent& aEvent)
 	{
-		mg::box::IOVec bufs[theIORecvBatch];
-		mg::box::IOVec* buf = bufs;
-		mg::box::IOVec* bufEnd = bufs + theIORecvBatch;
-		buf->myData = aHead->myWData + aHead->myPos;
-		MG_DEV_ASSERT(aHead->myCapacity >= aHead->myPos);
-		buf->mySize = aHead->myCapacity - aHead->myPos;
-		++buf;
-		aHead = aHead->myNext.GetPointer();
-		while (aHead != nullptr && buf < bufEnd)
-		{
-			MG_DEV_ASSERT(aHead->myPos == 0);
-			buf->myData = aHead->myWData;
-			buf->mySize = aHead->myCapacity;
-			++buf;
-			aHead = aHead->myNext.GetPointer();
-		}
-		return Recv(bufs, (uint32_t)(buf - bufs), aEvent);
+		mg::box::IOVec bufs[mg::box::theIOVecMaxCount];
+		uint32_t count = mg::net::BuffersToIOVecsForRead(
+			aHead, bufs, mg::box::theIOVecMaxCount);
+		return Recv(bufs, count, aEvent);
 	}
 
 	bool
@@ -120,7 +204,7 @@ namespace asio {
 		IOEvent& aEvent)
 	{
 		mg::box::Error::Ptr err;
-		mg::net::Socket sock = mg::net::SocketCreate(aHost.GetAddressFamily(),
+		mg::net::Socket sock = SocketCreate(aHost.GetAddressFamily(),
 			mg::net::TRANSPORT_PROT_DEFAULT, err);
 		if (sock == mg::net::theInvalidSocket)
 			return aEvent.ReturnError(err->myCode);
@@ -136,6 +220,7 @@ namespace asio {
 	IOTask::PrivExecute()
 	{
 		MG_DEV_ASSERT(theCurrentIOTask == nullptr);
+		MG_DEV_ASSERT(myCore != nullptr);
 		IOArgs args;
 		PrivDumpReadyEvents(args);
 		// Need to reset the deadline to prevent infinite rescheduling. It is safe to do
@@ -149,6 +234,7 @@ namespace asio {
 			// will be reused.
 			IOSubscription::Ptr listener = std::move(mySub);
 			PrivCloseEndPlatform();
+			myCore = nullptr;
 			listener->OnEvent(args);
 			// Pop the task from the global before its deletion. Helps to assert that the
 			// task is never deleted while in work.
@@ -214,11 +300,11 @@ namespace asio {
 	}
 
 	IOServerSocket*
-	IOBind(
+	SocketBind(
 		uint16_t aPort,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		mg::net::Socket sock = mg::net::SocketCreate(mg::net::ADDR_FAMILY_IPV6,
+		mg::net::Socket sock = SocketCreate(mg::net::ADDR_FAMILY_IPV6,
 			mg::net::TRANSPORT_PROT_TCP, aOutErr);
 		if (sock == mg::net::theInvalidSocket)
 			return nullptr;

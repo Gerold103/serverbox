@@ -2,40 +2,12 @@
 
 #include "mg/box/Sysinfo.h"
 
-#include "mg/net/Host.h"
-
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
 
 namespace mg {
 namespace net {
-
-	Socket
-	SocketCreate(
-		SockAddrFamily aAddrFamily,
-		TransportProtocol aProtocol,
-		mg::box::Error::Ptr& aOutErr)
-	{
-		int flags = SOCK_NONBLOCK;
-		switch(aProtocol)
-		{
-		case TRANSPORT_PROT_DEFAULT:
-		case TRANSPORT_PROT_TCP:
-			flags |= SOCK_STREAM;
-			break;
-		default:
-			MG_BOX_ASSERT(!"Unknown protocol");
-			break;
-		}
-		Socket res = socket(aAddrFamily, flags, 0);
-		if (res < 0)
-		{
-			aOutErr = mg::box::ErrorRaiseErrno("socket()");
-			return theInvalidSocket;
-		}
-		return res;
-	}
 
 	bool
 	SocketBind(
@@ -67,6 +39,17 @@ namespace net {
 		if (!aValue)
 			return true;
 
+		int keepAliveIdle = aTimeout / 1000;
+		if (keepAliveIdle == 0 && aTimeout != 0)
+			keepAliveIdle = 1;
+#if IS_PLATFORM_APPLE
+		if (setsockopt(aSock, IPPROTO_TCP, TCP_KEEPALIVE, &keepAliveIdle,
+			sizeof(keepAliveIdle)) != 0)
+		{
+			aOutErr = mg::box::ErrorRaiseErrno("setsockopt(TCP_KEEPALIVE)");
+			return false;
+		}
+#else
 		// TCP_KEEPIDLE - time the connection should be idle to start sending keepalive
 		//   packets.
 		//
@@ -76,9 +59,6 @@ namespace net {
 		//   dead.
 		//
 		// On Linux the keepalive timeouts are in seconds and not ms as in Windows.
-		int keepAliveIdle = aTimeout / 1000;
-		if (keepAliveIdle == 0 && aTimeout != 0)
-			keepAliveIdle = 1;
 		int keepAliveInterval = 3;
 		// This keep-alive-count is a default from the kernel. Nonetheless it is
 		// configured explicitly so as to have a predictable user-timeout below.
@@ -129,6 +109,7 @@ namespace net {
 			aOutErr = mg::box::ErrorRaiseErrno("setsockopt(TCP_USER_TIMEOUT)");
 			return false;
 		}
+#endif
 		return true;
 	}
 
@@ -208,6 +189,39 @@ namespace net {
 			return true;
 		aOutErr = mg::box::ErrorRaiseErrno(sockerr, "socket state");
 		return false;
+	}
+
+	bool
+	SocketIsAcceptErrorCritical(
+		int aError)
+	{
+		MG_DEV_ASSERT(aError != 0);
+		// These should have been filtered out before.
+		MG_DEV_ASSERT(aError != EWOULDBLOCK && aError != EAGAIN);
+		// Apparently, Apple's accept() doesn't forward errors from the
+		// backlog. If any occurs, it is related to the server itself.
+#if !IS_PLATFORM_APPLE
+		const int nonCritErrors[] = {
+			// Errors which might be forwarded from a connection which was closed after
+			// being accepted in the kernel. See 'man accept' for a list of non-critical
+			// errors.
+			ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET, EHOSTUNREACH,
+			EOPNOTSUPP, ENETUNREACH, ECONNABORTED,
+			// Interruption by a signal is retryable.
+			EINTR,
+			// EMFILE and ENFILE are critical intentionally. They could be retried
+			// periodically like IOTask::SetDeadline(now + 100ms), but there are many
+			// other places in Massgate which crash on not being able to get a file
+			// descriptor. If want this to be tolerable, then need to fix all of them.
+		};
+		for (int nonCritErr : nonCritErrors)
+		{
+			if (aError != nonCritErr)
+				continue;
+			return false;
+		}
+#endif
+		return true;
 	}
 
 }

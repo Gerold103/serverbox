@@ -113,10 +113,13 @@ namespace box {
 	static Ptr																				\
 	NewShared(Args&&... aArgs) { return Ptr::Wrap(new aClassName(std::forward<Args>(aArgs)...)); }
 
-#define SHARED_PTR_API(aClassName, myRef)													\
+#define SHARED_PTR_RE_API(aClassName)														\
 public:																						\
 	SHARED_PTR_TYPE(aClassName)																\
-	SHARED_PTR_NEW(aClassName)																\
+	SHARED_PTR_NEW(aClassName)
+
+#define SHARED_PTR_API(aClassName, myRef)													\
+	SHARED_PTR_RE_API(aClassName)															\
 private:																					\
 	void PrivRef() { myRef.Inc(); }															\
 	void PrivUnref() { if (myRef.Dec()) delete this; }

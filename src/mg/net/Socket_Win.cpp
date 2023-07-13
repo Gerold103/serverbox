@@ -3,32 +3,6 @@
 namespace mg {
 namespace net {
 
-	Socket
-	SocketCreate(
-		SockAddrFamily aAddrFamily,
-		TransportProtocol aProtocol,
-		mg::box::Error::Ptr& aOutErr)
-	{
-		int flags = 0;
-		switch(aProtocol)
-		{
-		case TRANSPORT_PROT_DEFAULT:
-		case TRANSPORT_PROT_TCP:
-			flags |= SOCK_STREAM;
-			break;
-		default:
-			MG_BOX_ASSERT(!"Unknown protocol");
-			break;
-		}
-		Socket res = WSASocket(SaAddrFamily, flags, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
-		if (res == theInvalidSocket)
-		{
-			aOutError = mg::box::ErrorRaiseWSA("socket()");
-			return false;
-		}
-		return true;
-	}
-
 	bool
 	SocketBind(
 		Socket aSock,

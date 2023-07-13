@@ -32,16 +32,6 @@ namespace asio {
 
 	class IOCore;
 
-	static constexpr uint32_t theIOSendBatch = 128;
-	static constexpr uint32_t theIORecvBatch = 128;
-
-#if MG_IOCORE_USE_EPOLL
-	// Vectorized system calls (using iovec) can fail when try to send too much. They are
-	// not guaranteed to send only a part of data.
-	static_assert(theIOSendBatch <= IOV_MAX, "Too big send batch");
-	static_assert(theIORecvBatch <= IOV_MAX, "Too big recv batch");
-#endif
-
 	// Windows IO events are WSAOVERLAPPED objects initialized by WSA functions
 	// (WSASend/Recv/..()). Overlappeds are put into IOCP queue by the userspace, and
 	// returned from the queue by the kernel, when the operation is finished.
@@ -177,7 +167,7 @@ namespace asio {
 		virtual void OnEvent(
 			const IOArgs& aArgs) = 0;
 
-	private:
+	protected:
 		virtual ~IOSubscription() = default;
 
 		mg::box::RefCount myRef;
@@ -205,6 +195,56 @@ namespace asio {
 	{
 		IOTask();
 		~IOTask();
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// Control methods for task start, wakeup, stop, and alike.
+		//
+
+		// After post the task can't be deleted and its socket can't be closed manually.
+		// It is owned by IOCore now, and must be closed only via Close() method.
+		void Post(
+			IOCore& aCore,
+			mg::net::Socket aSocket,
+			IOSubscription* aSub);
+		void Post(
+			IOCore& aCore,
+			IOServerSocket* aSocket,
+			IOSubscription* aSub);
+		// Socket can be omitted in case it is not ready for listening to kernel events,
+		// or is not created yet. It is useful when socket creation can be heavy - need to
+		// create socket handle, setup options, register in IOCP or epoll, start
+		// connecting. Then the task can be posted empty, woken up, and in a worker thread
+		// attached to socket.
+		void Post(
+			IOCore& aCore,
+			IOSubscription* aSub);
+
+		// Schedule close of a socket. It will be eventually closed when requests
+		// currently working with it are finished.
+		//
+		// The task can't be just 'unregistered'. It can only be closed. Because on
+		// Windows there is no a legal way to remove a socket from IOCP without closing
+		// it.
+		//
+		// Note:
+		// * Can be called multiple times and any time.
+		// * When called even before the task is posted first time, the task is closed in
+		//   a worker thread right after the post.
+		void Close();
+
+		// Make the task wakeup as soon as possible regardless of where it is right now.
+		// Even if the task currently is being executed, it will be scheduled for another
+		// execution. After this call the task owner can be sure the listener will be
+		// invoked again unless the task is already closed for good.
+		// Note:
+		//
+		// * Can be called multiples times and any time.
+		// * If done after closure, then it is nop.
+		void Wakeup();
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// In-worker methods for checking and handling events, work with the data, etc.
+		//
 
 		bool IsClosed() const;
 		// Check if the task was woken up on a deadline, not (or not only) by IO, close,
@@ -252,6 +292,11 @@ namespace asio {
 		// reduce latency (no need to re-schedule the task), and save CPU (no need to
 		// wakeup the task).
 		bool IsInWorkerNow() const;
+
+		// Being inside the core and not having a socket, attach to one right now.
+		void AttachSocket(
+			mg::net::Socket aSocket);
+
 		//
 		// IO functions for the task's socket.
 		//
@@ -271,7 +316,7 @@ namespace asio {
 		//
 
 		bool Send(
-			mg::box::IOVec* aBuffers,
+			const mg::box::IOVec* aBuffers,
 			uint32_t aBufferCount,
 			IOEvent& aEvent);
 
@@ -401,14 +446,19 @@ namespace asio {
 		friend class IOCore;
 	};
 
+	mg::net::Socket SocketCreate(
+		mg::net::SockAddrFamily aAddrFamily,
+		mg::net::TransportProtocol aProtocol,
+		mg::box::Error::Ptr& aOutErr);
+
 	// Bind a new socket to a given port on all local IPs. The port can be 0 to bind to
 	// any port.
-	IOServerSocket* IOBind(
+	IOServerSocket* SocketBind(
 		uint16_t aPort,
 		mg::box::Error::Ptr& aOutErr);
 
 	// Start listening on a previously bound socket.
-	bool IOListen(
+	bool SocketListen(
 		IOServerSocket* aSock,
 		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr);

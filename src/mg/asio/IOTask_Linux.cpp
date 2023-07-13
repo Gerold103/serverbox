@@ -53,14 +53,14 @@ namespace asio {
 
 	bool
 	IOTask::Send(
-		mg::box::IOVec* aBuffers,
+		const mg::box::IOVec* aBuffers,
 		uint32_t aBufferCount,
 		IOEvent& aEvent)
 	{
 		MG_DEV_ASSERT(!aEvent.IsLocked());
 		// sendmsg() is prefered over writev() because write*() calls are accounted like
 		// disk operations in IO monitoring in the kernel.
-		struct msghdr msg;
+		msghdr msg;
 		memset(&msg, 0, sizeof(msg));
 		msg.msg_iov = mg::box::IOVecToNative(aBuffers);
 		msg.msg_iovlen = aBufferCount;
@@ -104,7 +104,7 @@ namespace asio {
 		MG_DEV_ASSERT(!aEvent.IsLocked());
 		// recvmsg() is prefered over readv() because read*() calls are accounted like
 		// disk operations in IO monitoring in the kernel.
-		struct msghdr msg;
+		msghdr msg;
 		memset(&msg, 0, sizeof(msg));
 		msg.msg_iov = mg::box::IOVecToNative(aBuffers);
 		msg.msg_iovlen = aBufferCount;
@@ -152,12 +152,12 @@ namespace asio {
 		if (ok)
 		{
 			// Can legally finish immediately, even for a non-blocking socket.
-			myCore->AttachSocket(aSocket, this);
+			AttachSocket(aSocket);
 			return aEvent.ReturnBytes(0);
 		}
 		if (errno != EINPROGRESS)
 			return aEvent.ReturnError(mg::box::ErrorCodeErrno());
-		myCore->AttachSocket(aSocket, this);
+		AttachSocket(aSocket);
 		aEvent.Lock();
 		return true;
 	}
@@ -230,31 +230,10 @@ namespace asio {
 			myInEvent = &aEvent;
 			return mg::net::theInvalidSocket;
 		}
-		const int nonCritErrors[] = {
-			// Errors which might be forwarded from a connection which was closed after
-			// being accepted in the kernel. See 'man accept' for a list of non-critical
-			// errors.
-			ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET, EHOSTUNREACH,
-			EOPNOTSUPP, ENETUNREACH, ECONNABORTED,
-			// Interruption by a signal is retryable.
-			EINTR,
-			// EMFILE and ENFILE are critical intentionally. They could be retried
-			// periodically like IOTask::SetDeadline(now + 100ms), but there are many
-			// other places in Massgate which crash on not being able to get a file
-			// descriptor. If want this to be tolerable, then need to fix all of them.
-		};
-		bool isCritical = true;
-		for (int nonCritErr : nonCritErrors)
-		{
-			if (err != nonCritErr)
-				continue;
-			isCritical = false;
-			break;
-		}
 		// Non-critical means that the accept() should be retried. Might not return from
 		// the edge-triggered epoll() otherwise. Hence explicit reschedule is done. Don't
 		// loop right here - it would be unfair to other tasks.
-		if (isCritical)
+		if (mg::net::SocketIsAcceptErrorCritical(err))
 			aEvent.ReturnError(mg::box::ErrorCodeFromErrno(err));
 		else
 			Reschedule();
@@ -325,8 +304,34 @@ namespace asio {
 		}
 	}
 
+	mg::net::Socket
+	SocketCreate(
+		mg::net::SockAddrFamily aAddrFamily,
+		mg::net::TransportProtocol aProtocol,
+		mg::box::Error::Ptr& aOutErr)
+	{
+		int flags = SOCK_NONBLOCK;
+		switch(aProtocol)
+		{
+		case mg::net::TRANSPORT_PROT_DEFAULT:
+		case mg::net::TRANSPORT_PROT_TCP:
+			flags |= SOCK_STREAM;
+			break;
+		default:
+			MG_BOX_ASSERT(!"Unknown protocol");
+			break;
+		}
+		mg::net::Socket res = socket(aAddrFamily, flags, 0);
+		if (res < 0)
+		{
+			aOutErr = mg::box::ErrorRaiseErrno("socket()");
+			return mg::net::theInvalidSocket;
+		}
+		return res;
+	}
+
 	bool
-	IOListen(
+	SocketListen(
 		IOServerSocket* aSock,
 		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)

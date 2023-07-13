@@ -4,8 +4,13 @@
 
 #include <cstring>
 #include <fcntl.h>
-#include <sys/sysinfo.h>
 #include <unistd.h>
+
+#if IS_PLATFORM_APPLE
+#include <sys/sysctl.h>
+#else
+#include <sys/sysinfo.h>
+#endif
 
 #define MG_SYSINFO_BUFFER_SIZE 2048
 
@@ -14,10 +19,12 @@ namespace box {
 
 	static bool SysCheckIsWSL();
 
+	static uint32_t SysCalcCPUCoreCount();
+
 	uint32_t
 	SysGetCPUCoreCount()
 	{
-		static uint32_t coreCount = get_nprocs();
+		static uint32_t coreCount = SysCalcCPUCoreCount();
 		return coreCount;
 	}
 
@@ -91,6 +98,22 @@ namespace box {
 			close(fd);
 		MG_BOX_ASSERT_F(false, "failed to check WSL: %s", err->myMessage.c_str());
 		return false;
+	}
+
+	static uint32_t
+	SysCalcCPUCoreCount()
+	{
+#if IS_PLATFORM_APPLE
+		int32_t val = 0;
+		size_t valSize = sizeof(val);
+		int rc = sysctlbyname("hw.ncpu", &val, &valSize, nullptr, 0);
+		MG_BOX_ASSERT_F(rc == 0, "Couldn't get CPU core count: %d %s",
+			errno, strerror(errno));
+		MG_BOX_ASSERT_F(val > 0, "CPU core count should be > 0");
+		return val;
+#else
+		return get_nprocs();
+#endif
 	}
 
 }

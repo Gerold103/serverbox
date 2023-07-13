@@ -1,0 +1,5 @@
+- Rework async connect in IOCore;
+- Introduce separate read and write positions in Buffer. Or split the buffers into 2 types;
+- Deal with tcp backlog;
+- Introduce socket options and allow to pass them to tcpserver and tcpsocket;
+- Introduce const shared ptr;

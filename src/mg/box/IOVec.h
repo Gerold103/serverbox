@@ -11,6 +11,14 @@
 namespace mg {
 namespace box {
 
+	static constexpr uint32_t theIOVecMaxCount = 128;
+
+#if IS_PLATFORM_POSIX
+	// Vectorized system calls (using iovec) can fail when try to send too much. They are
+	// not guaranteed to send only a part of data.
+	static_assert(theIOVecMaxCount <= IOV_MAX, "Too big vector batch");
+#endif
+
 #if IS_PLATFORM_WIN
 	using IOVecNative = WSABUF;
 #else
@@ -35,16 +43,9 @@ namespace box {
 
 	static inline IOVecNative*
 	IOVecToNative(
-		IOVec* aVec)
-	{
-		return (IOVecNative*)aVec;
-	}
-
-	static inline const IOVecNative*
-	IOVecToNative(
 		const IOVec* aVec)
 	{
-		return (const IOVecNative*)aVec;
+		return (IOVecNative*)aVec;
 	}
 
 	void IOVecPropagate(
