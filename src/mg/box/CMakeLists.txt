@@ -28,6 +28,7 @@ set(mgbox_src
 	Signal.h
 	StringFunctions.cpp
 	StringFunctions.h
+	Sysinfo.h
 	Thread.cpp
 	Thread.h
 	ThreadFunc.h
@@ -38,11 +39,19 @@ set(mgbox_src
 
 if(WIN32)
 	set(mgbox_src ${mgbox_src}
+		Sysinfo_Win.cpp
 		Thread_Win.cpp
 		Time_Win.cpp
 	)
+elseif(APPLE)
+	set(mgbox_src ${mgbox_src}
+		Sysinfo_Apple.cpp
+		Thread_Unix.cpp
+		Time_Unix.cpp
+	)
 else()
 	set(mgbox_src ${mgbox_src}
+		Sysinfo_Linux.cpp
 		Thread_Unix.cpp
 		Time_Unix.cpp
 	)

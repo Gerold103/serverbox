@@ -41,6 +41,7 @@ namespace box {
 	void UnitTestSharedPtr();
 	void UnitTestSignal();
 	void UnitTestString();
+	void UnitTestSysinfo();
 	void UnitTestThreadLocalPool();
 }
 namespace net {
@@ -82,6 +83,7 @@ main(
 	MG_RUN_TEST(box, UnitTestSharedPtr);
 	MG_RUN_TEST(box, UnitTestSignal);
 	MG_RUN_TEST(box, UnitTestString);
+	MG_RUN_TEST(box, UnitTestSysinfo);
 	MG_RUN_TEST(box, UnitTestThreadLocalPool);
 	MG_RUN_TEST(net, UnitTestHost);
 	MG_RUN_TEST(sch, UnitTestTaskScheduler);
