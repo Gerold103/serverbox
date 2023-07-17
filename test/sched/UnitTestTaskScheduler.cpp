@@ -9,6 +9,7 @@
 
 namespace mg {
 namespace unittests {
+namespace sched {
 
 	static void
 	UnitTestTaskSchedulerBasic()
@@ -1083,5 +1084,6 @@ namespace unittests {
 		UnitTestTaskSchedulerSignalStress(5, 1000000, 5);
 	}
 
+}
 }
 }

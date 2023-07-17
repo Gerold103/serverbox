@@ -56,11 +56,12 @@ namespace net {
 		SHARED_PTR_TYPE(BufferCopy)
 		SHARED_PTR_NEW(BufferCopy)
 
+		static BufferCopy::Ptr MakeChain(
+			const void* aData,
+			uint64_t aSize);
+
 	private:
 		BufferCopy();
-		BufferCopy(
-			const void* aData,
-			uint32_t aSize);
 		~BufferCopy() override = default;
 
 	public:
@@ -249,7 +250,7 @@ namespace net {
 		uint64_t aSize)
 	{
 		myLinks.Append(new BufferLink(
-			BufferCopy::NewShared(aData, aSize)));
+			BufferCopy::MakeChain(aData, aSize)));
 	}
 
 }

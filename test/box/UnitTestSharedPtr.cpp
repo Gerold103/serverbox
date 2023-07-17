@@ -15,6 +15,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	struct ValueOnStack
 	{
@@ -831,6 +832,7 @@ public:
 		UnitTestSharedPtrInheritance();
 	}
 
+}
 }
 }
 

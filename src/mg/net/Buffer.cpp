@@ -19,6 +19,33 @@ namespace net {
 		}
 	}
 
+	BufferCopy::Ptr
+	BufferCopy::MakeChain(
+		const void* aData,
+		uint64_t aSize)
+	{
+		if (aSize == 0)
+			return {};
+		BufferCopy::Ptr head = BufferCopy::NewShared();
+		Buffer* pos = head.GetPointer();
+		while (true)
+		{
+			uint32_t cap;
+			if (aSize > theBufferCopySize)
+				cap = theBufferCopySize;
+			else
+				cap = (uint32_t)aSize;
+			pos->myPos = cap;
+			memcpy(pos->myWData, aData, cap);
+			aSize -= cap;
+			if (aSize == 0)
+				return head;
+			aData = (uint8_t*)aData + cap;
+			pos = (pos->myNext = BufferCopy::NewShared()).GetPointer();
+		}
+
+	}
+
 	void
 	BufferLinkList::DiscardBytes(
 		uint32_t& aByteOffset,

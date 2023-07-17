@@ -23,6 +23,17 @@ namespace net {
 		return true;
 	}
 
+	Host
+	SocketGetBoundHost(
+		Socket aSock)
+	{
+		sockaddr_storage addr;
+		socklen_t len = sizeof(addr);
+		int rc = getsockname(aSock, (sockaddr*)&addr, &len);
+		MG_BOX_ASSERT_F(rc == 0, "getsockname() fail: %d %s", errno, strerror(errno));
+		return Host((sockaddr*)&addr);
+	}
+
 	bool
 	SocketSetKeepAlive(
 		Socket aSock,

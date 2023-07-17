@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace net {
 
 	static void
 	UnitTestBufferBasic()
@@ -52,5 +53,6 @@ namespace unittests {
 		UnitTestBufferBasic();
 	}
 
+}
 }
 }

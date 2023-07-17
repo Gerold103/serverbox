@@ -7,6 +7,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestAtomicConstructor()
@@ -383,5 +384,6 @@ namespace unittests {
 		UnitTestAtomicPtr();
 	}
 
+}
 }
 }

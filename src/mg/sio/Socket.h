@@ -21,7 +21,6 @@ namespace sio {
 
 	bool SocketListen(
 		mg::net::Socket aSock,
-		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr);
 
 	bool SocketConnectStart(

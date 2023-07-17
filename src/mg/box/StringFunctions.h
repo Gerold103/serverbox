@@ -32,6 +32,13 @@ namespace box {
 		return strncmp(aA, aB, aCount);
 	}
 
+	static inline char*
+	Strdup(
+		const char* aStr)
+	{
+		return strdup(aStr);
+	}
+
 	void StringTrim(
 		std::string& aStr);
 

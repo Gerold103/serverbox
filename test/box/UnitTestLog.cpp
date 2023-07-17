@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestLogBasic()
@@ -48,5 +49,6 @@ namespace unittests {
 		UnitTestLogBasic();
 	}
 
+}
 }
 }

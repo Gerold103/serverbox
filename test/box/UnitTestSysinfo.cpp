@@ -6,6 +6,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	void
 	UnitTestSysinfo()
@@ -17,5 +18,6 @@ namespace unittests {
 		Report("Core count: %u", mg::box::SysGetCPUCoreCount());
 	}
 
+}
 }
 }

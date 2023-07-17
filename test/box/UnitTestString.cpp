@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	template <typename NumT, NumT aMax>
 	static void
@@ -69,5 +70,6 @@ namespace unittests {
 		UnitTestStringToNumberUnsigned();
 	}
 
+}
 }
 }

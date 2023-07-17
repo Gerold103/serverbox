@@ -4,37 +4,41 @@ add_executable(test
 	main.cpp
 	UnitTest.cpp
 	UnitTest.h
-	UnitTestAtomic.cpp
-	UnitTestBinaryHeap.cpp
-	UnitTestBuffer.cpp
-	UnitTestConditionVariable.cpp
-	UnitTestDoublyList.cpp
-	UnitTestError.cpp
-	UnitTestForwardList.cpp
-	UnitTestHost.cpp
-	UnitTestIOVec.cpp
-	UnitTestLog.cpp
-	UnitTestMultiConsumerQueue.cpp
-	UnitTestMultiProducerQueue.cpp
-	UnitTestMutex.cpp
-	UnitTestRefCount.cpp
-	UnitTestSharedPtr.cpp
-	UnitTestSignal.cpp
-	UnitTestString.cpp
-	UnitTestSysinfo.cpp
-	UnitTestTaskScheduler.cpp
-	UnitTestThreadLocalPool.cpp
-	UnitTestUtil.cpp
+	box/UnitTestAtomic.cpp
+	box/UnitTestBinaryHeap.cpp
+	box/UnitTestConditionVariable.cpp
+	box/UnitTestDoublyList.cpp
+	box/UnitTestError.cpp
+	box/UnitTestForwardList.cpp
+	box/UnitTestIOVec.cpp
+	box/UnitTestLog.cpp
+	box/UnitTestMultiConsumerQueue.cpp
+	box/UnitTestMultiProducerQueue.cpp
+	box/UnitTestMutex.cpp
+	box/UnitTestRefCount.cpp
+	box/UnitTestSharedPtr.cpp
+	box/UnitTestSignal.cpp
+	box/UnitTestString.cpp
+	box/UnitTestSysinfo.cpp
+	box/UnitTestThreadLocalPool.cpp
+	box/UnitTestUtil.cpp
+	net/UnitTestBuffer.cpp
+	net/UnitTestHost.cpp
+	sched/UnitTestTaskScheduler.cpp
+	sio/UnitTestTCPServer.cpp
+	sio/UnitTestTCPSocket.cpp
 )
 
 target_include_directories(test PUBLIC
 	${CMAKE_SOURCE_DIR}/src
+	${CMAKE_SOURCE_DIR}/test
 )
 
 target_link_libraries(test
 	mgbox
 	mgnet
 	mgsched
+	mgsio
 	mgtest
 	mgboxstub
 )

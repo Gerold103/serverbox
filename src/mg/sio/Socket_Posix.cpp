@@ -9,7 +9,7 @@
 #endif
 
 namespace mg {
-namespace net {
+namespace sio {
 
 #if IS_PLATFORM_APPLE
 	static void SocketMakeNonBlocking(
@@ -88,10 +88,9 @@ namespace net {
 	bool
 	SocketListen(
 		mg::net::Socket aSock,
-		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		bool ok = listen(aSock, aBacklog) == 0;
+		bool ok = listen(aSock, SOMAXCONN) == 0;
 		if (!ok)
 			aOutErr = mg::box::ErrorRaiseErrno("listen()");
 		return ok;
@@ -136,7 +135,7 @@ namespace net {
 		MG_DEV_ASSERT(rc == 1);
 		if (fd.revents == POLLOUT)
 			return true;
-		if (!SocketCheckState(aSock, aOutErr))
+		if (!mg::net::SocketCheckState(aSock, aOutErr))
 			return false;
 		aOutErr = mg::box::ErrorRaise(mg::box::ERR_NET_ABORTED, "async connect");
 		return false;
@@ -159,12 +158,11 @@ namespace net {
 		if (rc > 0)
 			return rc;
 		MG_DEV_ASSERT(rc < 0);
-		bool ok = errno == EWOULDBLOCK || errno == EAGAIN;
-		if (ok)
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
 			aOutErr.Clear();
 		else
 			aOutErr = mg::box::ErrorRaiseErrno("sendmsg()");
-		return ok;
+		return -1;
 	}
 
 	int64_t
@@ -183,12 +181,11 @@ namespace net {
 		ssize_t rc = recvmsg(aSock, &msg, 0);
 		if (rc >= 0)
 			return rc;
-		bool ok = errno == EWOULDBLOCK || errno == EAGAIN;
-		if (ok)
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
 			aOutErr.Clear();
 		else
 			aOutErr = mg::box::ErrorRaiseErrno("recvmsg()");
-		return ok;
+		return -1;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////

@@ -26,8 +26,8 @@ namespace sio {
 			mg::net::TRANSPORT_PROT_TCP, aOutErr);
 		if (sock == mg::net::theInvalidSocket)
 			return false;
-
-		if (!mg::net::SocketBind(sock, aHost, aOutErr))
+		if (!mg::net::SocketSetFixReuseAddr(sock, aOutErr) ||
+			!mg::net::SocketBind(sock, aHost, aOutErr))
 		{
 			mg::net::SocketClose(sock);
 			return false;
@@ -37,12 +37,21 @@ namespace sio {
 		return true;
 	}
 
+	uint16_t
+	TCPServer::GetPort() const
+	{
+		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_BOUND ||
+			myState == TCP_SERVER_STATE_LISTENING);
+		mg::net::Host host = mg::net::SocketGetBoundHost(mySocket);
+		return host.GetPort();
+	}
+
 	bool
 	TCPServer::Listen(
 		mg::box::Error::Ptr& aOutErr)
 	{
 		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_BOUND);
-		if (!SocketListen(mySocket, INT_MAX, aOutErr))
+		if (!SocketListen(mySocket, aOutErr))
 		{
 			Close();
 			return false;

@@ -7,6 +7,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestMutexBasic()
@@ -49,5 +50,6 @@ namespace unittests {
 		UnitTestMutexBasic();
 	}
 
+}
 }
 }

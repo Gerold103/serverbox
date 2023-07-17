@@ -140,7 +140,7 @@ namespace sio {
 		mg::box::Error::Ptr& aOutErr)
 	{
 		int64_t rc = SocketRecv(mySocket, aHead, aOutErr);
-		if (rc <= 0)
+		if ((rc < 0 && aOutErr.IsSet()) || rc == 0)
 			Close();
 		return rc;
 	}
@@ -152,7 +152,7 @@ namespace sio {
 		mg::box::Error::Ptr& aOutErr)
 	{
 		int64_t rc = SocketRecv(mySocket, aData, aSize, aOutErr);
-		if (rc <= 0)
+		if ((rc < 0 && aOutErr.IsSet()) || rc == 0)
 			Close();
 		return rc;
 	}
@@ -162,9 +162,13 @@ namespace sio {
 		mg::box::Error::Ptr& aOutErr)
 	{
 		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CONNECTED);
+		if (myOutput.IsEmpty())
+			return true;
 		int64_t rc = SocketSend(mySocket, myOutput, mySendOffset, aOutErr);
 		if (rc < 0)
 		{
+			if (!aOutErr.IsSet())
+				return true;
 			Close();
 			return false;
 		}
@@ -179,12 +183,10 @@ namespace sio {
 		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CONNECTING);
 		if (!SocketConnectUpdate(mySocket, aOutErr))
 		{
-			if (aOutErr.IsSet())
-			{
-				Close();
-				return false;
-			}
-			return true;
+			if (!aOutErr.IsSet())
+				return true;
+			Close();
+			return false;
 		}
 		myState = TCP_SOCKET_STATE_CONNECTED;
 		return true;

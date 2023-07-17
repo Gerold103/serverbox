@@ -6,6 +6,7 @@
 
 namespace mg {
 namespace unittests {
+namespace net {
 
 	static const char* theIPV6v1 = "bda:738f:3de1:d416:daa4:4a76:1a42:9e41";
 	static const char* theIPV6v2 = "4870:7fa2:2613:1169:7cb9:e172:4d2:6cf0";
@@ -411,5 +412,6 @@ namespace unittests {
 		UnitTestHostIsIPAddress();
 	}
 
+}
 }
 }

@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestIOVecPropagate()
@@ -86,5 +87,6 @@ namespace unittests {
 		UnitTestIOVecPropagate();
 	}
 
+}
 }
 }

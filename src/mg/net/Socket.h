@@ -35,6 +35,9 @@ namespace net {
 		SockAddrFamily aAddrFamily,
 		mg::box::Error::Ptr& aOutErr);
 
+	Host SocketGetBoundHost(
+		Socket aSock);
+
 	bool SocketSetKeepAlive(
 		Socket aSock,
 		bool aValue,

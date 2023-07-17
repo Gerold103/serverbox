@@ -24,6 +24,8 @@ namespace sio {
 			const mg::net::Host& aHost,
 			mg::box::Error::Ptr& aOutErr);
 
+		uint16_t GetPort() const;
+
 		bool Listen(
 			mg::box::Error::Ptr& aOutErr);
 

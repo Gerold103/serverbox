@@ -13,6 +13,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	template<uint32_t PaddigSize>
 	struct ValueBase
@@ -189,5 +190,6 @@ namespace unittests {
 		UnitTestThreadLocalPoolStress<Value<1024, mg::box::theThreadLocalBatchSize>>();
 	}
 
+}
 }
 }

@@ -5,6 +5,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestUtilFormat()
@@ -23,5 +24,6 @@ namespace unittests {
 		UnitTestUtilFormat();
 	}
 
+}
 }
 }

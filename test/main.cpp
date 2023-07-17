@@ -7,14 +7,13 @@
 namespace mg {
 namespace unittests {
 
+namespace box {
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
-	void UnitTestBuffer();
 	void UnitTestConditionVariable();
 	void UnitTestDoublyList();
 	void UnitTestError();
 	void UnitTestForwardList();
-	void UnitTestHost();
 	void UnitTestIOVec();
 	void UnitTestLog();
 	void UnitTestMultiConsumerQueue();
@@ -25,9 +24,20 @@ namespace unittests {
 	void UnitTestSignal();
 	void UnitTestString();
 	void UnitTestSysinfo();
-	void UnitTestTaskScheduler();
 	void UnitTestThreadLocalPool();
 	void UnitTestUtil();
+}
+namespace net {
+	void UnitTestBuffer();
+	void UnitTestHost();
+}
+namespace sched {
+	void UnitTestTaskScheduler();
+}
+namespace sio {
+	void UnitTestTCPServer();
+	void UnitTestTCPSocket();
+}
 
 }
 }
@@ -39,30 +49,36 @@ main()
 
 	Report("======== Unit tests ========");
 
-	UnitTestSysinfo();
+	sio::UnitTestTCPSocket();
+	sio::UnitTestTCPServer();
 	if ("123" != nullptr)
 		return 0;
 
-	UnitTestAtomic();
-	UnitTestBinaryHeap();
-	UnitTestBuffer();
-	UnitTestConditionVariable();
-	UnitTestDoublyList();
-	UnitTestError();
-	UnitTestForwardList();
-	UnitTestHost();
-	UnitTestIOVec();
-	UnitTestLog();
-	UnitTestMultiConsumerQueue();
-	UnitTestMultiProducerQueue();
-	UnitTestMutex();
-	UnitTestRefCount();
-	UnitTestSharedPtr();
-	UnitTestSignal();
-	UnitTestString();
-	UnitTestSysinfo();
-	UnitTestTaskScheduler();
-	UnitTestThreadLocalPool();
-	UnitTestUtil();
+	box::UnitTestAtomic();
+	box::UnitTestBinaryHeap();
+	box::UnitTestConditionVariable();
+	box::UnitTestDoublyList();
+	box::UnitTestError();
+	box::UnitTestForwardList();
+	box::UnitTestIOVec();
+	box::UnitTestLog();
+	box::UnitTestMultiConsumerQueue();
+	box::UnitTestMultiProducerQueue();
+	box::UnitTestMutex();
+	box::UnitTestRefCount();
+	box::UnitTestSharedPtr();
+	box::UnitTestSignal();
+	box::UnitTestString();
+	box::UnitTestSysinfo();
+	box::UnitTestThreadLocalPool();
+	box::UnitTestUtil();
+
+	net::UnitTestBuffer();
+	net::UnitTestHost();
+
+	sched::UnitTestTaskScheduler();
+
+	sio::UnitTestTCPServer();
+	sio::UnitTestTCPSocket();
 	return 0;
 }

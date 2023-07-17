@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestErrorErrnoToString()
@@ -363,5 +364,6 @@ namespace unittests {
 		// TODO: error guard, win errors.
 	}
 
+}
 }
 }

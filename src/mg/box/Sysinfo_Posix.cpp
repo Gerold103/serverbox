@@ -40,6 +40,9 @@ namespace box {
 	static bool
 	SysCheckIsWSL()
 	{
+#if IS_PLATFORM_APPLE
+		return false;
+#else
 		// WSL can't be detected at compile time because it runs the same binaries as real
 		// Linux. But at runtime there are signs which tell this is WSL. In particular,
 		// the OS version mentions Microsoft. It is available in 2 places, here both are
@@ -98,6 +101,7 @@ namespace box {
 			close(fd);
 		MG_BOX_ASSERT_F(false, "failed to check WSL: %s", err->myMessage.c_str());
 		return false;
+#endif
 	}
 
 	static uint32_t

@@ -3,3 +3,5 @@
 - Deal with tcp backlog;
 - Introduce socket options and allow to pass them to tcpserver and tcpsocket;
 - Introduce const shared ptr;
+- Rename namespace sched to sch;
+- Rename namespace asio to aio;

@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	struct Value
 	{
@@ -1134,5 +1135,6 @@ namespace unittests {
 		UnitTestDoublyListConstIterator();
 	}
 
+}
 }
 }
