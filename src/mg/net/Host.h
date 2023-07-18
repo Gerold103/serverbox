@@ -20,13 +20,13 @@ namespace net {
 	#define IS_IPV6_SUPPORTED 1
 	#define IS_ADDR_SIN_LEN_SUPPORTED 0
 
-	using Sockaddr = struct ::sockaddr;
-	using SockaddrIn = struct ::sockaddr_in;
-	using SockaddrIn6 = struct ::sockaddr_in6;
-	using SockaddrStorage = struct ::sockaddr_storage;
+	using Sockaddr = struct sockaddr;
+	using SockaddrIn = struct sockaddr_in;
+	using SockaddrIn6 = struct sockaddr_in6;
+	using SockaddrStorage = struct sockaddr_storage;
 	using SockAddrFamily = int;
-	using InAddr = struct ::in_addr;
-	using In6Addr = struct ::in6_addr;
+	using InAddr = struct in_addr;
+	using In6Addr = struct in6_addr;
 
 	#define HOST_INADDR_LOOPBACK INADDR_LOOPBACK
 	#define HOST_INADDR_ANY INADDR_ANY

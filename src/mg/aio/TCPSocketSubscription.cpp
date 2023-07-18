@@ -1,60 +1,63 @@
-#include "TCPSocketSubscription.h"
+// ProjectFilter(Network)
+#include "stdafx.h"
+
+#include "mg/serverbox/TCPSocketListener.h"
 
 namespace mg {
-namespace asio {
+namespace serverbox {
 
 	void
-	TCPSocketSubscription::OnConnect()
+	TCPSocketListener::OnConnect()
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnConnectError(
-		mg::box::Error*)
+	TCPSocketListener::OnConnectError(
+		mg::common::Error*)
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnRecv(
-		mg::net::Buffer*,
-		mg::net::Buffer*,
-		uint32_t)
+	TCPSocketListener::OnRecv(
+		mg::network::WriteBuffer*,
+		mg::network::WriteBuffer*,
+		uint32)
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnRecvError(
-		mg::box::Error*)
+	TCPSocketListener::OnRecvError(
+		mg::common::Error*)
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnSend(
-		uint32_t)
+	TCPSocketListener::OnSend(
+		uint32)
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnSendError(
-		mg::box::Error*)
+	TCPSocketListener::OnSendError(
+		mg::common::Error*)
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnError(
-		mg::box::Error*)
+	TCPSocketListener::OnError(
+		mg::common::Error*)
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnClose()
+	TCPSocketListener::OnClose()
 	{
 	}
 
 	void
-	TCPSocketSubscription::OnWakeup()
+	TCPSocketListener::OnWakeup()
 	{
 	}
 
-}
-}
+} // serverbox
+} // mg

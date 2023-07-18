@@ -59,6 +59,8 @@ namespace box {
 					_ERR_COMMON_BEGIN		= 0,
 		ERR_NONE							= _ERR_COMMON_BEGIN + 0,
 		ERR_UNKNOWN							= _ERR_COMMON_BEGIN + 1,
+		ERR_TIMEOUT							= _ERR_COMMON_BEGIN + 2,
+		ERR_CANCEL							= _ERR_COMMON_BEGIN + 3,
 					_ERR_COMMON_END,
 					_ERR_SYS_BEGIN			= 1000,
 		ERR_SYS								= _ERR_SYS_BEGIN + 0,
@@ -89,6 +91,7 @@ namespace box {
 		ERR_NET_CLOSE_BY_PEER				= _ERR_NET_BEGIN + 1,
 		ERR_NET_ADDR_IN_USE					= _ERR_NET_BEGIN + 2,
 		ERR_NET_ABORTED						= _ERR_NET_BEGIN + 3,
+		ERR_NET_ADDR_NOT_AVAIL				= _ERR_NET_BEGIN + 4,
 					_ERR_NET_END,
 	};
 

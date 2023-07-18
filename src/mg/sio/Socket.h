@@ -2,9 +2,9 @@
 
 #include "mg/net/Socket.h"
 
-F_DECLARE_STRUCT(mg, box, IOVec);
-F_DECLARE_CLASS(mg, net, Buffer);
-F_DECLARE_CLASS(mg, net, BufferLinkList);
+F_DECLARE_STRUCT(mg, box, IOVec)
+F_DECLARE_CLASS(mg, net, Buffer)
+F_DECLARE_CLASS(mg, net, BufferLinkList)
 
 namespace mg {
 namespace sio {

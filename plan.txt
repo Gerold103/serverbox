@@ -5,3 +5,11 @@
 - Rename namespace sched to sch;
 - Rename namespace asio to aio;
 - Auto-shrink recv size after a while;
+- Introduce socket nodelay option;
+- Provide BufferList on OnRecv(). And maybe make the handler discard needed amount of bytes itself.
+- Introduce UDPSocket;
+- Rename Posix to Unix everywhere;
+- Make ConditionVariable not use raw ptrs args;
+- Update thread names to use new namespaces;
+- Introduce time types - timeout, timestamp;
+- Make common errors have a prefix;

@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.8)
 
-add_executable(test
+add_executable(test_exe
 	main.cpp
 	UnitTest.cpp
 	UnitTest.h
@@ -29,13 +29,14 @@ add_executable(test
 	sio/UnitTestTCPServer.cpp
 	sio/UnitTestTCPSocket.cpp
 )
+set_target_properties(test_exe PROPERTIES OUTPUT_NAME "test")
 
-target_include_directories(test PUBLIC
+target_include_directories(test_exe PUBLIC
 	${CMAKE_SOURCE_DIR}/src
 	${CMAKE_SOURCE_DIR}/test
 )
 
-target_link_libraries(test
+target_link_libraries(test_exe
 	mgaio
 	mgbox
 	mgnet

@@ -1,39 +1,45 @@
+// ProjectFilter(Network)
 #pragma once
 
-#include "mg/box/Definitions.h"
+#include "mg/common/Types.h"
 
-F_DECLARE_CLASS(mg, box, Error);
-F_DECLARE_CLASS(mg, net, WriteBuffer);
+F_DECLARE_CLASS(mg, common, Error);
+F_DECLARE_CLASS(mg, network, WriteBuffer);
 
 namespace mg {
-namespace aio {
+namespace serverbox {
 
 	// All the callbacks are called from an IO worker thread.
-	struct TCPSocketSubscription
+	struct TCPSocketListener
 	{
-		virtual ~TCPSocketSubscription() = default;
+		virtual ~TCPSocketListener() = default;
 
 		virtual void OnConnect();
+
 		virtual void OnConnectError(
-			mg::box::Error* aError);
+			mg::common::Error* aError);
 
 		virtual void OnRecv(
-			mg::net::Buffer* aHead,
-			mg::net::Buffer* aTail,
-			uint32_t aByteCount);
+			mg::network::WriteBuffer* aHead,
+			mg::network::WriteBuffer* aTail,
+			uint32 aByteCount);
+
 		virtual void OnRecvError(
-			mg::box::Error* aError);
+			mg::common::Error* aError);
 
 		virtual void OnSend(
-			uint32_t aByteCount);
+			uint32 aByteCount);
+
 		virtual void OnSendError(
-			mg::box::Error* aError);
+			mg::common::Error* aError);
 
 		virtual void OnError(
-			mg::box::Error* aError);
+			mg::common::Error* aError);
+
 		virtual void OnClose();
+
 		virtual void OnWakeup();
 	};
 
-}
-}
+} // serverbox
+} // mg

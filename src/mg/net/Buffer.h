@@ -4,7 +4,7 @@
 #include "mg/box/SharedPtr.h"
 #include "mg/box/ThreadLocalPool.h"
 
-F_DECLARE_STRUCT(mg, box, IOVec);
+F_DECLARE_STRUCT(mg, box, IOVec)
 
 namespace mg {
 namespace net {
@@ -60,6 +60,9 @@ namespace net {
 			const void* aData,
 			uint64_t aSize);
 
+		static BufferCopy::Ptr MakeChain(
+			const BufferCopy* aHead);
+
 	private:
 		BufferCopy();
 		~BufferCopy() override = default;
@@ -107,6 +110,30 @@ namespace net {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
+	class BufferStream
+	{
+	public:
+		BufferStream();
+
+		Buffer* GetWritePos();
+		const Buffer* GetReadPos();
+
+		uint64_t GetReadSize() const;
+		uint64_t GetWriteSize() const;
+
+		BufferList ReadAll();
+		void SkipBytes(
+			uint64_t aSize);
+
+	private:
+		Buffer::Ptr myHead;
+		Buffer::Ptr* myRPos;
+		Buffer::Ptr* myTail;
+		uint64_t mySize;
+	};
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
 	class BufferLinkList
 	{
 	public:
@@ -114,14 +141,20 @@ namespace net {
 			const Buffer* aHead);
 
 		void AppendRef(
+			BufferLink* aHead);
+
+		void AppendRef(
 			const void* aData,
 			uint64_t aSize);
+
+		void AppendList(
+			BufferLinkList&& aList);
 
 		void AppendCopy(
 			const void* aData,
 			uint64_t aSize);
 
-		void DiscardBytes(
+		void SkipBytes(
 			uint32_t& aByteOffset,
 			uint64_t aByteCount);
 

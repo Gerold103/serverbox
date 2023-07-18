@@ -23,9 +23,9 @@
 
 #include "mg/net/Socket.h"
 
-F_DECLARE_STRUCT(mg, box, IOVec);
-F_DECLARE_CLASS(mg, net, Buffer);
-F_DECLARE_CLASS(mg, net, Host);
+F_DECLARE_STRUCT(mg, box, IOVec)
+F_DECLARE_CLASS(mg, net, Buffer)
+F_DECLARE_CLASS(mg, net, Host)
 
 namespace mg {
 namespace aio {
@@ -228,7 +228,7 @@ namespace aio {
 		// * Can be called multiple times and any time.
 		// * When called even before the task is posted first time, the task is closed in
 		//   a worker thread right after the post.
-		void Close();
+		void PostClose();
 
 		// Make the task wakeup as soon as possible regardless of where it is right now.
 		// Even if the task currently is being executed, it will be scheduled for another
@@ -238,7 +238,7 @@ namespace aio {
 		//
 		// * Can be called multiples times and any time.
 		// * If done after closure, then it is nop.
-		void Wakeup();
+		void PostWakeup();
 
 		//////////////////////////////////////////////////////////////////////////////////
 		// In-worker methods for checking and handling events, work with the data, etc.
@@ -320,6 +320,11 @@ namespace aio {
 
 		bool Send(
 			const mg::net::Buffer* aHead,
+			uint32_t aByteOffset,
+			IOEvent& aEvent);
+
+		bool Send(
+			const mg::net::BufferLink* aHead,
 			uint32_t aByteOffset,
 			IOEvent& aEvent);
 
@@ -468,12 +473,12 @@ namespace aio {
 	inline void
 	IOEvent::Reset()
 	{
-#if IS_COMPILER_GCC
+#if IS_COMPILER_GCC && (__GNUC__ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
 		memset(this, 0, sizeof(*this));
-#if IS_COMPILER_GCC
+#if IS_COMPILER_GCC && (__GNUC__ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))
 #pragma GCC diagnostic pop
 #endif
 		myIsEmpty = true;

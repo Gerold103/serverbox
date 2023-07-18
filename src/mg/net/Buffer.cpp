@@ -47,7 +47,7 @@ namespace net {
 	}
 
 	void
-	BufferLinkList::DiscardBytes(
+	BufferLinkList::SkipBytes(
 		uint32_t& aByteOffset,
 		uint64_t aByteCount)
 	{

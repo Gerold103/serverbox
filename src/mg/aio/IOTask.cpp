@@ -106,7 +106,7 @@ namespace aio {
 	}
 
 	void
-	IOTask::Close()
+	IOTask::PostClose()
 	{
 		if (!PrivCloseStart())
 			return;
@@ -127,7 +127,7 @@ namespace aio {
 	}
 
 	void
-	IOTask::Wakeup()
+	IOTask::PostWakeup()
 	{
 		// Fast path.
 		IOTaskStatus oldStatus = IOTASK_STATUS_WAITING;

@@ -1,6 +1,6 @@
 // ProjectFilter(Network)
 #include "stdafx.h"
-#include "mg/serverbox/TCPSocketIFace.h"
+#include "mg/serverbox/TCPSocketBase.h"
 
 #include "mg/common/Error.h"
 
@@ -20,7 +20,7 @@ namespace serverbox {
 	{
 	}
 
-	TCPSocketIFace::TCPSocketIFace()
+	TCPSocketBase::TCPSocketBase()
 		: myState(NEW)
 		, myWasHandshakeDone(false)
 		, myIsRunning(false)
@@ -34,14 +34,14 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::Delete()
+	TCPSocketBase::Delete()
 	{
 		PostClose();
 		PrivUnref();
 	}
 
 	void
-	TCPSocketIFace::PostConnect(
+	TCPSocketBase::PostConnect(
 		const mg::network::Host& aHost,
 		TCPSocketListener* aListener)
 	{
@@ -51,7 +51,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostConnect(
+	TCPSocketBase::PostConnect(
 		Socket aSocket,
 		const mg::network::Host& aHost,
 		TCPSocketListener* aListener)
@@ -64,7 +64,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostConnect(
+	TCPSocketBase::PostConnect(
 		const char* aHost,
 		uint16 aPort,
 		TCPSocketListener* aListener)
@@ -76,7 +76,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostConnect(
+	TCPSocketBase::PostConnect(
 		Socket aSocket,
 		const char* aHost,
 		uint16 aPort,
@@ -91,7 +91,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostConnect(
+	TCPSocketBase::PostConnect(
 		const TCPSocketConnectParams& aParams,
 		TCPSocketListener* aListener)
 	{
@@ -121,7 +121,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostWrap(
+	TCPSocketBase::PostWrap(
 		Socket aSocket,
 		TCPSocketListener* aListener)
 	{
@@ -144,7 +144,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostTask(
+	TCPSocketBase::PostTask(
 		TCPSocketListener* aListener)
 	{
 		IoCore& core = IoCore::GetInstance();
@@ -162,7 +162,7 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::PostSend(
+	TCPSocketBase::PostSend(
 		mg::network::WriteBuffer* aHead)
 	{
 		mg::network::WriteBuffer* tail = aHead;
@@ -173,7 +173,7 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::PostSend(
+	TCPSocketBase::PostSend(
 		mg::network::WriteBuffer* aHead,
 		mg::network::WriteBuffer* aTail)
 	{
@@ -191,13 +191,13 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostWakeup()
+	TCPSocketBase::PostWakeup()
 	{
 		IoCore::GetInstance().WakeupTask(&myTask);
 	}
 
 	void
-	TCPSocketIFace::PostClose()
+	TCPSocketBase::PostClose()
 	{
 		mg::common::MutexLock lock(myLock);
 		if (myState >= CLOSING)
@@ -212,7 +212,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PostShutdown()
+	TCPSocketBase::PostShutdown()
 	{
 		mg::common::MutexLock lock(myLock);
 		if (myState >= CLOSING)
@@ -225,27 +225,27 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::IsClosed()
+	TCPSocketBase::IsClosed()
 	{
 		mg::common::MutexLock lock(myLock);
 		return myState == CLOSED;
 	}
 
 	bool
-	TCPSocketIFace::IsConnected()
+	TCPSocketBase::IsConnected()
 	{
 		mg::common::MutexLock lock(myLock);
 		return myState == CONNECTED;
 	}
 
 	bool
-	TCPSocketIFace::IsInWorkerNow() const
+	TCPSocketBase::IsInWorkerNow() const
 	{
 		return myTask.IsInWorkerNow();
 	}
 
 	bool
-	TCPSocketIFace::Send(
+	TCPSocketBase::Send(
 		mg::network::WriteBuffer* aHead)
 	{
 		MG_DEV_ASSERT(myTask.IsInWorkerNow());
@@ -256,7 +256,7 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::Send(
+	TCPSocketBase::Send(
 		mg::network::WriteBuffer* aHead,
 		mg::network::WriteBuffer* aTail)
 	{
@@ -268,7 +268,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::Connect(
+	TCPSocketBase::Connect(
 		const TCPSocketConnectParams& aParams)
 	{
 		TCPSocketCtlConnectParams params;
@@ -302,7 +302,7 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::SetKeepAlive(
+	TCPSocketBase::SetKeepAlive(
 		bool aEnable,
 		uint32 aTimeout)
 	{
@@ -317,7 +317,7 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::SetNoDelay(
+	TCPSocketBase::SetNoDelay(
 		bool aEnable)
 	{
 		uint32 err;
@@ -330,7 +330,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtOpen(
+	TCPSocketBase::ProtOpen(
 		uint32 aRecvSize)
 	{
 		MG_COMMON_ASSERT(aRecvSize > 0);
@@ -348,7 +348,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtPostHandshake(
+	TCPSocketBase::ProtPostHandshake(
 		TCPSocketHandshake* aHandshake)
 	{
 		// It should be done from the child class Open() method.
@@ -364,21 +364,21 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::ProtWasHandshakeDone() const
+	TCPSocketBase::ProtWasHandshakeDone() const
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		return myWasHandshakeDone;
 	}
 
 	void
-	TCPSocketIFace::ProtOnWakeup()
+	TCPSocketBase::ProtOnWakeup()
 	{
 		myListener->OnWakeup();
 		PrivCtl();
 	}
 
 	void
-	TCPSocketIFace::ProtCloseError(
+	TCPSocketBase::ProtCloseError(
 		mg::common::Error* aError)
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
@@ -388,7 +388,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtClose()
+	TCPSocketBase::ProtClose()
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		MG_COMMON_ASSERT(myIsRunning);
@@ -440,7 +440,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtOnSend(
+	TCPSocketBase::ProtOnSend(
 		uint32 aByteCount)
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
@@ -448,7 +448,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtOnSendError(
+	TCPSocketBase::ProtOnSendError(
 		mg::common::Error* aError)
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
@@ -462,7 +462,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtOnRecv(
+	TCPSocketBase::ProtOnRecv(
 		mg::network::WriteBuffer* aHead,
 		mg::network::WriteBuffer* aTail,
 		uint32 aByteCount)
@@ -472,7 +472,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::ProtOnRecvError(
+	TCPSocketBase::ProtOnRecvError(
 		mg::common::Error* aError)
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
@@ -485,7 +485,7 @@ namespace serverbox {
 		myRecvEvent.Lock();
 	}
 
-	TCPSocketIFace::~TCPSocketIFace()
+	TCPSocketBase::~TCPSocketBase()
 	{
 		mg::common::MutexLock lock(myLock);
 		// If it was connected, it was referenced by IoCore.
@@ -498,7 +498,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PrivConnectAbort(
+	TCPSocketBase::PrivConnectAbort(
 		mg::common::Error* aError)
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
@@ -511,7 +511,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PrivHandshakeStart()
+	TCPSocketBase::PrivHandshakeStart()
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		MG_COMMON_ASSERT(myCtl != nullptr && myCtl->HasHandshake());
@@ -524,7 +524,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PrivHandshakeCommit()
+	TCPSocketBase::PrivHandshakeCommit()
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		MG_COMMON_ASSERT(!myWasHandshakeDone);
@@ -540,7 +540,7 @@ namespace serverbox {
 	}
 
 	bool
-	TCPSocketIFace::PrivIsCompromised()
+	TCPSocketBase::PrivIsCompromised()
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		mg::common::MutexLock lock(myLock);
@@ -548,7 +548,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PrivCtl()
+	TCPSocketBase::PrivCtl()
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		myLock.Lock();
@@ -629,7 +629,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PrivEnableIO()
+	TCPSocketBase::PrivEnableIO()
 	{
 		MG_COMMON_ASSERT(myTask.IsInWorkerNow());
 		mySendEvent.Unlock();
@@ -637,7 +637,7 @@ namespace serverbox {
 	}
 
 	void
-	TCPSocketIFace::PrivDisableIO()
+	TCPSocketBase::PrivDisableIO()
 	{
 		MG_COMMON_ASSERT(!myIsRunning);
 		mySendEvent.Reset();

@@ -73,11 +73,11 @@ namespace box {
 		bool operator==(const SharedPtrIntrusive& aOther) const { return myObject == aOther.myObject; }
 		template<typename OtherT>
 		bool operator==(const OtherT* aOther) const { return myObject == aOther; }
-		bool operator==(std::nullptr_t aOther) const { return myObject == aOther; }
+		bool operator==(std::nullptr_t) const { return myObject == (T*)nullptr; }
 		bool operator!=(const SharedPtrIntrusive& aOther) const { return myObject != aOther.myObject; }
 		template<typename OtherT>
 		bool operator!=(const OtherT* aOther) const { return myObject != aOther; }
-		bool operator!=(std::nullptr_t aOther) const { return myObject != aOther; }
+		bool operator!=(std::nullptr_t) const { return myObject != (T*)nullptr; }
 
 		template<typename OtherT>
 		bool operator==(const SharedPtrIntrusive<OtherT>& aOther) const { return myObject == aOther.myObject; }
@@ -120,7 +120,7 @@ public:																						\
 
 #define SHARED_PTR_API(aClassName, myRef)													\
 	SHARED_PTR_RE_API(aClassName)															\
-private:																					\
+protected:																					\
 	void PrivRef() { myRef.Inc(); }															\
 	void PrivUnref() { if (myRef.Dec()) delete this; }
 

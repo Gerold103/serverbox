@@ -36,6 +36,12 @@ namespace box {
 		case ERR_UNKNOWN:
 			ERROR_DEF_MAKE(
 				"error_unknown", "unknown error");
+		case ERR_TIMEOUT:
+			ERROR_DEF_MAKE(
+				"error_timeout", "timeout");
+		case ERR_CANCEL:
+			ERROR_DEF_MAKE(
+				"error_cancel", "cancel");
 		case ERR_SYS:
 			ERROR_DEF_MAKE(
 				"error_sys", "system error");
@@ -105,12 +111,15 @@ namespace box {
 		case ERR_NET_CLOSE_BY_PEER:
 			ERROR_DEF_MAKE(
 				"error_net_closed_by_peer", "net closed by peer");
-		case ERR_NET_ABORTED:
-			ERROR_DEF_MAKE(
-				"error_net_aborted", "net aborted");
 		case ERR_NET_ADDR_IN_USE:
 			ERROR_DEF_MAKE(
 				"error_net_addr_in_use", "net address in use");
+		case ERR_NET_ABORTED:
+			ERROR_DEF_MAKE(
+				"error_net_aborted", "net aborted");
+		case ERR_NET_ADDR_NOT_AVAIL:
+			ERROR_DEF_MAKE(
+				"error_net_not_avail", "net address not available");
 		case _ERR_COMMON_END:
 		case _ERR_SYS_END:
 		case _ERR_NET_END:
@@ -307,6 +316,8 @@ namespace box {
 			return ERR_NET_ADDR_IN_USE;
 		case ECONNABORTED:
 			return ERR_NET_ABORTED;
+		case EADDRNOTAVAIL:
+			return ERR_NET_ADDR_NOT_AVAIL;
 #if !IS_PLATFORM_WIN
 		case ESTALE:
 			return ERR_SYS_BAD_DESCRIPTOR;
