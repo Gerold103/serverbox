@@ -4,3 +4,4 @@
 - Introduce const shared ptr;
 - Rename namespace sched to sch;
 - Rename namespace asio to aio;
+- Auto-shrink recv size after a while;
