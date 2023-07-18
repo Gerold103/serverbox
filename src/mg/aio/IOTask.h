@@ -28,7 +28,7 @@ F_DECLARE_CLASS(mg, net, Buffer);
 F_DECLARE_CLASS(mg, net, Host);
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	class IOCore;
 
@@ -137,7 +137,6 @@ namespace asio {
 		// Server socket itself is carried here only until post into IOCore. Then it is
 		// moved into IOTask and is owned by it.
 		mg::net::Socket mySock;
-		uint16_t myPort;
 		// For each OVERLAPPED server socket Windows forces users to fetch its private
 		// function pointers and carry them all the time together.
 		LPFN_ACCEPTEX myAcceptExF;
@@ -156,7 +155,6 @@ namespace asio {
 		~IOServerSocket();
 
 		mg::net::Socket mySock;
-		uint16_t myPort;
 	};
 #endif
 
@@ -344,7 +342,6 @@ namespace asio {
 			IOEvent& aEvent);
 
 		bool ConnectUpdate(
-			const mg::net::Host& aHost,
 			IOEvent& aEvent);
 
 		// Accept a new client-socket if the task's server-socket is bound and listening.
@@ -451,16 +448,13 @@ namespace asio {
 		mg::net::TransportProtocol aProtocol,
 		mg::box::Error::Ptr& aOutErr);
 
-	// Bind a new socket to a given port on all local IPs. The port can be 0 to bind to
-	// any port.
 	IOServerSocket* SocketBind(
-		uint16_t aPort,
+		const mg::net::Host& aHost,
 		mg::box::Error::Ptr& aOutErr);
 
 	// Start listening on a previously bound socket.
 	bool SocketListen(
 		IOServerSocket* aSock,
-		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr);
 
 	//////////////////////////////////////////////////////////////////////////////////////

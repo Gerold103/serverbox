@@ -7,6 +7,9 @@
 namespace mg {
 namespace unittests {
 
+namespace aio {
+	void UnitTestTCPServer();
+}
 namespace box {
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
@@ -49,10 +52,13 @@ main()
 
 	Report("======== Unit tests ========");
 
+	aio::UnitTestTCPServer();
 	sio::UnitTestTCPSocket();
 	sio::UnitTestTCPServer();
 	if ("123" != nullptr)
 		return 0;
+
+	aio::UnitTestTCPServer();
 
 	box::UnitTestAtomic();
 	box::UnitTestBinaryHeap();

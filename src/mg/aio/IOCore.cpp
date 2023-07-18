@@ -5,7 +5,7 @@
 #include "mg/box/Time.h"
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	using IOCoreReadyQueueConsumer = mg::box::MultiConsumerQueueConsumer<IOTask>;
 
@@ -102,6 +102,7 @@ namespace asio {
 
 	IOCore::~IOCore()
 	{
+		MG_BOX_ASSERT(WaitEmpty() == 0);
 		Stop();
 		MG_BOX_ASSERT(myDescriptorCount.LoadRelaxed() == 0);
 		MG_BOX_ASSERT(myPendingQueue.IsEmpty());

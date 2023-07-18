@@ -1,6 +1,6 @@
 #include "IOTask.h"
 
-#include "mg/asio/IOCore.h"
+#include "mg/aio/IOCore.h"
 
 #include "mg/box/IOVec.h"
 #include "mg/box/Log.h"
@@ -9,7 +9,7 @@
 #include "mg/net/Buffer.h"
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	// For IO worker threads it is the task which is being executed right now. It allows
 	// to do some actions right away without going through the scheduler again.
@@ -301,10 +301,10 @@ namespace asio {
 
 	IOServerSocket*
 	SocketBind(
-		uint16_t aPort,
+		const mg::net::Host& aHost,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		mg::net::Socket sock = SocketCreate(mg::net::ADDR_FAMILY_IPV6,
+		mg::net::Socket sock = SocketCreate(aHost.GetAddressFamily(),
 			mg::net::TRANSPORT_PROT_TCP, aOutErr);
 		if (sock == mg::net::theInvalidSocket)
 			return nullptr;
@@ -314,19 +314,17 @@ namespace asio {
 			MG_LOG_WARN("io_core_bind.05", "Couldn't fix reuseaddr - %s",
 				nonCritErr->myMessage.c_str());
 		}
-		if (!mg::net::SocketSetDualStack(sock, true, nonCritErr))
+		if (aHost.IsIPV6() && !mg::net::SocketSetDualStack(sock, true, nonCritErr))
 		{
 			MG_LOG_WARN("io_core_bind.05", "Couldn't enable dualstack - %s",
 				nonCritErr->myMessage.c_str());
 		}
-		mg::net::Host host = mg::net::HostMakeAllIPV6(aPort);
-		if (!mg::net::SocketBind(sock, host, aOutErr))
+		if (!mg::net::SocketBind(sock, aHost, aOutErr))
 		{
 			mg::net::SocketClose(sock);
 			return nullptr;
 		}
 		IOServerSocket* res = new IOServerSocket();
-		res->myPort = aPort;
 		res->mySock = sock;
 		return res;
 	}

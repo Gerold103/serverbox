@@ -8,12 +8,12 @@
 #include <unistd.h>
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	enum
 	{
 		// A mask of events each socket should listen for.
-		MG_ASIO_EPOLL_EVENTS =
+		MG_AIO_EPOLL_EVENTS =
 			EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLPRI | EPOLLET | EPOLLOUT,
 	};
 
@@ -339,7 +339,7 @@ namespace asio {
 		epoll_event event;
 		memset(&event, 0, sizeof(event));
 		event.data.ptr = aTask;
-		event.events = MG_ASIO_EPOLL_EVENTS;
+		event.events = MG_AIO_EPOLL_EVENTS;
 		bool ok = epoll_ctl(myNativeCore, EPOLL_CTL_ADD, aTask->mySocket, &event) == 0;
 		int err = errno;
 		// A valid scenario, when EPOLL_CTL_ADD could fail, does not exist. If it does not

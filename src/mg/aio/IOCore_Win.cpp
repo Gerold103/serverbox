@@ -1,7 +1,7 @@
-#include "mg/asio/IoCore.h"
+#include "IoCore.h"
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	void
 	IOCore::PrivPlatformCreate()

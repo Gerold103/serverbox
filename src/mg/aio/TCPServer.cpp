@@ -1,20 +1,27 @@
 #include "TCPServer.h"
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	bool
 	TCPServer::Bind(
-		uint16_t aPort,
+		const mg::net::Host& aHost,
 		mg::box::Error::Ptr& aOutErr)
 	{
 		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_NEW);
-		IOServerSocket* sock = SocketBind(aPort, aOutErr);
+		IOServerSocket* sock = SocketBind(aHost, aOutErr);
 		if (sock == nullptr)
 			return false;
 		myState = TCP_SERVER_STATE_BOUND;
 		myBoundSocket = sock;
 		return true;
+	}
+
+	uint16_t
+	TCPServer::GetPort() const
+	{
+		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_BOUND);
+		return mg::net::SocketGetBoundHost(myBoundSocket->mySock).GetPort();
 	}
 
 	bool
@@ -25,18 +32,14 @@ namespace asio {
 	{
 		mg::box::MutexLock lock(myMutex);
 		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_BOUND);
+		MG_DEV_ASSERT(mySub == nullptr);
+		if (!SocketListen(myBoundSocket, aOutErr))
+			return false;
+		mySub = aSub;
+		myState = TCP_SERVER_STATE_LISTENING;
 		// Move the ownership to IOCore.
 		IOServerSocket* sock = myBoundSocket;
 		myBoundSocket = nullptr;
-
-		if (!SocketListen(myBoundSocket, INT_MAX, aOutErr))
-		{
-			myBoundSocket = sock;
-			return false;
-		}
-		MG_DEV_ASSERT(mySub == nullptr);
-		mySub = aSub;
-		myState = TCP_SERVER_STATE_LISTENING;
 		myTask.Post(aCore, sock, this);
 		// Immediately start serving.
 		myTask.Wakeup();
@@ -54,6 +57,7 @@ namespace asio {
 			return;
 		}
 		myState = TCP_SERVER_STATE_CLOSED;
+		mySub = nullptr;
 	}
 
 	bool
@@ -73,7 +77,9 @@ namespace asio {
 	TCPServer::~TCPServer()
 	{
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_CLOSED);
+		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_CLOSED ||
+			myState== TCP_SERVER_STATE_NEW);
+		MG_DEV_ASSERT(mySub == nullptr);
 		delete myBoundSocket;
 		myBoundSocket = nullptr;
 	}
@@ -100,10 +106,7 @@ namespace asio {
 		}
 		mg::box::Error::Ptr err;
 		if (!myTask.ProcessArgs(aArgs, err))
-		{
-			MG_BOX_ASSERT_F(false, "TCPServer error: %s",
-				err->myMessage.c_str());
-		}
+			MG_BOX_ASSERT_F(false, "TCPServer error: %s", err->myMessage.c_str());
 		mg::net::Host peerHost;
 		mg::net::Socket peerSock = myTask.Accept(myAcceptEvent, peerHost);
 		if (peerSock == mg::net::theInvalidSocket)
@@ -111,8 +114,7 @@ namespace asio {
 			// Check if started an async accept. Couldn't accept right away.
 			if (myAcceptEvent.IsLocked())
 				return;
-			MG_BOX_ASSERT_F(!myAcceptEvent.IsError(),
-				"TCPServer accept error: %s",
+			MG_BOX_ASSERT_F(!myAcceptEvent.IsError(), "TCPServer accept error: %s",
 				mg::box::ErrorCodeMessage(myAcceptEvent.GetError()));
 			// Otherwise the accepted client could be closed remotely before
 			// being accepted. In that case the returned event is just empty.

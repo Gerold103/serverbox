@@ -1,12 +1,11 @@
 #include "IOTask.h"
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	IOServerSocket::IOServerSocket()
 		: myPeerSock(mg::net::theInvalidSocket)
 		, mySock(mg::net::theInvalidSocket)
-		, myPort(0)
 		, myAcceptExF(nullptr)
 		, myGetAcceptExSockaddrsF(nullptr)
 	{
@@ -149,7 +148,6 @@ namespace asio {
 
 	bool
 	IOTask::ConnectUpdate(
-		const mg::net::Host&,
 		IOEvent& aEvent)
 	{
 		MG_DEV_ASSERT(IsInWorkerNow());
@@ -325,12 +323,11 @@ namespace asio {
 	bool
 	SocketListen(
 		IOServerSocket* aSock,
-		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)
 	{
 		MG_DEV_ASSERT(aSock != nullptr && aSock->mySock != mg::net::theInvalidSocket &&
 			"First bind, then listen");
-		if (listen(aSock->mySock, aBacklog) != 0)
+		if (listen(aSock->mySock, SOMAXCONN) != 0)
 		{
 			aOutErr = mg::box::ErrorRaiseWSA("listen()");
 			return false;

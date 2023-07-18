@@ -1,17 +1,17 @@
 #include "IOTask.h"
 
-#include "mg/asio/IOCore.h"
+#include "mg/aio/IOCore.h"
 
 #include "mg/box/IOVec.h"
 
+#include <poll.h>
 #include <sys/epoll.h>
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	IOServerSocket::IOServerSocket()
 		: mySock(mg::net::theInvalidSocket)
-		, myPort(0)
 	{
 	}
 
@@ -164,30 +164,43 @@ namespace asio {
 
 	bool
 	IOTask::ConnectUpdate(
-		const mg::net::Host& aHost,
 		IOEvent& aEvent)
 	{
 		MG_DEV_ASSERT(mySocket != mg::net::theInvalidSocket);
 		MG_DEV_ASSERT(IsInWorkerNow());
 		MG_DEV_ASSERT(aEvent.IsLocked());
 
-		bool ok = connect(mySocket, aHost.GetSockaddr(), aHost.GetSockaddrSize()) == 0;
-		if (ok)
-			goto success;
-		if (errno == EISCONN)
-			goto success;
-		if (errno != EALREADY)
-			goto fail;
+		pollfd fd;
+		memset(&fd, 0, sizeof(fd));
+		fd.fd = mySocket;
+		fd.events = POLLOUT;
+		int rc = poll(&fd, 1, 0);
 		// Still not ready. Wait for more events.
-		return true;
+		if (rc == 0)
+			return true;
 
-	success:
+		mg::box::ErrorCode errCode = mg::box::ERR_NONE;
+		if (rc > 0)
+		{
+			MG_DEV_ASSERT(rc == 1);
+			if (fd.revents == POLLOUT)
+			{
+				aEvent.Unlock();
+				return aEvent.ReturnBytes(0);
+			}
+			mg::box::Error::Ptr err;
+			if (!mg::net::SocketCheckState(mySocket, err))
+				errCode = err->myCode;
+			else
+				errCode = mg::box::ERR_NET_ABORTED;
+		}
+		else
+		{
+			MG_DEV_ASSERT(rc < 0);
+			errCode = mg::box::ErrorCodeErrno();
+		}
 		aEvent.Unlock();
-		return aEvent.ReturnBytes(0);
-
-	fail:
-		aEvent.Unlock();
-		return aEvent.ReturnError(mg::box::ErrorCodeErrno());
+		return aEvent.ReturnError(errCode);
 	}
 
 	mg::net::Socket
@@ -333,12 +346,11 @@ namespace asio {
 	bool
 	SocketListen(
 		IOServerSocket* aSock,
-		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)
 	{
 		MG_DEV_ASSERT(aSock != nullptr && aSock->mySock != mg::net::theInvalidSocket &&
 			"First bind, then listen");
-		bool ok = listen(aSock->mySock, aBacklog) == 0;
+		bool ok = listen(aSock->mySock, SOMAXCONN) == 0;
 		if (!ok)
 			aOutErr = mg::box::ErrorRaiseErrno("listen()");
 		return ok;

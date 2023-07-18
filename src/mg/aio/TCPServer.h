@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mg/asio/IOTask.h"
+#include "mg/aio/IOTask.h"
 
 #include "mg/box/Mutex.h"
 #include "mg/box/SharedPtr.h"
@@ -8,7 +8,7 @@
 #include "mg/net/Host.h"
 
 namespace mg {
-namespace asio {
+namespace aio {
 
 	class IOCore;
 
@@ -24,7 +24,6 @@ namespace asio {
 	class TCPServerSubscription
 	{
 	public:
-		virtual void OnListen() = 0;
 		virtual void OnAccept(
 			mg::net::Socket aSock,
 			const mg::net::Host& aHost) = 0;
@@ -37,11 +36,11 @@ namespace asio {
 	public:
 		SHARED_PTR_RE_API(TCPServer)
 
-		// Bind does not activate the port. It can be used in order to take a port and do
-		// something with it before starting listen.
 		bool Bind(
-			uint16_t aPort,
+			const mg::net::Host& aHost,
 			mg::box::Error::Ptr& aOutErr);
+
+		uint16_t GetPort() const;
 
 		bool Listen(
 			IOCore& aCore,

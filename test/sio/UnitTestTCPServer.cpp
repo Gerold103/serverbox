@@ -32,6 +32,10 @@ namespace sio {
 		host.SetPort(server.GetPort());
 		TEST_CHECK(!server2.Bind(host, err));
 		TEST_CHECK(err->myCode == mg::box::ERR_NET_ADDR_IN_USE);
+
+		host.SetPort(0);
+		TEST_CHECK(server2.Bind(host, err));
+		TEST_CHECK(server2.Listen(err));
 	}
 
 	static void

@@ -6,7 +6,7 @@
 #include "mg/box/MultiProducerQueueIntrusive.h"
 #include "mg/box/Signal.h"
 
-#include "mg/asio/IOTask.h"
+#include "mg/aio/IOTask.h"
 
 #define MG_IOCORE_DEFAULT_EMPTY_TIMEOUT 60000
 #define MG_IOCORE_DEFAULT_THREAD_COUNT UINT32_MAX
@@ -15,7 +15,7 @@
 #define MG_IOCORE_READY_BATCH 4096
 
 namespace mg {
-namespace asio {
+namespace aio {
 	//
 	// IOCore is an asynchronous multithreaded scheduler of IO operations. It uses the
 	// TaskScheduler algorithm to schedule network sockets as "tasks" and handle their IO
