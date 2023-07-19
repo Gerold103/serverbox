@@ -34,7 +34,6 @@ namespace unittests {
 	void UnitTestSignal();
 	void UnitTestString();
 	void UnitTestTaskScheduler();
-	void UnitTestUtil();
 
 }
 }
@@ -63,7 +62,6 @@ main(
 	MG_RUN_TEST(UnitTestSignal);
 	MG_RUN_TEST(UnitTestString);
 	MG_RUN_TEST(UnitTestTaskScheduler);
-	MG_RUN_TEST(UnitTestUtil);
 	return 0;
 }
 

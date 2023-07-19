@@ -4,8 +4,8 @@
 #include "mg/box/ConditionVariable.h"
 #include "mg/box/ForwardList.h"
 #include "mg/box/Mutex.h"
+#include "mg/box/StringFunctions.h"
 #include "mg/box/Thread.h"
-#include "mg/box/Util.h"
 
 #include <functional>
 

@@ -2,7 +2,7 @@
 
 #include "mg/box/Assert.h"
 #include "mg/box/Atomic.h"
-#include "mg/box/Util.h"
+#include "mg/box/StringFunctions.h"
 
 #include "mg/test/Random.h"
 

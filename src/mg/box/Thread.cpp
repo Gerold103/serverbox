@@ -1,7 +1,7 @@
 #include "Thread.h"
 
 #include "mg/box/Assert.h"
-#include "mg/box/Util.h"
+#include "mg/box/StringFunctions.h"
 
 namespace mg {
 namespace box {

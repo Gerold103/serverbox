@@ -25,8 +25,6 @@ set(mgbox_src
 	ThreadFunc.h
 	Time.h
 	TypeTraits.h
-	Util.cpp
-	Util.h
 )
 
 if(WIN32)

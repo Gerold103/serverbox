@@ -1,6 +1,6 @@
-#include "mg/box/Assert.h"
 #include "mg/box/StringFunctions.h"
-#include "mg/box/Util.h"
+
+#include "mg/box/Assert.h"
 
 #include "UnitTest.h"
 
@@ -24,6 +24,17 @@ namespace unittests {
 		TEST_CHECK(mg::box::Strcasecmp("b", "a") > 0);
 		TEST_CHECK(mg::box::Strcasecmp("b", "A") > 0);
 		TEST_CHECK(mg::box::Strcasecmp("B", "a") > 0);
+	}
+
+	void
+	UnitTestStringFormat()
+	{
+		TestCaseGuard guard("StringFormat()");
+
+		TEST_CHECK(mg::box::StringFormat("") == "");
+		TEST_CHECK(mg::box::StringFormat("abc") == "abc");
+		TEST_CHECK(mg::box::StringFormat(
+			"a %d %s b c %u", 1, "str", 2U) == "a 1 str b c 2");
 	}
 
 	template <typename NumT, NumT aMax>
@@ -84,6 +95,7 @@ namespace unittests {
 		TestSuiteGuard suite("String");
 
 		UnitTestStringStrcasecmp();
+		UnitTestStringFormat();
 		UnitTestStringToNumberUnsigned();
 	}
 

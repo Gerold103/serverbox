@@ -1,7 +1,7 @@
 #include "TaskScheduler.h"
 
+#include "mg/box/StringFunctions.h"
 #include "mg/box/Time.h"
-#include "mg/box/Util.h"
 
 namespace mg {
 namespace sch {

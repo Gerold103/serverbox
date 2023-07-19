@@ -14,7 +14,6 @@ add_executable(test
 	UnitTestSignal.cpp
 	UnitTestString.cpp
 	UnitTestTaskScheduler.cpp
-	UnitTestUtil.cpp
 )
 
 target_include_directories(test PUBLIC

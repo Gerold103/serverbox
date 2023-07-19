@@ -1,6 +1,6 @@
 #include "Assert.h"
 
-#include "mg/box/Util.h"
+#include "mg/box/StringFunctions.h"
 
 #include <cstdio>
 

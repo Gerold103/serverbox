@@ -2,8 +2,8 @@
 
 #include "mg/box/Definitions.h"
 
-#include <stdarg.h>
-#include <string.h>
+#include <cstdarg>
+#include <string>
 
 namespace mg {
 namespace box {
@@ -61,6 +61,16 @@ namespace box {
 		uint32_t aBufferSize,
 		const char* aFmtString,
 		va_list aArgList);
+
+	MG_STRFORMAT_PRINTF(1, 2)
+	std::string StringFormat(
+		const char *aFormat,
+		...);
+
+	MG_STRFORMAT_PRINTF(1, 0)
+	std::string StringVFormat(
+		const char *aFormat,
+		va_list aParams);
 
 	bool StringToNumber(
 		const char* aString,
