@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestSignalBasic()
@@ -77,5 +78,6 @@ namespace unittests {
 		UnitTestSignalStressSendAndReceive();
 	}
 
+}
 }
 }

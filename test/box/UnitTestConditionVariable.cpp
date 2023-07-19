@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	// The tests require some synchronization between threads to
 	// make the tests stable and reproducible. And it should not
@@ -123,5 +124,6 @@ namespace unittests {
 		UnitTestConditionVariableBasic();
 	}
 
+}
 }
 }

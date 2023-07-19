@@ -6,6 +6,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	struct UTBHeapValue
 	{
@@ -885,5 +886,6 @@ namespace unittests {
 		UnitTestBinaryHeapRealloc();
 	}
 
+}
 }
 }

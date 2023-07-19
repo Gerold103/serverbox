@@ -7,6 +7,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	struct UTFLValue
 	{
@@ -600,5 +601,6 @@ namespace unittests {
 		UnitTestForwardListConstIterator();
 	}
 
+}
 }
 }

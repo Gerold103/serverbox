@@ -7,6 +7,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	struct UTMCQValue
 	{
@@ -837,5 +838,6 @@ namespace unittests {
 		UnitTestMCQStress(true, true, 1000, 1000000, 6);
 	}
 
+}
 }
 }

@@ -8,6 +8,7 @@
 
 namespace mg {
 namespace unittests {
+namespace box {
 
 	static void
 	UnitTestStringStrcasecmp()
@@ -99,5 +100,6 @@ namespace unittests {
 		UnitTestStringToNumberUnsigned();
 	}
 
+}
 }
 }

@@ -22,8 +22,10 @@ namespace unittests {
 	static void RunTest(
 		const TestSettings& aSettings,
 		void (*aFunc)(),
+		const char* aNamespace,
 		const char* aName);
 
+namespace box {
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
 	void UnitTestConditionVariable();
@@ -33,7 +35,10 @@ namespace unittests {
 	void UnitTestMutex();
 	void UnitTestSignal();
 	void UnitTestString();
+}
+namespace sch {
 	void UnitTestTaskScheduler();
+}
 
 }
 }
@@ -50,18 +55,18 @@ main(
 	mg::test::CommandLine cmd(aArgc, aArgv);
 	TestSettings settings = ParseSettings(cmd);
 
-#define MG_RUN_TEST(func) RunTest(settings, func, #func)
+#define MG_RUN_TEST(nm, func) RunTest(settings, nm::func, #nm, #func)
 
-	MG_RUN_TEST(UnitTestAtomic);
-	MG_RUN_TEST(UnitTestBinaryHeap);
-	MG_RUN_TEST(UnitTestConditionVariable);
-	MG_RUN_TEST(UnitTestForwardList);
-	MG_RUN_TEST(UnitTestMultiConsumerQueue);
-	MG_RUN_TEST(UnitTestMultiProducerQueue);
-	MG_RUN_TEST(UnitTestMutex);
-	MG_RUN_TEST(UnitTestSignal);
-	MG_RUN_TEST(UnitTestString);
-	MG_RUN_TEST(UnitTestTaskScheduler);
+	MG_RUN_TEST(box, UnitTestAtomic);
+	MG_RUN_TEST(box, UnitTestBinaryHeap);
+	MG_RUN_TEST(box, UnitTestConditionVariable);
+	MG_RUN_TEST(box, UnitTestForwardList);
+	MG_RUN_TEST(box, UnitTestMultiConsumerQueue);
+	MG_RUN_TEST(box, UnitTestMultiProducerQueue);
+	MG_RUN_TEST(box, UnitTestMutex);
+	MG_RUN_TEST(box, UnitTestSignal);
+	MG_RUN_TEST(box, UnitTestString);
+	MG_RUN_TEST(sch, UnitTestTaskScheduler);
 	return 0;
 }
 
@@ -101,24 +106,27 @@ namespace unittests {
 	RunTest(
 		const TestSettings& aSettings,
 		void (*aFunc)(),
+		const char* aNamespace,
 		const char* aName)
 	{
-		uint32_t nameLen = mg::box::Strlen(aName);
 		const char* prefix = "UnitTest";
 		uint32_t prefixLen = mg::box::Strlen(prefix);
-		MG_BOX_ASSERT(prefixLen < nameLen);
+		MG_BOX_ASSERT(prefixLen < mg::box::Strlen(aName));
 		MG_BOX_ASSERT(memcmp(aName, prefix, prefixLen) == 0);
-		aName += prefixLen;
-		nameLen -= prefixLen;
-		const std::string& pattern = aSettings.myPattern;
-		if (pattern.length() > 0)
+		std::string name = mg::box::StringFormat("%s::%s", aNamespace, aName + prefixLen);
+
+		const char* pattern = aSettings.myPattern.c_str();
+		size_t patternLen = aSettings.myPattern.length();
+		size_t nameLen = name.length();
+		aName = name.c_str();
+		if (patternLen > 0)
 		{
-			const char* pos = mg::box::Strcasestr(aName, pattern.c_str());
+			const char* pos = mg::box::Strcasestr(aName, pattern);
 			if (pos == nullptr)
 				return;
 			if (aSettings.myIsStrictStart && pos != aName)
 				return;
-			if (aSettings.myIsStrictEnd && pos + pattern.length() != aName + nameLen)
+			if (aSettings.myIsStrictEnd && pos + patternLen != aName + nameLen)
 				return;
 		}
 		else if (aSettings.myIsStrictStart && aSettings.myIsStrictEnd)
