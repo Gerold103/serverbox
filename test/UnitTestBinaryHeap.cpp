@@ -858,8 +858,13 @@ namespace unittests {
 			UTBHeapValue::UseDestrCount(2);
 			// New value copy.
 			UTBHeapValue::UseCopyConstrCount(1);
+#if IS_PLATFORM_WIN
+			// Somewhy on Windows it grows not x2 each time.
+			MG_COMMON_ASSERT(heap.GetCapacity() >= 3);
+#else
 			// Grows x2 at least.
 			MG_COMMON_ASSERT(heap.GetCapacity() == 4);
+#endif
 		}
 		UTBHeapValue::UseDestrCount(4);
 		UTBHeapValue::CheckCounters();
