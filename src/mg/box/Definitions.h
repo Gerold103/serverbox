@@ -1,17 +1,17 @@
 #pragma once
 
 #ifdef __linux__
-#define IS_PLATFORM_POSIX 1
+#define IS_PLATFORM_UNIX 1
 #define IS_PLATFORM_LINUX 1
 #define IS_PLATFORM_WIN 0
 #define IS_PLATFORM_APPLE 0
 #elif _WIN32
-#define IS_PLATFORM_POSIX 0
+#define IS_PLATFORM_UNIX 0
 #define IS_PLATFORM_LINUX 0
 #define IS_PLATFORM_WIN 1
 #define IS_PLATFORM_APPLE 0
 #elif __APPLE__
-#define IS_PLATFORM_POSIX 1
+#define IS_PLATFORM_UNIX 1
 #define IS_PLATFORM_LINUX 0
 #define IS_PLATFORM_WIN 0
 #define IS_PLATFORM_APPLE 1
@@ -71,7 +71,7 @@
 #include <Windows.h>
 #endif
 
-#if IS_PLATFORM_POSIX
+#if IS_PLATFORM_UNIX
 #define MG_FORCEINLINE inline __attribute((always_inline))
 #define MG_NOINLINE __attribute((noinline))
 #elif IS_PLATFORM_WIN

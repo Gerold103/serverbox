@@ -14,7 +14,7 @@ namespace box {
 		int aLine)
 	{
 		fprintf(stderr, "assertion failed: (%s) %s %u\n", aExpression, aFile, aLine);
-#if IS_PLATFORM_POSIX
+#if IS_PLATFORM_UNIX
 		abort();
 #else
 		int* t = NULL;

@@ -15,7 +15,7 @@ namespace box {
 		double GetMilliSeconds();
 
 	private:
-#if IS_PLATFORM_POSIX
+#if IS_PLATFORM_UNIX
 		uint64_t myStartNs;
 #else
 		uint64_t myStartQuant;

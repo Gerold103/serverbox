@@ -35,9 +35,9 @@ if(WIN32)
 	)
 else()
 	set(mgbox_src ${mgbox_src}
-		QPTimer_Posix.cpp
-		Thread_Posix.cpp
-		Time_Posix.cpp
+		QPTimer_Unix.cpp
+		Thread_Unix.cpp
+		Time_Unix.cpp
 	)
 endif()
 
