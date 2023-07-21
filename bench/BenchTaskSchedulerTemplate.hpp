@@ -424,7 +424,7 @@ main(
 	char** aArgv)
 {
 	using namespace mg::bench;
-	CommandLine cmdLine(aArgc - 1, aArgv + 1);
+	mg::test::CommandLine cmdLine(aArgc - 1, aArgv + 1);
 	BenchLoadType loadType = BenchLoadTypeFromString(cmdLine.GetStr("load"));
 	uint32_t threadCount = cmdLine.GetU32("threads");
 	uint32_t taskCount = cmdLine.GetU32("tasks");

@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.8)
 
 set(mgtest_src
+	CommandLine.cpp
+	CommandLine.h
 	Random.cpp
 	Random.h
 )
