@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mg/box/Mutex.h"
+#include "mg/box/Time.h"
 
 #include <condition_variable>
 
@@ -29,10 +30,9 @@ namespace box {
 
 		void Wait(
 			Mutex& aMutex);
-		void TimedWait(
+		bool TimedWait(
 			Mutex& aMutex,
-			uint32_t aTimeoutMs,
-			bool* aOutIsTimedOut);
+			mg::box::TimeLimit aTimeLimit);
 
 		void Signal() { myHandle.notify_one(); }
 		void Broadcast() { myHandle.notify_all(); }

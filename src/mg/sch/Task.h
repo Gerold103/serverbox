@@ -201,7 +201,7 @@ namespace sch {
 	inline void
 	Task::SetWait()
 	{
-		SetDeadline(MG_DEADLINE_INFINITE);
+		SetDeadline(MG_TIME_INFINITE);
 	}
 
 	inline bool

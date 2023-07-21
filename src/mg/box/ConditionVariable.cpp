@@ -19,22 +19,23 @@ namespace box {
 		aMutex.myOwner = tid;
 	}
 
-	void
+	bool
 	ConditionVariable::TimedWait(
 		Mutex& aMutex,
-		uint32_t aTimeoutMs,
-		bool* aOutIsTimedOut)
+		mg::box::TimeLimit aTimeLimit)
 	{
 		MG_BOX_ASSERT(aMutex.IsOwnedByThisThread());
 		uint32_t tid = aMutex.myOwner;
 		aMutex.myOwner = 0;
 
-		*aOutIsTimedOut = myHandle.wait_for(aMutex.myHandle,
-			std::chrono::milliseconds(aTimeoutMs)) ==
-			std::cv_status::timeout;
+		uint64_t timeout = aTimeLimit.ToDurationFromNow().myValue;
+		bool ok = myHandle.wait_for(aMutex.myHandle,
+			std::chrono::milliseconds(timeout)) != std::cv_status::timeout;
 
 		MG_BOX_ASSERT(aMutex.myOwner == 0);
 		aMutex.myOwner = tid;
+
+		return ok;
 	}
 
 }

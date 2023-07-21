@@ -21,6 +21,7 @@ add_executable(test
 	box/UnitTestString.cpp
 	box/UnitTestSysinfo.cpp
 	box/UnitTestThreadLocalPool.cpp
+	box/UnitTestTime.cpp
 	net/UnitTestHost.cpp
 	sch/UnitTestTaskScheduler.cpp
 )

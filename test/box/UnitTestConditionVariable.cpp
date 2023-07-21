@@ -60,9 +60,7 @@ namespace box {
 			// error.
 			UnitTestCondVarReceive(stepCounter, workerNext);
 
-			bool isTimedOut = false;
-			var.TimedWait(mutex, 100, &isTimedOut);
-			TEST_CHECK(isTimedOut);
+			TEST_CHECK(!var.TimedWait(mutex, mg::box::TimeDuration(100)));
 			TEST_CHECK(mutex.IsOwnedByThisThread());
 			UnitTestCondVarSend(stepCounter, workerNext);
 
@@ -72,15 +70,15 @@ namespace box {
 
 			UnitTestCondVarSend(stepCounter, workerNext);
 			// Wait signal.
-			var.TimedWait(mutex, UNIT_TEST_CONDVAR_TIMEOUT, &isTimedOut);
-			TEST_CHECK(!isTimedOut);
+			TEST_CHECK(var.TimedWait(mutex,
+				mg::box::TimeDuration(UNIT_TEST_CONDVAR_TIMEOUT)));
 			TEST_CHECK(mutex.IsOwnedByThisThread());
 
 			UnitTestCondVarReceive(stepCounter, workerNext);
 			UnitTestCondVarSend(stepCounter, workerNext);
 			// Wait broadcast.
-			var.TimedWait(mutex, UNIT_TEST_CONDVAR_TIMEOUT, &isTimedOut);
-			TEST_CHECK(!isTimedOut);
+			TEST_CHECK(var.TimedWait(mutex,
+				mg::box::TimeDuration(UNIT_TEST_CONDVAR_TIMEOUT)));
 			TEST_CHECK(mutex.IsOwnedByThisThread());
 
 			mutex.Unlock();

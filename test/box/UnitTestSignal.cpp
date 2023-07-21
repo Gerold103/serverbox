@@ -25,14 +25,14 @@ namespace box {
 		TEST_CHECK(!s.Receive());
 
 		s.Send();
-		TEST_CHECK(s.ReceiveTimed(1000000));
+		TEST_CHECK(s.ReceiveTimed(mg::box::TimeDuration(1000000)));
 		TEST_CHECK(!s.Receive());
 
 		s.Send();
-		TEST_CHECK(s.ReceiveTimed(0));
+		TEST_CHECK(s.ReceiveTimed(mg::box::TimeDuration(0)));
 		TEST_CHECK(!s.Receive());
 
-		TEST_CHECK(!s.ReceiveTimed(1));
+		TEST_CHECK(!s.ReceiveTimed(mg::box::TimeDuration(1)));
 	}
 
 	static void

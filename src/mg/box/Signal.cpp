@@ -92,7 +92,7 @@ namespace box {
 
 	bool
 	Signal::ReceiveTimed(
-		uint32_t aTimeout)
+		mg::box::TimeLimit aTimeLimit)
 	{
 		if (Receive())
 			return true;
@@ -101,7 +101,7 @@ namespace box {
 		bool rc = Receive();
 		if (!rc)
 		{
-			myCond.TimedWait(myLock, aTimeout, &rc);
+			myCond.TimedWait(myLock, aTimeLimit);
 			rc = Receive();
 			// The receive still may return false, even if the
 			// timeout didn't pass yet. This is usually enough,

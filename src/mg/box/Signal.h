@@ -48,7 +48,7 @@ namespace box {
 		// May return false not only in case of a timeout - also a
 		// spurious wakeup is possible.
 		bool ReceiveTimed(
-			uint32_t aTimeout);
+			mg::box::TimeLimit aTimeLimit);
 
 	private:
 		// State of the signal is a protection against the case
