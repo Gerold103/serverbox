@@ -23,7 +23,29 @@ namespace box {
 		TEST_CHECK(mg::box::Strcasecmp("B", "a") > 0);
 	}
 
-	void
+	static void
+	UnitTestStringTrim()
+	{
+		TestCaseGuard guard("StringTrim()");
+
+		std::string str;
+		mg::box::StringTrim(str);
+		TEST_CHECK(str.empty());
+
+		str = "a";
+		mg::box::StringTrim(str);
+		TEST_CHECK(str == "a");
+
+		str = "a b";
+		mg::box::StringTrim(str);
+		TEST_CHECK(str == "a b");
+
+		str = " \r \t \n ab c \t \r \n ";
+		mg::box::StringTrim(str);
+		TEST_CHECK(str == "ab c");
+	}
+
+	static void
 	UnitTestStringFormat()
 	{
 		TestCaseGuard guard("StringFormat()");
@@ -92,6 +114,7 @@ namespace box {
 		TestSuiteGuard suite("String");
 
 		UnitTestStringStrcasecmp();
+		UnitTestStringTrim();
 		UnitTestStringFormat();
 		UnitTestStringToNumberUnsigned();
 	}
