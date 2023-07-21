@@ -195,7 +195,7 @@ namespace sch {
 
 		// Works for deadlined tasks too.
 		progress.StoreRelaxed(false);
-		sched.PostDeadline(&t1, MG_DEADLINE_INFINITE - 1);
+		sched.PostDeadline(&t1, MG_TIME_INFINITE - 1);
 		sched.Wakeup(&t1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -311,7 +311,7 @@ namespace sch {
 			progress.StoreRelaxed(true);
 		});
 		sched.Wakeup(&t1);
-		sched.PostDeadline(&t1, MG_DEADLINE_INFINITE - 1);
+		sched.PostDeadline(&t1, MG_TIME_INFINITE - 1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
@@ -336,7 +336,7 @@ namespace sch {
 			progress.StoreRelaxed(true);
 		});
 		sched.Signal(&t1);
-		sched.PostDeadline(&t1, MG_DEADLINE_INFINITE - 1);
+		sched.PostDeadline(&t1, MG_TIME_INFINITE - 1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
@@ -368,11 +368,11 @@ namespace sch {
 
 		// Deadline adjustment.
 		progress.StoreRelaxed(false);
-		t1.SetDeadline(MG_DEADLINE_INFINITE);
-		TEST_CHECK(t1.GetDeadline() == MG_DEADLINE_INFINITE);
+		t1.SetDeadline(MG_TIME_INFINITE);
+		TEST_CHECK(t1.GetDeadline() == MG_TIME_INFINITE);
 		t1.AdjustDeadline(1);
 		TEST_CHECK(t1.GetDeadline() == 1);
-		t1.AdjustDeadline(MG_DEADLINE_INFINITE);
+		t1.AdjustDeadline(MG_TIME_INFINITE);
 		TEST_CHECK(t1.GetDeadline() == 1);
 		t1.AdjustDelay(1000000);
 		// Does not adjust to a bigger value.
@@ -507,7 +507,7 @@ namespace sch {
 			TEST_CHECK(t.ReceiveSignal());
 			progress.StoreRelaxed(true);
 		});
-		sched.PostDeadline(&t, MG_DEADLINE_INFINITE);
+		sched.PostDeadline(&t, MG_TIME_INFINITE);
 		sched.Signal(&t);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -515,7 +515,7 @@ namespace sch {
 		// Signal works for tasks in the waiting queue. Without
 		// -1 the task won't be saved to the waiting queue.
 		progress.StoreRelaxed(false);
-		sched.PostDeadline(&t, MG_DEADLINE_INFINITE - 1);
+		sched.PostDeadline(&t, MG_TIME_INFINITE - 1);
 		mg::box::Sleep(1);
 		sched.Signal(&t);
 		while (!progress.LoadRelaxed())
@@ -555,7 +555,7 @@ namespace sch {
 			if (p == 1)
 				return sched.PostWait(aTask);
 			if (p == 2)
-				return sched.PostDeadline(aTask, MG_DEADLINE_INFINITE - 1);
+				return sched.PostDeadline(aTask, MG_TIME_INFINITE - 1);
 			if (p == 3)
 				return sched.PostDelay(aTask, 1000000);
 			if (p == 4)

@@ -43,6 +43,7 @@ namespace box {
 	void UnitTestString();
 	void UnitTestSysinfo();
 	void UnitTestThreadLocalPool();
+	void UnitTestTime();
 }
 namespace net {
 	void UnitTestHost();
@@ -85,6 +86,7 @@ main(
 	MG_RUN_TEST(box, UnitTestString);
 	MG_RUN_TEST(box, UnitTestSysinfo);
 	MG_RUN_TEST(box, UnitTestThreadLocalPool);
+	MG_RUN_TEST(box, UnitTestTime);
 	MG_RUN_TEST(net, UnitTestHost);
 	MG_RUN_TEST(sch, UnitTestTaskScheduler);
 	return 0;

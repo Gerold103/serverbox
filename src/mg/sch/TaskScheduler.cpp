@@ -202,7 +202,7 @@ namespace sch {
 					// ever. And signal/wakeup work fine even if
 					// the task is waiting but not in the waiting
 					// queue. Only status matters.
-					if (t->myDeadline != MG_DEADLINE_INFINITE)
+					if (t->myDeadline != MG_TIME_INFINITE)
 						myQueueWaiting.Push(t);
 					else
 						MG_DEV_ASSERT(t->myIndex == -1);
@@ -271,7 +271,10 @@ namespace sch {
 				deadline = myQueueWaiting.GetTop()->myDeadline;
 				timestamp = mg::box::GetMilliseconds();
 				if (deadline > timestamp)
-					mySignalFront.ReceiveTimed((uint32_t)(deadline - timestamp));
+				{
+					mySignalFront.ReceiveTimed(
+						mg::box::TimeDuration(deadline - timestamp));
+				}
 			}
 			goto retry;
 		}
