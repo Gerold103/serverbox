@@ -32,6 +32,11 @@ namespace box {
 		return strncmp(aA, aB, aCount);
 	}
 
+	const char*
+	Strcasestr(
+		const char* aString,
+		const char* aToFind);
+
 	MG_STRFORMAT_PRINTF(2, 0)
 	uint32_t Vsprintf(
 		char* aBuffer,

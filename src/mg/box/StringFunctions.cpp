@@ -8,6 +8,30 @@
 namespace mg {
 namespace box {
 
+	const char*
+	Strcasestr(
+		const char* aString,
+		const char* aToFind)
+	{
+#if IS_PLATFORM_WIN
+		char c, sc;
+		if ((c = *aToFind++) != 0) {
+			c = (char)tolower((unsigned char)c);
+			size_t len = strlen(aToFind);
+			do {
+				do {
+					if ((sc = *aString++) == 0)
+						return (NULL);
+				} while ((char)tolower((unsigned char)sc) != c);
+			} while (_strnicmp(aString, aToFind, len) != 0);
+			aString--;
+		}
+		return ((char*)aString);
+#else
+		return strcasestr(aString, aToFind);
+#endif
+	}
+
 	uint32_t
 	Vsprintf(
 		char* aBuffer,
