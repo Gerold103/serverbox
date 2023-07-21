@@ -32,6 +32,31 @@ namespace box {
 #endif
 	}
 
+	void
+	StringTrim(
+		std::string& aStr)
+	{
+		size_t len = aStr.length();
+		while (true)
+		{
+			if (len == 0)
+			{
+				aStr.clear();
+				return;
+			}
+			if (!isspace(aStr[len - 1]))
+			{
+				aStr.resize(len);
+				break;
+			}
+			--len;
+		}
+		size_t toCut = 0;
+		while (toCut <= len && isspace(aStr[toCut]))
+			++toCut;
+		aStr.erase(0, toCut);
+	}
+
 	uint32_t
 	Vsprintf(
 		char* aBuffer,

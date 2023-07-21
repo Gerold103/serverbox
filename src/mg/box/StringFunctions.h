@@ -49,6 +49,9 @@ namespace box {
 		const char* aString,
 		const char* aToFind);
 
+	void StringTrim(
+		std::string& aStr);
+
 	MG_STRFORMAT_PRINTF(2, 0)
 	uint32_t Vsprintf(
 		char* aBuffer,
