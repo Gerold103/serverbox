@@ -66,12 +66,18 @@ namespace box {
 
 	void
 	Sleep(
-		uint32_t aTimeMillis)
+		uint64_t aDuration)
 	{
-		uint32_t seconds = aTimeMillis / 1000;
+		uint64_t seconds = aDuration / 1000;
+		if (seconds > UINT_MAX)
+		{
+			while (true)
+				sleep(UINT_MAX);
+			return;
+		}
 		if (seconds != 0)
-			sleep(seconds);
-		usleep((aTimeMillis % 1000) * 1000);
+			sleep((unsigned)seconds);
+		usleep((aDuration % 1000) * 1000);
 	}
 
 }

@@ -50,9 +50,15 @@ namespace box {
 
 	void
 	Sleep(
-		uint32_t aTimeMillis)
+		uint64_t aTimeMillis)
 	{
-		::Sleep(aTimeMillis);
+		if (aTimeMillis >= MAXDWORD)
+		{
+			while (true)
+				::Sleep(INFINITE);
+			return;
+		}
+		::Sleep((DWORD)aTimeMillis);
 	}
 
 }
