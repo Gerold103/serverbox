@@ -5,6 +5,12 @@
 namespace mg {
 namespace box {
 
+#if IS_COMPILER_MSVC
+#pragma warning(push)
+	// "Possible infinite loop.Execution restarts in the protected block".
+#pragma warning(disable: 6312)
+#endif
+
 	void
 	ThreadSetCurrentName(
 		const char* aName)
@@ -31,6 +37,10 @@ namespace box {
 		{
 		}
 	}
+
+#if IS_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 
 	ThreadId
 	GetCurrentThreadId()

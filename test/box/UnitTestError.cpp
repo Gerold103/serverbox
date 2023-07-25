@@ -4,6 +4,10 @@
 
 #include "UnitTest.h"
 
+#if IS_PLATFORM_WIN
+#include <winsock.h>
+#endif
+
 namespace mg {
 namespace unittests {
 namespace box {
@@ -45,6 +49,54 @@ namespace error {
 		TEST_CHECK(mg::box::ErrorCodeFromWin(ERROR_ACCESS_DENIED) == mg::box::ERR_SYS_FORBIDDEN);
 		SetLastError(ERROR_PATH_BUSY);
 		TEST_CHECK(mg::box::ErrorCodeFromWin(ERROR_ALREADY_EXISTS) == mg::box::ERR_SYS_EXISTS);
+#endif
+	}
+
+	static void
+	UnitTestErrorWSAToString()
+	{
+#if IS_PLATFORM_WIN
+		TestCaseGuard guard("ErrorWSAToString()");
+
+		TEST_CHECK(mg::box::ErrorWSAToString(ERROR_ACCESS_DENIED) ==
+			"(5) Access is denied.");
+		TEST_CHECK(mg::box::ErrorWSAToString(WSAECONNRESET) ==
+			"(10054) An existing connection was forcibly closed by the remote host.");
+		TEST_CHECK(mg::box::ErrorWSAToString(WSAEADDRINUSE) ==
+			"(10048) Only one usage of each socket address (protocol/network "
+			"address/port) is normally permitted.");
+#endif
+	}
+
+	static void
+	UnitTestErrorCodeWSA()
+	{
+#if IS_PLATFORM_WIN
+		TestCaseGuard guard("ErrorCodeWSA()");
+
+		SetLastError(ERROR_ACCESS_DENIED);
+		TEST_CHECK(mg::box::ErrorCodeWSA() == mg::box::ERR_SYS_FORBIDDEN);
+		WSASetLastError(WSAECONNRESET);
+		TEST_CHECK(mg::box::ErrorCodeWSA() == mg::box::ERR_NET_CLOSE_BY_PEER);
+		WSASetLastError(WSAEADDRINUSE);
+		TEST_CHECK(mg::box::ErrorCodeWin() == mg::box::ERR_NET_ADDR_IN_USE);
+#endif
+	}
+
+	static void
+	UnitTestErrorCodeFromWSA()
+	{
+#if IS_PLATFORM_WIN
+		TestCaseGuard guard("ErrorCodeFromWSA()");
+
+		SetLastError(ERROR_PATH_BUSY);
+		WSASetLastError(ERROR_PATH_BUSY);
+		TEST_CHECK(mg::box::ErrorCodeFromWSA(ERROR_ACCESS_DENIED) ==
+			mg::box::ERR_SYS_FORBIDDEN);
+		SetLastError(ERROR_PATH_BUSY);
+		WSASetLastError(ERROR_PATH_BUSY);
+		TEST_CHECK(mg::box::ErrorCodeFromWSA(WSAECONNRESET) ==
+			mg::box::ERR_NET_CLOSE_BY_PEER);
 #endif
 	}
 
@@ -268,6 +320,104 @@ namespace error {
 		TEST_CHECK(err->myCode == mg::box::ERR_SYS_FORBIDDEN);
 		TEST_CHECK(err->myMessage ==
 			"{code=1001, type=\"sys\", val=5, msg=\"Access is denied.\", "
+			"comm=\"random 256\"}");
+#endif
+	}
+
+	static void
+	UnitTestErrorErrorRaiseWSA()
+	{
+#if IS_PLATFORM_WIN
+		TestCaseGuard guard("ErrorRaiseWSA()");
+		mg::box::Error::Ptr err;
+		//
+		// WSA code + the system message.
+		//
+		WSASetLastError(WSAECONNRESET);
+		err = mg::box::ErrorRaiseWSA();
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_CLOSE_BY_PEER);
+		TEST_CHECK(err->myValue == WSAECONNRESET);
+		TEST_CHECK(err->myMessage ==
+			"{code=2001, type=\"net\", val=10054, msg=\"An existing connection was "
+			"forcibly closed by the remote host.\"}");
+
+		WSASetLastError(WSAEADDRINUSE);
+		err = mg::box::ErrorRaiseWSA();
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_ADDR_IN_USE);
+		TEST_CHECK(err->myValue == WSAEADDRINUSE);
+		TEST_CHECK(err->myMessage ==
+			"{code=2002, type=\"net\", val=10048, msg=\"Only one usage of each socket "
+			"address (protocol/network address/port) is normally permitted.\"}");
+		//
+		// Given code + the system message.
+		//
+		TEST_CHECK(mg::box::ErrorRaiseWSA(WSAECONNRESET)->myCode ==
+			mg::box::ERR_NET_CLOSE_BY_PEER);
+		TEST_CHECK(mg::box::ErrorRaiseWSA(WSAEADDRINUSE)->myCode ==
+			mg::box::ERR_NET_ADDR_IN_USE);
+		//
+		// Given code + a comment.
+		//
+		err = mg::box::ErrorRaiseWSA(WSAECONNRESET, "random comment");
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_CLOSE_BY_PEER);
+		TEST_CHECK(err->myMessage ==
+			"{code=2001, type=\"net\", val=10054, msg=\"An existing connection was "
+			"forcibly closed by the remote host.\", comm=\"random comment\"}");
+
+		err = mg::box::ErrorRaiseWSA(WSAEADDRINUSE, "random comment");
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_ADDR_IN_USE);
+		TEST_CHECK(err->myMessage ==
+			"{code=2002, type=\"net\", val=10048, msg=\"Only one usage of each socket "
+			"address (protocol/network address/port) is normally permitted.\", "
+			"comm=\"random comment\"}");
+		//
+		// Errno + a comment.
+		//
+		WSASetLastError(WSAECONNRESET);
+		err = mg::box::ErrorRaiseWSA("random comment");
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_CLOSE_BY_PEER);
+		TEST_CHECK(err->myMessage ==
+			"{code=2001, type=\"net\", val=10054, msg=\"An existing connection was "
+			"forcibly closed by the remote host.\", comm=\"random comment\"}");
+
+		WSASetLastError(WSAEADDRINUSE);
+		err = mg::box::ErrorRaiseWSA("random comment");
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_ADDR_IN_USE);
+		TEST_CHECK(err->myMessage ==
+			"{code=2002, type=\"net\", val=10048, msg=\"Only one usage of each socket "
+			"address (protocol/network address/port) is normally permitted.\", "
+			"comm=\"random comment\"}");
+		//
+		// Given code + a comment format.
+		//
+		err = mg::box::ErrorRaiseFormatWSA(WSAECONNRESET, "random %d", 123);
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_CLOSE_BY_PEER);
+		TEST_CHECK(err->myMessage ==
+			"{code=2001, type=\"net\", val=10054, msg=\"An existing connection was "
+			"forcibly closed by the remote host.\", comm=\"random 123\"}");
+
+		err = mg::box::ErrorRaiseFormatWSA(WSAEADDRINUSE, "random %d%d%d", 2, 5, 6);
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_ADDR_IN_USE);
+		TEST_CHECK(err->myMessage ==
+			"{code=2002, type=\"net\", val=10048, msg=\"Only one usage of each socket "
+			"address (protocol/network address/port) is normally permitted.\", "
+			"comm=\"random 256\"}");
+		//
+		// Errno + a comment format.
+		//
+		WSASetLastError(WSAECONNRESET);
+		err = mg::box::ErrorRaiseFormatWSA("random %d", 123);
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_CLOSE_BY_PEER);
+		TEST_CHECK(err->myMessage ==
+			"{code=2001, type=\"net\", val=10054, msg=\"An existing connection was "
+			"forcibly closed by the remote host.\", comm=\"random 123\"}");
+
+		WSASetLastError(WSAEADDRINUSE);
+		err = mg::box::ErrorRaiseFormatWSA("random %d%d%d", 2, 5, 6);
+		TEST_CHECK(err->myCode == mg::box::ERR_NET_ADDR_IN_USE);
+		TEST_CHECK(err->myMessage ==
+			"{code=2002, type=\"net\", val=10048, msg=\"Only one usage of each socket "
+			"address (protocol/network address/port) is normally permitted.\", "
 			"comm=\"random 256\"}");
 #endif
 	}
@@ -525,10 +675,15 @@ namespace error {
 		using namespace error;
 		TestSuiteGuard suite("Error");
 
-		// Windows.
+		// Windows plain code.
 		UnitTestErrorWinToString();
 		UnitTestErrorCodeWin();
 		UnitTestErrorCodeFromWin();
+
+		// Windows sockets.
+		UnitTestErrorWSAToString();
+		UnitTestErrorCodeWSA();
+		UnitTestErrorCodeFromWSA();
 
 		// Errno.
 		UnitTestErrorErrnoToString();
@@ -544,6 +699,7 @@ namespace error {
 
 		// Platform raise.
 		UnitTestErrorErrorRaiseWin();
+		UnitTestErrorErrorRaiseWSA();
 		UnitTestErrorErrorRaiseErrno();
 
 		// Generic.
