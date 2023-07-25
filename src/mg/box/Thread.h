@@ -54,7 +54,7 @@ namespace box {
 	};
 
 	void Sleep(
-		uint32_t aTimeMillis);
+		uint64_t aDuration);
 
 	ThreadId GetCurrentThreadId();
 
