@@ -73,6 +73,9 @@ namespace net {
 #if !IS_PLATFORM_WIN
 	bool SocketIsAcceptErrorCritical(
 		int aError);
+
+	void SocketMakeNonBlocking(
+		mg::net::Socket aSock);
 #endif
 
 }

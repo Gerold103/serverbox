@@ -3,6 +3,7 @@
 #include "mg/box/Sysinfo.h"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
 
@@ -225,13 +226,16 @@ namespace net {
 		MG_DEV_ASSERT(aError != EWOULDBLOCK && aError != EAGAIN);
 		// Apparently, Apple's accept() doesn't forward errors from the backlog. If any
 		// occurs, it is related to the server itself.
-#if !IS_PLATFORM_APPLE
 		const int nonCritErrors[] = {
 			// Errors which might be forwarded from a connection which was closed after
 			// being accepted in the kernel. See 'man accept' for a list of non-critical
 			// errors.
+#if IS_PLATFORM_LINUX
 			ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET, EHOSTUNREACH,
 			EOPNOTSUPP, ENETUNREACH, ECONNABORTED,
+#elif IS_PLATFORM_APPLE
+			ECONNABORTED,
+#endif
 			// Interruption by a signal is retryable.
 			EINTR,
 			// EMFILE and ENFILE are critical intentionally. They could be retried
@@ -245,8 +249,17 @@ namespace net {
 				continue;
 			return false;
 		}
-#endif
 		return true;
+	}
+
+	void
+	SocketMakeNonBlocking(
+		mg::net::Socket aSock)
+	{
+		int flags = fcntl(aSock, F_GETFL);
+		MG_BOX_ASSERT(flags >= 0);
+		flags = fcntl(aSock, F_SETFL, flags | O_NONBLOCK);
+		MG_BOX_ASSERT(flags >= 0);
 	}
 
 }

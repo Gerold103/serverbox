@@ -3,6 +3,8 @@ cmake_minimum_required (VERSION 3.8)
 set(mgtest_src
 	CommandLine.cpp
 	CommandLine.h
+	Message.cpp
+	Message.h
 	Random.cpp
 	Random.h
 )
@@ -15,4 +17,5 @@ target_include_directories(mgtest PUBLIC
 
 target_link_libraries(mgtest
 	mgbox
+	mgnet
 )

@@ -4,6 +4,8 @@ add_executable(test
 	main.cpp
 	UnitTest.cpp
 	UnitTest.h
+	aio/UnitTestTCPServer.cpp
+	aio/UnitTestTCPSocketIFace.cpp
 	box/UnitTestAtomic.cpp
 	box/UnitTestBinaryHeap.cpp
 	box/UnitTestConditionVariable.cpp
@@ -37,6 +39,7 @@ target_include_directories(test PUBLIC
 )
 
 target_link_libraries(test
+	mgaio
 	mgbox
 	mgboxstub
 	mgnet
