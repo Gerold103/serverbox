@@ -3,6 +3,7 @@
 #include "mg/box/Sysinfo.h"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
 
@@ -252,8 +253,17 @@ namespace net {
 				continue;
 			return false;
 		}
-#endif
 		return true;
+	}
+
+	void
+	SocketMakeNonBlocking(
+		mg::net::Socket aSock)
+	{
+		int flags = fcntl(aSock, F_GETFL);
+		MG_BOX_ASSERT(flags >= 0);
+		flags = fcntl(aSock, F_SETFL, flags | O_NONBLOCK);
+		MG_BOX_ASSERT(flags >= 0);
 	}
 
 }

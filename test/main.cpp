@@ -29,6 +29,10 @@ namespace unittests {
 		const char* aNamespace,
 		const char* aName);
 
+namespace aio {
+	void UnitTestTCPServer();
+	void UnitTestTCPSocketIFace();
+}
 namespace box {
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
@@ -88,6 +92,8 @@ main(
 
 #define MG_RUN_TEST(nm, func) RunTest(settings, nm::func, #nm, #func)
 
+	MG_RUN_TEST(aio, UnitTestTCPServer);
+	MG_RUN_TEST(aio, UnitTestTCPSocketIFace);
 	MG_RUN_TEST(box, UnitTestAtomic);
 	MG_RUN_TEST(box, UnitTestBinaryHeap);
 	MG_RUN_TEST(box, UnitTestConditionVariable);

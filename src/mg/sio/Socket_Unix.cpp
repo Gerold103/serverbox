@@ -4,17 +4,8 @@
 
 #include <poll.h>
 
-#if IS_PLATFORM_APPLE
-#include <fcntl.h>
-#endif
-
 namespace mg {
 namespace sio {
-
-#if IS_PLATFORM_APPLE
-	static void SocketMakeNonBlocking(
-		mg::net::Socket aSock);
-#endif
 
 	mg::net::Socket
 	SocketCreate(
@@ -44,7 +35,7 @@ namespace sio {
 			return mg::net::theInvalidSocket;
 		}
 #if IS_PLATFORM_APPLE
-		SocketMakeNonBlocking(res);
+		mg::net::SocketMakeNonBlocking(res);
 #endif
 		return res;
 	}
@@ -61,7 +52,7 @@ namespace sio {
 #if IS_PLATFORM_APPLE
 		sock = accept(aServer, (sockaddr*)&remoteAddr, &remoteAddrLen);
 		if (sock >= 0)
-			SocketMakeNonBlocking(sock);
+			mg::net::SocketMakeNonBlocking(sock);
 #else
 		sock = accept4(aServer, (sockaddr*)&remoteAddr, &remoteAddrLen,
 			SOCK_NONBLOCK);
@@ -188,20 +179,6 @@ namespace sio {
 			aOutErr = mg::box::ErrorRaiseErrno("recvmsg()");
 		return -1;
 	}
-
-	//////////////////////////////////////////////////////////////////////////////////////
-
-#if IS_PLATFORM_APPLE
-	static void
-	SocketMakeNonBlocking(
-		mg::net::Socket aSock)
-	{
-		int flags = fcntl(aSock, F_GETFL);
-		MG_BOX_ASSERT(flags >= 0);
-		flags = fcntl(aSock, F_SETFL, flags | O_NONBLOCK);
-		MG_BOX_ASSERT(flags >= 0);
-	}
-#endif
 
 }
 }
