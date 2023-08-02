@@ -4,7 +4,11 @@
 
 #include "UnitTest.h"
 
+#include <csignal>
 #include <cstdio>
+#if IS_PLATFORM_WIN
+#include <winsock.h>
+#endif
 
 namespace mg {
 namespace unittests {
@@ -54,6 +58,10 @@ namespace net {
 namespace sch {
 	void UnitTestTaskScheduler();
 }
+namespace sio {
+	void UnitTestTCPServer();
+	void UnitTestTCPSocket();
+}
 
 }
 }
@@ -66,6 +74,14 @@ main(
 	using namespace mg::unittests;
 
 	Report("======== Unit tests ========");
+
+#if IS_PLATFORM_WIN
+	WSADATA data;
+	MG_BOX_ASSERT(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+#else
+	// In LLDB: process handle SIGPIPE -n false -p true -s false
+	signal(SIGPIPE, SIG_IGN);
+#endif
 
 	mg::tst::CommandLine cmd(aArgc, aArgv);
 	TestSettings settings = ParseSettings(cmd);
@@ -95,6 +111,12 @@ main(
 	MG_RUN_TEST(net, UnitTestHost);
 	MG_RUN_TEST(net, UnitTestURL);
 	MG_RUN_TEST(sch, UnitTestTaskScheduler);
+	MG_RUN_TEST(sio, UnitTestTCPServer);
+	MG_RUN_TEST(sio, UnitTestTCPSocket);
+
+#if IS_PLATFORM_WIN
+	MG_BOX_ASSERT(WSACleanup() == 0);
+#endif
 	return 0;
 }
 
