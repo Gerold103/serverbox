@@ -1,15 +1,29 @@
 cmake_minimum_required (VERSION 3.8)
 
-add_library(mgnet
+set(mgnet_src
 	Buffer.cpp
 	Buffer.h
 	DomainToIP.cpp
 	DomainToIP.h
 	Host.cpp
 	Host.h
+	Socket.cpp
+	Socket.h
 	URL.cpp
 	URL.h
 )
+
+if(WIN32)
+	set(mgnet_src ${mgnet_src}
+		Socket_Win.cpp
+	)
+else()
+	set(mgnet_src ${mgnet_src}
+		Socket_Unix.cpp
+	)
+endif()
+
+add_library(mgnet ${mgnet_src})
 
 target_include_directories(mgnet PUBLIC
 	${CMAKE_SOURCE_DIR}/src/

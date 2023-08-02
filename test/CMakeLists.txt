@@ -27,6 +27,8 @@ add_executable(test
 	net/UnitTestHost.cpp
 	net/UnitTestURL.cpp
 	sch/UnitTestTaskScheduler.cpp
+	sio/UnitTestTCPServer.cpp
+	sio/UnitTestTCPSocket.cpp
 )
 
 target_include_directories(test PUBLIC
@@ -39,5 +41,6 @@ target_link_libraries(test
 	mgboxstub
 	mgnet
 	mgsch
+	mgsio
 	mgtest
 )
