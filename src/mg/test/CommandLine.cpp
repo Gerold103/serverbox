@@ -71,7 +71,7 @@ namespace test {
 		uint32_t res = 0;
 		MG_BOX_ASSERT_F(mg::box::StringToNumber(
 			PrivGet(aName).myValue.c_str(), res),
-			"Couldn't convert arg %s to uint64", aName);
+			"Couldn't convert arg %s to uint32", aName);
 		return res;
 	}
 
