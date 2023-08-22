@@ -32,6 +32,18 @@ namespace box {
 		return strncmp(aA, aB, aCount);
 	}
 
+	static inline int
+	Strcasecmp(
+		const char* aA,
+		const char* aB)
+	{
+#if IS_PLATFORM_WIN
+		return _stricmp(aA, aB);
+#else
+		return strcasecmp(aA, aB);
+#endif
+	}
+
 	const char*
 	Strcasestr(
 		const char* aString,

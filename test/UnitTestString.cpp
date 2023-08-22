@@ -9,6 +9,23 @@
 namespace mg {
 namespace unittests {
 
+	static void
+	UnitTestStringStrcasecmp()
+	{
+		TestCaseGuard guard("Strcasecmp()");
+
+		TEST_CHECK(mg::box::Strcasecmp("", "") == 0);
+		TEST_CHECK(mg::box::Strcasecmp("aBcDe", "AbCdE") == 0);
+		TEST_CHECK(mg::box::Strcasecmp("aBcDe", "Ab") > 0);
+		TEST_CHECK(mg::box::Strcasecmp("aBc", "AbCdE") < 0);
+		TEST_CHECK(mg::box::Strcasecmp("a", "b") < 0);
+		TEST_CHECK(mg::box::Strcasecmp("a", "B") < 0);
+		TEST_CHECK(mg::box::Strcasecmp("A", "b") < 0);
+		TEST_CHECK(mg::box::Strcasecmp("b", "a") > 0);
+		TEST_CHECK(mg::box::Strcasecmp("b", "A") > 0);
+		TEST_CHECK(mg::box::Strcasecmp("B", "a") > 0);
+	}
+
 	template <typename NumT, NumT aMax>
 	static void
 	UnitTestStringToNumberBasicTemplate()
@@ -66,6 +83,7 @@ namespace unittests {
 	{
 		TestSuiteGuard suite("String");
 
+		UnitTestStringStrcasecmp();
 		UnitTestStringToNumberUnsigned();
 	}
 
