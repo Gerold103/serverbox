@@ -109,5 +109,12 @@ namespace box {
 		myLock.Unlock();
 	}
 
+	void
+	SleepInfinite()
+	{
+		while (true)
+			Sleep(UINT64_MAX);
+	}
+
 }
 }
