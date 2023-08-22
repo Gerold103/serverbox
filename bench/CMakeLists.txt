@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.8)
 
+find_package(Boost)
+
 add_library(bench
 	Bench.cpp
 	Bench.h
@@ -63,5 +65,30 @@ add_executable(bench_mpscqueue_trivial
 )
 target_link_libraries(bench_mpscqueue_trivial
 	mgbox
+	bench
+)
+
+set(bench_io_src
+	BenchIO.cpp
+	BenchIOBoostCore.cpp
+	BenchIOHelp.cpp
+	BenchIOTCPClient.cpp
+	BenchIOTCPClientBoost.cpp
+	BenchIOTCPServer.cpp
+	BenchIOTools.cpp
+)
+if(${Boost_FOUND})
+	set(BOOST_MACRO MG_BENCH_IO_HAS_BOOST=1)
+else()
+	set(BOOST_MACRO MG_BENCH_IO_HAS_BOOST=0)
+endif()
+add_executable(bench_io ${bench_io_src})
+target_compile_definitions(bench_io PRIVATE ${BOOST_MACRO})
+
+target_link_libraries(bench_io
+	mgaio
+	mgbox
+	mgboxstub
+	mgnet
 	bench
 )
