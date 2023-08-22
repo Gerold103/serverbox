@@ -56,6 +56,8 @@ namespace box {
 	void Sleep(
 		uint64_t aDuration);
 
+	void SleepInfinite();
+
 	ThreadId GetCurrentThreadId();
 
 }
