@@ -46,11 +46,35 @@ namespace tst {
 		return PrivFind(aName) != nullptr;
 	}
 
-	const char*
+	bool
+	CommandLine::IsTrue(
+		const char* aName) const
+	{
+		const Pair* p = PrivFind(aName);
+		if (p == nullptr)
+			return false;
+		if (p->myValue == "0")
+			return false;
+		return mg::box::Strcasecmp(p->myValue.c_str(), "false") != 0;
+	}
+
+	const std::string&
 	CommandLine::GetStr(
 		const char* aName) const
 	{
-		return PrivGet(aName).myValue.c_str();
+		return PrivGet(aName).myValue;
+	}
+
+	bool
+	CommandLine::GetStr(
+		const char* aName,
+		std::string& aOutRes) const
+	{
+		const Pair* p = PrivFind(aName);
+		if (p == nullptr)
+			return false;
+		aOutRes = p->myValue;
+		return true;
 	}
 
 	uint64_t
@@ -58,10 +82,21 @@ namespace tst {
 		const char* aName) const
 	{
 		uint64_t res = 0;
-		MG_BOX_ASSERT_F(mg::box::StringToNumber(
-			PrivGet(aName).myValue.c_str(), res),
-			"Couldn't convert arg %s to uint64", aName);
+		MG_BOX_ASSERT_F(GetU64(aName, res), "Couldn't get arg %s as uint64", aName);
 		return res;
+	}
+
+	bool
+	CommandLine::GetU64(
+		const char* aName,
+		uint64_t& aOutRes) const
+	{
+		const Pair* p = PrivFind(aName);
+		if (p == nullptr)
+			return false;
+		MG_BOX_ASSERT_F(mg::box::StringToNumber(p->myValue.c_str(), aOutRes),
+			"Couldn't convert arg %s to uint64", aName);
+		return true;
 	}
 
 	uint32_t
@@ -69,10 +104,43 @@ namespace tst {
 		const char* aName) const
 	{
 		uint32_t res = 0;
-		MG_BOX_ASSERT_F(mg::box::StringToNumber(
-			PrivGet(aName).myValue.c_str(), res),
-			"Couldn't convert arg %s to uint32", aName);
+		MG_BOX_ASSERT_F(GetU32(aName, res), "Couldn't get arg %s as uint32", aName);
 		return res;
+	}
+
+	bool
+	CommandLine::GetU32(
+		const char* aName,
+		uint32_t& aOutRes) const
+	{
+		const Pair* p = PrivFind(aName);
+		if (p == nullptr)
+			return false;
+		MG_BOX_ASSERT_F(mg::box::StringToNumber(p->myValue.c_str(), aOutRes),
+			"Couldn't convert arg %s to uint32", aName);
+		return true;
+	}
+
+	uint16_t
+	CommandLine::GetU16(
+		const char* aName) const
+	{
+		uint16_t res = 0;
+		MG_BOX_ASSERT_F(GetU16(aName, res), "Couldn't get arg %s as uint16", aName);
+		return res;
+	}
+
+	bool
+	CommandLine::GetU16(
+		const char* aName,
+		uint16_t& aOutRes) const
+	{
+		const Pair* p = PrivFind(aName);
+		if (p == nullptr)
+			return false;
+		MG_BOX_ASSERT_F(mg::box::StringToNumber(p->myValue.c_str(), aOutRes),
+			"Couldn't convert arg %s to uint16", aName);
+		return true;
 	}
 
 	const CommandLine::Pair*

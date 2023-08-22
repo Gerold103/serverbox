@@ -41,6 +41,19 @@ class Version:
 			self.cmd = ''
 		print('==== Version {}'.format(self.name))
 		print('== Found exe {}'.format(self.exe))
+		cond = cfg.get('cond')
+		if cond:
+			args = shlex.split(cond)
+			args.insert(0, self.exe)
+			proc = subprocess.Popen(args, executable=self.exe, stdout=subprocess.PIPE,
+				stderr=subprocess.PIPE)
+			out, err = proc.communicate()
+			if err:
+				print('Failed to run: {}'.format(err))
+				sys.exit(-1)
+			if proc.returncode != 0:
+				print('== Version is not supported: {}'.format(out.decode('utf-8')))
+				self.exe = None
 
 # Results of running a given exe one time.
 class SingleRun:
@@ -50,9 +63,14 @@ class SingleRun:
 		if err:
 			print('Failed to run: {}'.format(err))
 			sys.exit(-1)
+		report = report.decode('utf-8')
+		if proc.returncode != 0:
+			print('Bench failed')
+			print(report)
+			sys.exit(-1)
 		lines = []
 		self.value = None
-		for i, l in enumerate(report.decode('utf-8').splitlines()):
+		for i, l in enumerate(report.splitlines()):
 			# Remove comments.
 			if l.startswith('='):
 				continue
@@ -65,7 +83,7 @@ class SingleRun:
 				print('Found the target metric more than once')
 				sys.exit(-1)
 			self.value = int(l.split(':')[-1].strip())
-		if not self.value:
+		if self.value == None:
 			print('Not found the target metric')
 			sys.exit(-1)
 		# Rebuild the report without the comments.
@@ -169,12 +187,14 @@ def write_scenario(out_file, scenario):
 	out_file.write('\n```\n');
 	# Write main version first.
 	write_version(out_file, glob_main_version_key, reports[glob_main_version_key])
+	out_file.write('\n')
 	# And then the others.
 	for version_key, report in reports.items():
 		if version_key == glob_main_version_key:
 			continue
-		out_file.write('\n\n')
+		out_file.write('\n')
 		write_version(out_file, version_key, report)
+		out_file.write('\n')
 	out_file.write('```\n</details>\n')
 
 #
@@ -208,7 +228,9 @@ glob_exedir = args.exedir
 
 glob_versions = {}
 for k, v in config['versions'].items():
-	glob_versions[k] = Version(v)
+	v = Version(v)
+	if v.exe:
+		glob_versions[k] = v
 
 scenarios = []
 for v in config['scenarios']:

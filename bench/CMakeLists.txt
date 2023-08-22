@@ -13,6 +13,7 @@ target_include_directories(bench PUBLIC
 	${CMAKE_SOURCE_DIR}/bench
 )
 
+add_subdirectory(io)
 add_subdirectory(mcspqueue)
 add_subdirectory(mpscqueue)
 add_subdirectory(taskscheduler)

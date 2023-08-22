@@ -5,6 +5,10 @@ set(mgtest_src
 	CommandLine.h
 	Message.cpp
 	Message.h
+	MetricMovingAverage.cpp
+	MetricMovingAverage.h
+	MetricSpeed.cpp
+	MetricSpeed.h
 	Random.cpp
 	Random.h
 )

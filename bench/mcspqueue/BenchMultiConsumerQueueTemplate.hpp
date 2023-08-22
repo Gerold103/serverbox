@@ -228,23 +228,28 @@ namespace bench {
 	BenchQueueRun(
 		mg::tst::CommandLine& aCmdLine)
 	{
-		const char* operation = aCmdLine.GetStr("op");
+		const std::string& operation = aCmdLine.GetStr("op");
 		uint32_t itemCount = aCmdLine.GetU32("items");
 		// It is optional for non-block-based queues.
 		uint32_t subQueueSize = 0;
 		if (aCmdLine.IsPresent("subqsize"))
 			subQueueSize = aCmdLine.GetU32("subqsize");
-		if (mg::box::Strcmp(operation, "push") == 0)
+		if (operation == "push")
 			return BenchQueueRunPush(itemCount, subQueueSize);
 
 		BenchLoadType loadType = BenchLoadTypeFromString(aCmdLine.GetStr("load"));
 		uint32_t threadCount = aCmdLine.GetU32("threads");
-		if (mg::box::Strcmp(operation, "pop") == 0)
-			return BenchQueueRunPop(loadType, itemCount, threadCount, subQueueSize);
-		else if (mg::box::Strcmp(operation, "push-pop") == 0)
-			return BenchQueueRunPushPop(loadType, itemCount, threadCount, subQueueSize);
-		else
-			MG_BOX_ASSERT_F(false, "Uknown operation '%s'", operation);
+		if (operation == "pop")
+		{
+			return BenchQueueRunPop(loadType, itemCount, threadCount,
+				subQueueSize);
+		}
+		if (operation == "push-pop")
+		{
+			return BenchQueueRunPushPop(loadType, itemCount, threadCount,
+				subQueueSize);
+		}
+		MG_BOX_ASSERT_F(false, "Uknown operation '%s'", operation.c_str());
 		return BenchRunReport();
 	}
 

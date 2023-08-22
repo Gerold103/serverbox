@@ -67,6 +67,13 @@ namespace bench {
 	BenchLoadType BenchLoadTypeFromString(
 		const char* aVal);
 
+	static inline BenchLoadType
+	BenchLoadTypeFromString(
+		const std::string& aVal)
+	{
+		return BenchLoadTypeFromString(aVal.c_str());
+	}
+
 	void BenchMakeNanoWork();
 
 	void BenchMakeMicroWork();
