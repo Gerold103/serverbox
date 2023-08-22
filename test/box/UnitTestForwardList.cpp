@@ -1,4 +1,3 @@
-#include "mg/box/Assert.h"
 #include "mg/box/ForwardList.h"
 
 #include "UnitTest.h"
@@ -39,11 +38,11 @@ namespace box {
 		{
 			UTFLList list;
 			const UTFLList* clist = &list;
-			MG_BOX_ASSERT(list.GetFirst() == nullptr);
-			MG_BOX_ASSERT(clist->GetFirst() == nullptr);
-			MG_BOX_ASSERT(list.GetLast() == nullptr);
-			MG_BOX_ASSERT(clist->GetLast() == nullptr);
-			MG_BOX_ASSERT(list.IsEmpty());
+			TEST_CHECK(list.GetFirst() == nullptr);
+			TEST_CHECK(clist->GetFirst() == nullptr);
+			TEST_CHECK(list.GetLast() == nullptr);
+			TEST_CHECK(clist->GetLast() == nullptr);
+			TEST_CHECK(list.IsEmpty());
 			list.Clear();
 			list.Reverse();
 		}
@@ -54,23 +53,23 @@ namespace box {
 			UTFLValue v(1);
 
 			list.Append(&v);
-			MG_BOX_ASSERT(v.myNext == nullptr);
-			MG_BOX_ASSERT(list.GetFirst() == &v);
-			MG_BOX_ASSERT(clist->GetFirst() == &v);
-			MG_BOX_ASSERT(list.GetLast() == &v);
-			MG_BOX_ASSERT(clist->GetLast() == &v);
-			MG_BOX_ASSERT(!list.IsEmpty());
+			TEST_CHECK(v.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v);
+			TEST_CHECK(clist->GetFirst() == &v);
+			TEST_CHECK(list.GetLast() == &v);
+			TEST_CHECK(clist->GetLast() == &v);
+			TEST_CHECK(!list.IsEmpty());
 
 			list.Reverse();
-			MG_BOX_ASSERT(list.GetFirst() == &v);
+			TEST_CHECK(list.GetFirst() == &v);
 
 			list.Clear();
-			MG_BOX_ASSERT(list.IsEmpty());
-			MG_BOX_ASSERT(list.GetFirst() == nullptr);
+			TEST_CHECK(list.IsEmpty());
+			TEST_CHECK(list.GetFirst() == nullptr);
 
 			list.Prepend(&v);
-			MG_BOX_ASSERT(list.GetFirst() == &v);
-			MG_BOX_ASSERT(list.PopFirst() == &v);
+			TEST_CHECK(list.GetFirst() == &v);
+			TEST_CHECK(list.PopFirst() == &v);
 		}
 		// Many elements.
 		{
@@ -83,53 +82,53 @@ namespace box {
 			v2.myNext = v1.myNext;
 
 			list.Append(&v1);
-			MG_BOX_ASSERT(v1.myNext == nullptr);
+			TEST_CHECK(v1.myNext == nullptr);
 			list.Append(&v2);
 
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(clist->GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
-			MG_BOX_ASSERT(clist->GetLast() == &v2);
-			MG_BOX_ASSERT(!list.IsEmpty());
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(clist->GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v2);
+			TEST_CHECK(clist->GetLast() == &v2);
+			TEST_CHECK(!list.IsEmpty());
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == nullptr);
 
 			UTFLValue v0(0);
 			list.Prepend(&v0);
-			MG_BOX_ASSERT(list.GetFirst() == &v0);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
-			MG_BOX_ASSERT(v0.myNext == &v1);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v0);
+			TEST_CHECK(list.GetLast() == &v2);
+			TEST_CHECK(v0.myNext == &v1);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == nullptr);
 
 			list.Reverse();
-			MG_BOX_ASSERT(list.GetFirst() == &v2);
-			MG_BOX_ASSERT(list.GetLast() == &v0);
-			MG_BOX_ASSERT(v2.myNext == &v1);
-			MG_BOX_ASSERT(v1.myNext == &v0);
-			MG_BOX_ASSERT(v0.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v2);
+			TEST_CHECK(list.GetLast() == &v0);
+			TEST_CHECK(v2.myNext == &v1);
+			TEST_CHECK(v1.myNext == &v0);
+			TEST_CHECK(v0.myNext == nullptr);
 
 			list.Clear();
-			MG_BOX_ASSERT(list.IsEmpty());
+			TEST_CHECK(list.IsEmpty());
 		}
 		// Construct from a plain empty list.
 		{
 			UTFLList list(nullptr, nullptr);
 			UTFLValue v1(1);
-			MG_BOX_ASSERT(list.IsEmpty());
+			TEST_CHECK(list.IsEmpty());
 			list.Append(&v1);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v1);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v1);
 		}
 		// Construct from a plain one-element list.
 		{
 			UTFLValue v1(1);
 			v1.myNext = &v1;
 			UTFLList list(&v1, &v1);
-			MG_BOX_ASSERT(v1.myNext == nullptr);
-			MG_BOX_ASSERT(!list.IsEmpty());
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v1);
+			TEST_CHECK(v1.myNext == nullptr);
+			TEST_CHECK(!list.IsEmpty());
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v1);
 		}
 		// Construct from a plain two-element list.
 		{
@@ -137,11 +136,11 @@ namespace box {
 			UTFLValue v2(2);
 			v1.myNext = &v2;
 			UTFLList list(&v1, &v2);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == nullptr);
-			MG_BOX_ASSERT(!list.IsEmpty());
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == nullptr);
+			TEST_CHECK(!list.IsEmpty());
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v2);
 		}
 		// Construct from a list object.
 		{
@@ -151,12 +150,12 @@ namespace box {
 			UTFLList list1(&v1, &v2);
 			UTFLList list2(std::move(list1));
 
-			MG_BOX_ASSERT(list1.IsEmpty());
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == nullptr);
-			MG_BOX_ASSERT(!list2.IsEmpty());
-			MG_BOX_ASSERT(list2.GetFirst() == &v1);
-			MG_BOX_ASSERT(list2.GetLast() == &v2);
+			TEST_CHECK(list1.IsEmpty());
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == nullptr);
+			TEST_CHECK(!list2.IsEmpty());
+			TEST_CHECK(list2.GetFirst() == &v1);
+			TEST_CHECK(list2.GetLast() == &v2);
 		}
 		// Pop with tail.
 		{
@@ -169,11 +168,11 @@ namespace box {
 			list.Append(&v3);
 			UTFLValue* tail = &v1;
 			UTFLValue* head = list.PopAll(tail);
-			MG_BOX_ASSERT(list.IsEmpty());
-			MG_BOX_ASSERT(tail == &v3);
-			MG_BOX_ASSERT(head == &v1);
-			MG_BOX_ASSERT(list.GetFirst() == nullptr);
-			MG_BOX_ASSERT(list.GetLast() == nullptr);
+			TEST_CHECK(list.IsEmpty());
+			TEST_CHECK(tail == &v3);
+			TEST_CHECK(head == &v1);
+			TEST_CHECK(list.GetFirst() == nullptr);
+			TEST_CHECK(list.GetLast() == nullptr);
 		}
 	}
 
@@ -188,15 +187,15 @@ namespace box {
 			v1.myNext = &v2;
 
 			list.Append(&v1, &v2);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
-			MG_BOX_ASSERT(v1.myNext == &v2);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v2);
+			TEST_CHECK(v1.myNext == &v2);
 
 			list.Clear();
 			list.Append(&v1, &v1);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v1);
-			MG_BOX_ASSERT(v1.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v1);
+			TEST_CHECK(v1.myNext == nullptr);
 
 			list.Clear();
 			UTFLValue v3(3);
@@ -204,11 +203,11 @@ namespace box {
 			v1.myNext = &v2;
 			list.Append(&v1, &v2);
 			list.Append(&v3, &v3);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v3);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == &v3);
-			MG_BOX_ASSERT(v3.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v3);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == &v3);
+			TEST_CHECK(v3.myNext == nullptr);
 
 			list.Clear();
 			UTFLValue v4(4);
@@ -218,16 +217,16 @@ namespace box {
 			v4.myNext = &v1;
 			list.Append(&v1, &v2);
 			list.Append(&v3, &v4);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v4);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == &v3);
-			MG_BOX_ASSERT(v3.myNext == &v4);
-			MG_BOX_ASSERT(v4.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v4);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == &v3);
+			TEST_CHECK(v3.myNext == &v4);
+			TEST_CHECK(v4.myNext == nullptr);
 
 			list.Append(nullptr, nullptr);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v4);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v4);
 		}
 		// Append a list object.
 		{
@@ -236,23 +235,23 @@ namespace box {
 			UTFLValue v1(1);
 
 			list1.Append(std::move(list2));
-			MG_BOX_ASSERT(list1.IsEmpty());
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.IsEmpty());
+			TEST_CHECK(list2.IsEmpty());
 
 			list2.Append(&v1);
 			list1.Append(std::move(list2));
-			MG_BOX_ASSERT(list1.GetFirst() == &v1);
-			MG_BOX_ASSERT(list1.GetLast() == &v1);
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v1);
+			TEST_CHECK(list1.GetLast() == &v1);
+			TEST_CHECK(list2.IsEmpty());
 
 			UTFLValue v2(2);
 			UTFLValue v3(2);
 			list2.Append(&v2);
 			list2.Append(&v3);
 			list1.Append(std::move(list2));
-			MG_BOX_ASSERT(list1.GetFirst() == &v1);
-			MG_BOX_ASSERT(list1.GetLast() == &v3);
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v1);
+			TEST_CHECK(list1.GetLast() == &v3);
+			TEST_CHECK(list2.IsEmpty());
 		}
 	}
 
@@ -267,10 +266,10 @@ namespace box {
 
 			list.Prepend(&v2);
 			list.Prepend(&v1);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v2);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == nullptr);
 		}
 		// Prepend a plain list.
 		{
@@ -279,25 +278,25 @@ namespace box {
 			UTFLValue v2(2);
 
 			list.Prepend(nullptr, nullptr);
-			MG_BOX_ASSERT(list.IsEmpty());
+			TEST_CHECK(list.IsEmpty());
 			list.Append(&v1);
-			MG_BOX_ASSERT(list.PopFirst() == &v1);
+			TEST_CHECK(list.PopFirst() == &v1);
 
 			v1.myNext = &v1;
 			list.Prepend(&v1, &v1);
-			MG_BOX_ASSERT(!list.IsEmpty());
-			MG_BOX_ASSERT(v1.myNext == nullptr);
-			MG_BOX_ASSERT(list.PopFirst() == &v1);
-			MG_BOX_ASSERT(list.IsEmpty());
+			TEST_CHECK(!list.IsEmpty());
+			TEST_CHECK(v1.myNext == nullptr);
+			TEST_CHECK(list.PopFirst() == &v1);
+			TEST_CHECK(list.IsEmpty());
 
 			v1.myNext = &v2;
 			list.Prepend(&v1, &v2);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
-			MG_BOX_ASSERT(list.PopFirst() == &v1);
-			MG_BOX_ASSERT(list.PopFirst() == &v2);
-			MG_BOX_ASSERT(list.GetFirst() == nullptr);
-			MG_BOX_ASSERT(list.GetLast() == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v2);
+			TEST_CHECK(list.PopFirst() == &v1);
+			TEST_CHECK(list.PopFirst() == &v2);
+			TEST_CHECK(list.GetFirst() == nullptr);
+			TEST_CHECK(list.GetLast() == nullptr);
 		}
 		// Prepend a list object.
 		{
@@ -305,27 +304,27 @@ namespace box {
 			UTFLList list2;
 
 			list1.Prepend(std::move(list2));
-			MG_BOX_ASSERT(list1.IsEmpty());
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.IsEmpty());
+			TEST_CHECK(list2.IsEmpty());
 
 			UTFLValue v1(1);
 			list2.Append(&v1);
 			list1.Prepend(std::move(list2));
-			MG_BOX_ASSERT(list1.GetFirst() == &v1);
-			MG_BOX_ASSERT(list1.GetLast() == &v1);
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v1);
+			TEST_CHECK(list1.GetLast() == &v1);
+			TEST_CHECK(list2.IsEmpty());
 
 			UTFLValue v2(2);
 			UTFLValue v3(3);
 			list2.Append(&v2);
 			list2.Append(&v3);
 			list1.Prepend(std::move(list2));
-			MG_BOX_ASSERT(list2.IsEmpty());
-			MG_BOX_ASSERT(list1.GetFirst() == &v2);
-			MG_BOX_ASSERT(list1.GetLast() == &v1);
-			MG_BOX_ASSERT(v2.myNext == &v3);
-			MG_BOX_ASSERT(v3.myNext == &v1);
-			MG_BOX_ASSERT(v1.myNext == nullptr);
+			TEST_CHECK(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v2);
+			TEST_CHECK(list1.GetLast() == &v1);
+			TEST_CHECK(v2.myNext == &v3);
+			TEST_CHECK(v3.myNext == &v1);
+			TEST_CHECK(v1.myNext == nullptr);
 		}
 	}
 
@@ -338,9 +337,9 @@ namespace box {
 			UTFLValue v1(1);
 
 			list.Insert(nullptr, &v1);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v1);
-			MG_BOX_ASSERT(v1.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v1);
+			TEST_CHECK(v1.myNext == nullptr);
 		}
 		// Insert before first.
 		{
@@ -349,9 +348,9 @@ namespace box {
 			UTFLValue v2(2);
 			list.Insert(nullptr, &v2);
 			list.Insert(nullptr, &v1);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v2);
-			MG_BOX_ASSERT(v2.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v2);
+			TEST_CHECK(v2.myNext == nullptr);
 		}
 		// Insert in the middle first.
 		{
@@ -362,11 +361,11 @@ namespace box {
 			list.Append(&v1);
 			list.Append(&v3);
 			list.Insert(&v1, &v2);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v3);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == &v3);
-			MG_BOX_ASSERT(v3.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v3);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == &v3);
+			TEST_CHECK(v3.myNext == nullptr);
 		}
 		// Insert in the end.
 		{
@@ -377,11 +376,11 @@ namespace box {
 			list.Append(&v1);
 			list.Append(&v2);
 			list.Insert(&v2, &v3);
-			MG_BOX_ASSERT(list.GetFirst() == &v1);
-			MG_BOX_ASSERT(list.GetLast() == &v3);
-			MG_BOX_ASSERT(v1.myNext == &v2);
-			MG_BOX_ASSERT(v2.myNext == &v3);
-			MG_BOX_ASSERT(v3.myNext == nullptr);
+			TEST_CHECK(list.GetFirst() == &v1);
+			TEST_CHECK(list.GetLast() == &v3);
+			TEST_CHECK(v1.myNext == &v2);
+			TEST_CHECK(v2.myNext == &v3);
+			TEST_CHECK(v3.myNext == nullptr);
 		}
 	}
 
@@ -395,21 +394,21 @@ namespace box {
 			UTFLValue v1(1);
 
 			list1 = std::move(list2);
-			MG_BOX_ASSERT(list1.IsEmpty());
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.IsEmpty());
+			TEST_CHECK(list2.IsEmpty());
 
 			list1.Append(&v1);
 			list1 = std::move(list2);
-			MG_BOX_ASSERT(list1.IsEmpty());
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.IsEmpty());
+			TEST_CHECK(list2.IsEmpty());
 
 			UTFLValue v2(2);
 			list1.Append(&v1);
 			list2.Append(&v2);
 			list1 = std::move(list2);
-			MG_BOX_ASSERT(list1.GetFirst() == &v2);
-			MG_BOX_ASSERT(list1.GetLast() == &v2);
-			MG_BOX_ASSERT(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v2);
+			TEST_CHECK(list1.GetLast() == &v2);
+			TEST_CHECK(list2.IsEmpty());
 
 			UTFLValue v3(3);
 			list1.Clear();
@@ -417,21 +416,21 @@ namespace box {
 			list2.Append(&v2);
 			list2.Append(&v3);
 			list1 = std::move(list2);
-			MG_BOX_ASSERT(list2.IsEmpty());
-			MG_BOX_ASSERT(list1.GetFirst() == &v2);
-			MG_BOX_ASSERT(list1.GetLast() == &v3);
-			MG_BOX_ASSERT(v2.myNext == &v3);
-			MG_BOX_ASSERT(v3.myNext == nullptr);
+			TEST_CHECK(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v2);
+			TEST_CHECK(list1.GetLast() == &v3);
+			TEST_CHECK(v2.myNext == &v3);
+			TEST_CHECK(v3.myNext == nullptr);
 
 			list1.Clear();
 			list1.Append(&v1);
 			list1.Append(&v2);
 			list2.Append(&v3);
 			list1 = std::move(list2);
-			MG_BOX_ASSERT(list2.IsEmpty());
-			MG_BOX_ASSERT(list1.GetFirst() == &v3);
-			MG_BOX_ASSERT(list1.GetLast() == &v3);
-			MG_BOX_ASSERT(v3.myNext == nullptr);
+			TEST_CHECK(list2.IsEmpty());
+			TEST_CHECK(list1.GetFirst() == &v3);
+			TEST_CHECK(list1.GetLast() == &v3);
+			TEST_CHECK(v3.myNext == nullptr);
 		}
 	}
 
@@ -464,10 +463,10 @@ namespace box {
 		UTFLValue2 v2(2);
 		list2.Append(&v1);
 		list2.Append(&v2);
-		MG_BOX_ASSERT(list2.GetFirst() == &v1);
-		MG_BOX_ASSERT(list2.GetLast() == &v2);
-		MG_BOX_ASSERT(v1.myNext2 == &v2);
-		MG_BOX_ASSERT(v2.myNext2 == nullptr);
+		TEST_CHECK(list2.GetFirst() == &v1);
+		TEST_CHECK(list2.GetLast() == &v2);
+		TEST_CHECK(v1.myNext2 == &v2);
+		TEST_CHECK(v2.myNext2 == nullptr);
 	}
 
 	static void
@@ -477,7 +476,7 @@ namespace box {
 		for (UTFLValue* val : list)
 		{
 			MG_UNUSED(val);
-			MG_BOX_ASSERT(false);
+			TEST_CHECK(false);
 		}
 
 		UTFLValue v1(1);
@@ -486,18 +485,18 @@ namespace box {
 		for (UTFLValue* val : list)
 		{
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 1);
+		TEST_CHECK(count == 1);
 
 		count = 0;
 		for (UTFLValue* val : list)
 		{
-			MG_BOX_ASSERT(val == list.PopFirst());
+			TEST_CHECK(val == list.PopFirst());
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 1);
+		TEST_CHECK(count == 1);
 
 		UTFLValue v2(2);
 		list.Append(&v1);
@@ -506,18 +505,18 @@ namespace box {
 		for (UTFLValue* val : list)
 		{
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 2);
+		TEST_CHECK(count == 2);
 
 		count = 0;
 		for (UTFLValue* val : list)
 		{
-			MG_BOX_ASSERT(val == list.PopFirst());
+			TEST_CHECK(val == list.PopFirst());
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 2);
+		TEST_CHECK(count == 2);
 
 		UTFLValue v3(3);
 		list.Append(&v1);
@@ -527,18 +526,18 @@ namespace box {
 		for (UTFLValue* val : list)
 		{
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 3);
+		TEST_CHECK(count == 3);
 
 		count = 0;
 		for (UTFLValue* val : list)
 		{
-			MG_BOX_ASSERT(val == list.PopFirst());
+			TEST_CHECK(val == list.PopFirst());
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 3);
+		TEST_CHECK(count == 3);
 	}
 
 	static void
@@ -549,7 +548,7 @@ namespace box {
 		for (const UTFLValue* val : clist)
 		{
 			MG_UNUSED(val);
-			MG_BOX_ASSERT(false);
+			TEST_CHECK(false);
 		}
 
 		UTFLValue v1(1);
@@ -558,9 +557,9 @@ namespace box {
 		for (const UTFLValue* val : clist)
 		{
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 1);
+		TEST_CHECK(count == 1);
 
 		UTFLValue v2(2);
 		list.Append(&v1);
@@ -569,9 +568,9 @@ namespace box {
 		for (const UTFLValue* val : clist)
 		{
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 2);
+		TEST_CHECK(count == 2);
 
 		UTFLValue v3(3);
 		list.Append(&v1);
@@ -581,9 +580,9 @@ namespace box {
 		for (const UTFLValue* val : clist)
 		{
 			++count;
-			MG_BOX_ASSERT(val->myValue == count);
+			TEST_CHECK(val->myValue == count);
 		}
-		MG_BOX_ASSERT(count == 3);
+		TEST_CHECK(count == 3);
 	}
 
 	void

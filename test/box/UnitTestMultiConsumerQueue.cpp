@@ -1,5 +1,5 @@
-#include "mg/box/Assert.h"
 #include "mg/box/MultiConsumerQueue.h"
+
 #include "mg/box/QPTimer.h"
 #include "mg/box/Thread.h"
 
@@ -91,42 +91,42 @@ namespace box {
 		UTMCQValue v2;
 		UTMCQValue v3;
 
-		MG_BOX_ASSERT(queue.Pop() == nullptr);
+		TEST_CHECK(queue.Pop() == nullptr);
 
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(queue.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Pop() == nullptr);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(queue.Pop() == &v1);
+		TEST_CHECK(queue.Pop() == nullptr);
 
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(!queue.Push(&v2));
-		MG_BOX_ASSERT(queue.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Pop() == &v2);
-		MG_BOX_ASSERT(queue.Pop() == nullptr);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(!queue.Push(&v2));
+		TEST_CHECK(queue.Pop() == &v1);
+		TEST_CHECK(queue.Pop() == &v2);
+		TEST_CHECK(queue.Pop() == nullptr);
 
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(!queue.Push(&v2));
-		MG_BOX_ASSERT(!queue.Push(&v3));
-		MG_BOX_ASSERT(queue.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Pop() == &v2);
-		MG_BOX_ASSERT(queue.Pop() == &v3);
-		MG_BOX_ASSERT(queue.Pop() == nullptr);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(!queue.Push(&v2));
+		TEST_CHECK(!queue.Push(&v3));
+		TEST_CHECK(queue.Pop() == &v1);
+		TEST_CHECK(queue.Pop() == &v2);
+		TEST_CHECK(queue.Pop() == &v3);
+		TEST_CHECK(queue.Pop() == nullptr);
 
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(!queue.Push(&v2));
-		MG_BOX_ASSERT(queue.Pop() == &v1);
-		MG_BOX_ASSERT(!queue.Push(&v3));
-		MG_BOX_ASSERT(queue.Pop() == &v2);
-		MG_BOX_ASSERT(queue.Pop() == &v3);
-		MG_BOX_ASSERT(queue.Pop() == nullptr);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(!queue.Push(&v2));
+		TEST_CHECK(queue.Pop() == &v1);
+		TEST_CHECK(!queue.Push(&v3));
+		TEST_CHECK(queue.Pop() == &v2);
+		TEST_CHECK(queue.Pop() == &v3);
+		TEST_CHECK(queue.Pop() == nullptr);
 	}
 
 	static void
 	UnitTestMCQBasic()
 	{
 		UTMCQueue queue(5);
-		MG_BOX_ASSERT(queue.Count() == 0);
-		MG_BOX_ASSERT(queue.ConsumerCount() == 0);
-		MG_BOX_ASSERT(queue.SubQueueCount() == 1);
+		TEST_CHECK(queue.Count() == 0);
+		TEST_CHECK(queue.ConsumerCount() == 0);
+		TEST_CHECK(queue.SubQueueCount() == 1);
 
 		{
 			// Ensure empty consumer is destroyed fine.
@@ -135,63 +135,63 @@ namespace box {
 
 		UTMCQueueConsumer c1;
 		c1.Attach(&queue);
-		MG_BOX_ASSERT(queue.ConsumerCount() == 1);
+		TEST_CHECK(queue.ConsumerCount() == 1);
 
 		UTMCQValue v1;
 		UTMCQValue v2;
 		UTMCQValue v3;
 
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == nullptr);
 
 		// Push-pop single.
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(queue.Count() == 1);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(queue.Count() == 1);
 
-		MG_BOX_ASSERT(c1.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Count() == 0);
+		TEST_CHECK(c1.Pop() == &v1);
+		TEST_CHECK(queue.Count() == 0);
 
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == nullptr);
 
 		// Push-pop 2 elements.
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(queue.Count() == 1);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(queue.Count() == 1);
 
-		MG_BOX_ASSERT(!queue.Push(&v2));
-		MG_BOX_ASSERT(queue.Count() == 2);
+		TEST_CHECK(!queue.Push(&v2));
+		TEST_CHECK(queue.Count() == 2);
 
-		MG_BOX_ASSERT(c1.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Count() == 1);
+		TEST_CHECK(c1.Pop() == &v1);
+		TEST_CHECK(queue.Count() == 1);
 
-		MG_BOX_ASSERT(c1.Pop() == &v2);
-		MG_BOX_ASSERT(queue.Count() == 0);
+		TEST_CHECK(c1.Pop() == &v2);
+		TEST_CHECK(queue.Count() == 0);
 
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == nullptr);
 
 		// Push-pop 3 elements. Number of sub-queues becomes 2,
 		// because the first one was of size 5, and next 2 pushes
 		// fill it.
-		MG_BOX_ASSERT(queue.Push(&v1));
-		MG_BOX_ASSERT(queue.Count() == 1);
+		TEST_CHECK(queue.Push(&v1));
+		TEST_CHECK(queue.Count() == 1);
 
-		MG_BOX_ASSERT(!queue.Push(&v2));
-		MG_BOX_ASSERT(queue.Count() == 2);
-		MG_BOX_ASSERT(queue.SubQueueCount() == 1);
+		TEST_CHECK(!queue.Push(&v2));
+		TEST_CHECK(queue.Count() == 2);
+		TEST_CHECK(queue.SubQueueCount() == 1);
 
-		MG_BOX_ASSERT(!queue.Push(&v3));
-		MG_BOX_ASSERT(queue.Count() == 3);
-		MG_BOX_ASSERT(queue.SubQueueCount() == 2);
+		TEST_CHECK(!queue.Push(&v3));
+		TEST_CHECK(queue.Count() == 3);
+		TEST_CHECK(queue.SubQueueCount() == 2);
 
-		MG_BOX_ASSERT(c1.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Count() == 2);
+		TEST_CHECK(c1.Pop() == &v1);
+		TEST_CHECK(queue.Count() == 2);
 
-		MG_BOX_ASSERT(c1.Pop() == &v2);
-		MG_BOX_ASSERT(queue.Count() == 1);
+		TEST_CHECK(c1.Pop() == &v2);
+		TEST_CHECK(queue.Count() == 1);
 
-		MG_BOX_ASSERT(c1.Pop() == &v3);
-		MG_BOX_ASSERT(queue.Count() == 0);
-		MG_BOX_ASSERT(queue.SubQueueCount() == 2);
+		TEST_CHECK(c1.Pop() == &v3);
+		TEST_CHECK(queue.Count() == 0);
+		TEST_CHECK(queue.SubQueueCount() == 2);
 
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == nullptr);
 
 		// Ensure the sub-queues are recycled. Push-pop 5 elements
 		// 2 times - the sub-queue count does not change.
@@ -201,12 +201,12 @@ namespace box {
 		{
 			for (int j = 0; j < count; ++j)
 				queue.Push(&vs[j]);
-			MG_BOX_ASSERT(queue.Count() == count);
+			TEST_CHECK(queue.Count() == count);
 			for (int j = 0; j < count; ++j)
-				MG_BOX_ASSERT(c1.Pop() == &vs[j]);
-			MG_BOX_ASSERT(queue.Count() == 0);
+				TEST_CHECK(c1.Pop() == &vs[j]);
+			TEST_CHECK(queue.Count() == 0);
 		}
-		MG_BOX_ASSERT(queue.SubQueueCount() == 2);
+		TEST_CHECK(queue.SubQueueCount() == 2);
 	}
 
 	static void
@@ -219,15 +219,15 @@ namespace box {
 			c.Attach(&queue);
 
 			// Push one.
-			MG_BOX_ASSERT(!queue.PushPending(&v[0]));
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(!queue.PushPending(&v[0]));
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 
-			MG_BOX_ASSERT(queue.FlushPending());
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(c.Pop() == &v[0]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(queue.FlushPending());
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(c.Pop() == &v[0]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 		{
 			UTMCQueue queue(5);
@@ -235,23 +235,23 @@ namespace box {
 			c.Attach(&queue);
 
 			// Flush on empty queue does not do anything.
-			MG_BOX_ASSERT(!queue.FlushPending());
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(!queue.FlushPending());
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 
 			// Push 2 so the first one is saved, and the second is
 			// written but not available yet.
-			MG_BOX_ASSERT(!queue.PushPending(&v[0]));
-			MG_BOX_ASSERT(!queue.PushPending(&v[1]));
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(!queue.PushPending(&v[0]));
+			TEST_CHECK(!queue.PushPending(&v[1]));
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 
-			MG_BOX_ASSERT(queue.FlushPending());
-			MG_BOX_ASSERT(queue.Count() == 2);
-			MG_BOX_ASSERT(c.Pop() == &v[0]);
-			MG_BOX_ASSERT(c.Pop() == &v[1]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(queue.FlushPending());
+			TEST_CHECK(queue.Count() == 2);
+			TEST_CHECK(c.Pop() == &v[0]);
+			TEST_CHECK(c.Pop() == &v[1]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 		{
 			UTMCQueue queue(5);
@@ -260,22 +260,22 @@ namespace box {
 
 			// Pending push does the flush when wpos is switched.
 			for (int i = 0; i < 5; ++i)
-				MG_BOX_ASSERT(!queue.PushPending(&v[i]));
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+				TEST_CHECK(!queue.PushPending(&v[i]));
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 
-			MG_BOX_ASSERT(queue.PushPending(&v[5]));
-			MG_BOX_ASSERT(queue.Count() == 5);
+			TEST_CHECK(queue.PushPending(&v[5]));
+			TEST_CHECK(queue.Count() == 5);
 			for (int i = 0; i < 5; ++i)
-				MG_BOX_ASSERT(c.Pop() == &v[i]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+				TEST_CHECK(c.Pop() == &v[i]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 
-			MG_BOX_ASSERT(queue.FlushPending());
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(c.Pop() == &v[5]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(queue.FlushPending());
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(c.Pop() == &v[5]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 		{
 			UTMCQueue queue(5);
@@ -283,12 +283,12 @@ namespace box {
 			c.Attach(&queue);
 
 			// Double-flush does not change anything.
-			MG_BOX_ASSERT(!queue.PushPending(&v[0]));
-			MG_BOX_ASSERT(queue.FlushPending());
-			MG_BOX_ASSERT(!queue.FlushPending());
-			MG_BOX_ASSERT(c.Pop() == &v[0]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(!queue.PushPending(&v[0]));
+			TEST_CHECK(queue.FlushPending());
+			TEST_CHECK(!queue.FlushPending());
+			TEST_CHECK(c.Pop() == &v[0]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 		{
 			UTMCQueue queue(5);
@@ -296,14 +296,14 @@ namespace box {
 			c.Attach(&queue);
 
 			// Normal push does the flush.
-			MG_BOX_ASSERT(!queue.PushPending(&v[0]));
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(queue.Push(&v[1]));
-			MG_BOX_ASSERT(queue.Count() == 2);
-			MG_BOX_ASSERT(c.Pop() == &v[0]);
-			MG_BOX_ASSERT(c.Pop() == &v[1]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(!queue.PushPending(&v[0]));
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(queue.Push(&v[1]));
+			TEST_CHECK(queue.Count() == 2);
+			TEST_CHECK(c.Pop() == &v[0]);
+			TEST_CHECK(c.Pop() == &v[1]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 		{
 			UTMCQueue queue(5);
@@ -312,15 +312,15 @@ namespace box {
 
 			// Second flush-via-push won't return that the queue
 			// was empty.
-			MG_BOX_ASSERT(queue.Push(&v[0]));
-			MG_BOX_ASSERT(!queue.PushPending(&v[1]));
-			MG_BOX_ASSERT(!queue.Push(&v[2]));
-			MG_BOX_ASSERT(queue.Count() == 3);
-			MG_BOX_ASSERT(c.Pop() == &v[0]);
-			MG_BOX_ASSERT(c.Pop() == &v[1]);
-			MG_BOX_ASSERT(c.Pop() == &v[2]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+			TEST_CHECK(queue.Push(&v[0]));
+			TEST_CHECK(!queue.PushPending(&v[1]));
+			TEST_CHECK(!queue.Push(&v[2]));
+			TEST_CHECK(queue.Count() == 3);
+			TEST_CHECK(c.Pop() == &v[0]);
+			TEST_CHECK(c.Pop() == &v[1]);
+			TEST_CHECK(c.Pop() == &v[2]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 		{
 			UTMCQueue queue(5);
@@ -330,13 +330,13 @@ namespace box {
 			// Sub-queue switch when normal push happens, but
 			// there is a pending item.
 			for (int i = 0; i < 5; ++i)
-				MG_BOX_ASSERT(!queue.PushPending(&v[i]));
-			MG_BOX_ASSERT(queue.Push(&v[5]));
-			MG_BOX_ASSERT(queue.Count() == 6);
+				TEST_CHECK(!queue.PushPending(&v[i]));
+			TEST_CHECK(queue.Push(&v[5]));
+			TEST_CHECK(queue.Count() == 6);
 			for (int i = 0; i < 6; ++i)
-				MG_BOX_ASSERT(c.Pop() == &v[i]);
-			MG_BOX_ASSERT(queue.Count() == 0);
-			MG_BOX_ASSERT(c.Pop() == nullptr);
+				TEST_CHECK(c.Pop() == &v[i]);
+			TEST_CHECK(queue.Count() == 0);
+			TEST_CHECK(c.Pop() == nullptr);
 		}
 	}
 
@@ -346,9 +346,9 @@ namespace box {
 		// Ensure the queue still works even with sub-queues of
 		// size 1.
 		UTMCQueue queue(1);
-		MG_BOX_ASSERT(queue.Count() == 0);
-		MG_BOX_ASSERT(queue.ConsumerCount() == 0);
-		MG_BOX_ASSERT(queue.SubQueueCount() == 1);
+		TEST_CHECK(queue.Count() == 0);
+		TEST_CHECK(queue.ConsumerCount() == 0);
+		TEST_CHECK(queue.SubQueueCount() == 1);
 
 		UTMCQValue v1;
 		UTMCQValue v2;
@@ -356,18 +356,18 @@ namespace box {
 		queue.Push(&v1);
 		queue.Push(&v2);
 		queue.Push(&v3);
-		MG_BOX_ASSERT(queue.Count() == 3);
-		MG_BOX_ASSERT(queue.ConsumerCount() == 0);
-		MG_BOX_ASSERT(queue.SubQueueCount() == 3);
+		TEST_CHECK(queue.Count() == 3);
+		TEST_CHECK(queue.ConsumerCount() == 0);
+		TEST_CHECK(queue.SubQueueCount() == 3);
 
 		UTMCQueueConsumer c1(&queue);
-		MG_BOX_ASSERT(c1.Pop() == &v1);
-		MG_BOX_ASSERT(queue.Count() == 2);
-		MG_BOX_ASSERT(c1.Pop() == &v2);
-		MG_BOX_ASSERT(queue.Count() == 1);
-		MG_BOX_ASSERT(c1.Pop() == &v3);
-		MG_BOX_ASSERT(queue.Count() == 0);
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == &v1);
+		TEST_CHECK(queue.Count() == 2);
+		TEST_CHECK(c1.Pop() == &v2);
+		TEST_CHECK(queue.Count() == 1);
+		TEST_CHECK(c1.Pop() == &v3);
+		TEST_CHECK(queue.Count() == 0);
+		TEST_CHECK(c1.Pop() == nullptr);
 	}
 
 	static void
@@ -390,50 +390,50 @@ namespace box {
 		// [0, 1] -> [2, 3] -> [4, 5] -> [6, 7]
 		//  c1
 		//  c2
-		MG_BOX_ASSERT(c1.Pop() == &vs[0]);
-		MG_BOX_ASSERT(queue.Count() == 7);
-		MG_BOX_ASSERT(c1.Pop() == &vs[1]);
-		MG_BOX_ASSERT(queue.Count() == 6);
+		TEST_CHECK(c1.Pop() == &vs[0]);
+		TEST_CHECK(queue.Count() == 7);
+		TEST_CHECK(c1.Pop() == &vs[1]);
+		TEST_CHECK(queue.Count() == 6);
 		// [x, x] -> [2, 3] -> [4, 5] -> [6, 7]
 		//  c2        c1
-		MG_BOX_ASSERT(c1.Pop() == &vs[2]);
-		MG_BOX_ASSERT(queue.Count() == 5);
-		MG_BOX_ASSERT(c1.Pop() == &vs[3]);
-		MG_BOX_ASSERT(queue.Count() == 4);
+		TEST_CHECK(c1.Pop() == &vs[2]);
+		TEST_CHECK(queue.Count() == 5);
+		TEST_CHECK(c1.Pop() == &vs[3]);
+		TEST_CHECK(queue.Count() == 4);
 		// [x, x] -> [x, x] -> [4, 5] -> [6, 7]
 		//  c2           c1
-		MG_BOX_ASSERT(c1.Pop() == &vs[4]);
-		MG_BOX_ASSERT(queue.Count() == 3);
+		TEST_CHECK(c1.Pop() == &vs[4]);
+		TEST_CHECK(queue.Count() == 3);
 		// [x, x] -> [x, 5] -> [6, 7]
 		//  c2        c1
 
 		// But still is referenced by one of the consumers. And it
 		// should recycle it and the next sub-queue now.
-		MG_BOX_ASSERT(c2.Pop() == &vs[5]);
-		MG_BOX_ASSERT(queue.Count() == 2);
+		TEST_CHECK(c2.Pop() == &vs[5]);
+		TEST_CHECK(queue.Count() == 2);
 		//  [x, x] -> [6, 7]
 		//   c1 c2
-		MG_BOX_ASSERT(c1.Pop() == &vs[6]);
-		MG_BOX_ASSERT(queue.Count() == 1);
+		TEST_CHECK(c1.Pop() == &vs[6]);
+		TEST_CHECK(queue.Count() == 1);
 		// [x, x] -> [x, 7]
 		//     c2     c1
-		MG_BOX_ASSERT(c2.Pop() == &vs[7]);
-		MG_BOX_ASSERT(queue.Count() == 0);
+		TEST_CHECK(c2.Pop() == &vs[7]);
+		TEST_CHECK(queue.Count() == 0);
 		// [x, x]
 		//  c1 c2
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
-		MG_BOX_ASSERT(c2.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == nullptr);
+		TEST_CHECK(c2.Pop() == nullptr);
 
 		// Ensure it is still functional.
 		queue.Push(&vs[0]);
 		queue.Push(&vs[1]);
-		MG_BOX_ASSERT(c1.Pop() == &vs[0]);
-		MG_BOX_ASSERT(queue.Count() == 1);
-		MG_BOX_ASSERT(c2.Pop() == &vs[1]);
-		MG_BOX_ASSERT(queue.Count() == 0);
+		TEST_CHECK(c1.Pop() == &vs[0]);
+		TEST_CHECK(queue.Count() == 1);
+		TEST_CHECK(c2.Pop() == &vs[1]);
+		TEST_CHECK(queue.Count() == 0);
 
-		MG_BOX_ASSERT(c1.Pop() == nullptr);
-		MG_BOX_ASSERT(c2.Pop() == nullptr);
+		TEST_CHECK(c1.Pop() == nullptr);
+		TEST_CHECK(c2.Pop() == nullptr);
 	}
 
 	static void
@@ -456,36 +456,36 @@ namespace box {
 				queue.Push(&vs[i]);
 
 			// The head is fully consumed.
-			MG_BOX_ASSERT(c1.Pop() == &vs[0]);
-			MG_BOX_ASSERT(queue.Count() == 5);
-			MG_BOX_ASSERT(c1.Pop() == &vs[1]);
-			MG_BOX_ASSERT(queue.Count() == 4);
-			MG_BOX_ASSERT(c1.Pop() == &vs[2]);
-			MG_BOX_ASSERT(queue.Count() == 3);
-			MG_BOX_ASSERT(c1.Pop() == &vs[3]);
-			MG_BOX_ASSERT(queue.Count() == 2);
+			TEST_CHECK(c1.Pop() == &vs[0]);
+			TEST_CHECK(queue.Count() == 5);
+			TEST_CHECK(c1.Pop() == &vs[1]);
+			TEST_CHECK(queue.Count() == 4);
+			TEST_CHECK(c1.Pop() == &vs[2]);
+			TEST_CHECK(queue.Count() == 3);
+			TEST_CHECK(c1.Pop() == &vs[3]);
+			TEST_CHECK(queue.Count() == 2);
 
 			// The consumer, keeping the head is detached. The
 			// head still should be recycled. Either at detach, or
 			// by another consumer later.
 			c2.Detach();
 
-			MG_BOX_ASSERT(c1.Pop() == &vs[4]);
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(c1.Pop() == &vs[5]);
-			MG_BOX_ASSERT(queue.Count() == 0);
+			TEST_CHECK(c1.Pop() == &vs[4]);
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(c1.Pop() == &vs[5]);
+			TEST_CHECK(queue.Count() == 0);
 
 			queue.Push(&vs[6]);
 			queue.Push(&vs[7]);
 
-			MG_BOX_ASSERT(c1.Pop() == &vs[6]);
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(c1.Pop() == &vs[7]);
-			MG_BOX_ASSERT(queue.Count() == 0);
+			TEST_CHECK(c1.Pop() == &vs[6]);
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(c1.Pop() == &vs[7]);
+			TEST_CHECK(queue.Count() == 0);
 
 			// The head was recycled at detach. So 3 sub-queues,
 			// not 4.
-			MG_BOX_ASSERT(queue.SubQueueCount() == 3);
+			TEST_CHECK(queue.SubQueueCount() == 3);
 		}
 
 		// Detach can happen when the head is empty, and no more
@@ -500,14 +500,14 @@ namespace box {
 				queue.Push(&vs[i]);
 
 			// The head is fully consumed.
-			MG_BOX_ASSERT(c1.Pop() == &vs[0]);
-			MG_BOX_ASSERT(queue.Count() == 5);
-			MG_BOX_ASSERT(c1.Pop() == &vs[1]);
-			MG_BOX_ASSERT(queue.Count() == 4);
-			MG_BOX_ASSERT(c1.Pop() == &vs[2]);
-			MG_BOX_ASSERT(queue.Count() == 3);
-			MG_BOX_ASSERT(c1.Pop() == &vs[3]);
-			MG_BOX_ASSERT(queue.Count() == 2);
+			TEST_CHECK(c1.Pop() == &vs[0]);
+			TEST_CHECK(queue.Count() == 5);
+			TEST_CHECK(c1.Pop() == &vs[1]);
+			TEST_CHECK(queue.Count() == 4);
+			TEST_CHECK(c1.Pop() == &vs[2]);
+			TEST_CHECK(queue.Count() == 3);
+			TEST_CHECK(c1.Pop() == &vs[3]);
+			TEST_CHECK(queue.Count() == 2);
 
 			// The leading consumer is detached. It can't recycle
 			// anything because there is a second consumer staying
@@ -521,18 +521,18 @@ namespace box {
 			// not 4.
 			queue.Push(&vs[6]);
 			queue.Push(&vs[7]);
-			MG_BOX_ASSERT(queue.SubQueueCount() == 3);
+			TEST_CHECK(queue.SubQueueCount() == 3);
 
 			// Validate.
 			c1.Attach(&queue);
-			MG_BOX_ASSERT(c1.Pop() == &vs[4]);
-			MG_BOX_ASSERT(queue.Count() == 3);
-			MG_BOX_ASSERT(c1.Pop() == &vs[5]);
-			MG_BOX_ASSERT(queue.Count() == 2);
-			MG_BOX_ASSERT(c1.Pop() == &vs[6]);
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(c1.Pop() == &vs[7]);
-			MG_BOX_ASSERT(queue.Count() == 0);
+			TEST_CHECK(c1.Pop() == &vs[4]);
+			TEST_CHECK(queue.Count() == 3);
+			TEST_CHECK(c1.Pop() == &vs[5]);
+			TEST_CHECK(queue.Count() == 2);
+			TEST_CHECK(c1.Pop() == &vs[6]);
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(c1.Pop() == &vs[7]);
+			TEST_CHECK(queue.Count() == 0);
 		}
 
 		// Recycle at detach should not do anything with
@@ -549,13 +549,13 @@ namespace box {
 
 			// The head is fully consumed, and another sub-queue
 			// is consumed in half.
-			MG_BOX_ASSERT(c1.Pop() == &vs[0]);
-			MG_BOX_ASSERT(queue.Count() == 3);
-			MG_BOX_ASSERT(c1.Pop() == &vs[1]);
-			MG_BOX_ASSERT(queue.Count() == 2);
-			MG_BOX_ASSERT(c1.Pop() == &vs[2]);
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(queue.SubQueueCount() == 2);
+			TEST_CHECK(c1.Pop() == &vs[0]);
+			TEST_CHECK(queue.Count() == 3);
+			TEST_CHECK(c1.Pop() == &vs[1]);
+			TEST_CHECK(queue.Count() == 2);
+			TEST_CHECK(c1.Pop() == &vs[2]);
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(queue.SubQueueCount() == 2);
 
 			// The leading consumer is detached. It can't recycle
 			// anything because there is a second consumer staying
@@ -564,7 +564,7 @@ namespace box {
 
 			queue.Push(&vs[4]);
 			queue.Push(&vs[5]);
-			MG_BOX_ASSERT(queue.SubQueueCount() == 3);
+			TEST_CHECK(queue.SubQueueCount() == 3);
 
 			// The head consumer should recycle *not* until wpos,
 			// but until the last non-consumed sub-queue.
@@ -574,20 +574,20 @@ namespace box {
 			// not 4.
 			queue.Push(&vs[6]);
 			queue.Push(&vs[7]);
-			MG_BOX_ASSERT(queue.SubQueueCount() == 3);
+			TEST_CHECK(queue.SubQueueCount() == 3);
 
 			// Validate.
 			c1.Attach(&queue);
-			MG_BOX_ASSERT(c1.Pop() == &vs[3]);
-			MG_BOX_ASSERT(queue.Count() == 4);
-			MG_BOX_ASSERT(c1.Pop() == &vs[4]);
-			MG_BOX_ASSERT(queue.Count() == 3);
-			MG_BOX_ASSERT(c1.Pop() == &vs[5]);
-			MG_BOX_ASSERT(queue.Count() == 2);
-			MG_BOX_ASSERT(c1.Pop() == &vs[6]);
-			MG_BOX_ASSERT(queue.Count() == 1);
-			MG_BOX_ASSERT(c1.Pop() == &vs[7]);
-			MG_BOX_ASSERT(queue.Count() == 0);
+			TEST_CHECK(c1.Pop() == &vs[3]);
+			TEST_CHECK(queue.Count() == 4);
+			TEST_CHECK(c1.Pop() == &vs[4]);
+			TEST_CHECK(queue.Count() == 3);
+			TEST_CHECK(c1.Pop() == &vs[5]);
+			TEST_CHECK(queue.Count() == 2);
+			TEST_CHECK(c1.Pop() == &vs[6]);
+			TEST_CHECK(queue.Count() == 1);
+			TEST_CHECK(c1.Pop() == &vs[7]);
+			TEST_CHECK(queue.Count() == 0);
 		}
 	}
 
@@ -626,7 +626,7 @@ namespace box {
 			{
 				while ((v = myQueue->Pop()) != nullptr)
 				{
-					MG_BOX_ASSERT(v->myValue >= 0);
+					TEST_CHECK(v->myValue >= 0);
 					v->myValue = -v->myValue;
 					++myPopCount;
 					myTotalPopCount->IncrementRelaxed();
@@ -681,7 +681,7 @@ namespace box {
 			threads[i].BlockingStop();
 
 		for (int i = 0; i < aElementCount; ++i)
-			MG_BOX_ASSERT(values[i].myValue == -i);
+			TEST_CHECK(values[i].myValue == -i);
 
 		Report(
 			"Locked queue, elements = %d, threads = %d, duration = %lf ms",
@@ -724,7 +724,7 @@ namespace box {
 			{
 				while ((v = myConsumer.Pop()) != nullptr)
 				{
-					MG_BOX_ASSERT(v->myValue >= 0);
+					TEST_CHECK(v->myValue >= 0);
 					v->myValue = -v->myValue;
 					++myPopCount;
 					myTotalPopCount->IncrementRelaxed();
@@ -790,11 +790,11 @@ namespace box {
 			threads[i].BlockingStop();
 
 		for (int i = 0; i < aElementCount; ++i)
-			MG_BOX_ASSERT(values[i].myValue == -i);
+			TEST_CHECK(values[i].myValue == -i);
 
 		uint32_t subQueueCountMax =
 			aElementCount / aSubQueueSize + (aElementCount % aSubQueueSize != 0);
-		MG_BOX_ASSERT(queue.SubQueueCount() <= subQueueCountMax);
+		TEST_CHECK(queue.SubQueueCount() <= subQueueCountMax);
 
 		Report(
 			"Special queue, elements = %d, threads = %d, duration = %lf ms, "

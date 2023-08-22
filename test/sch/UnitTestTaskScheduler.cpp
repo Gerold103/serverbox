@@ -1,11 +1,10 @@
-#include "UnitTest.h"
+#include "mg/sch/TaskScheduler.h"
 
 #include "mg/box/QPTimer.h"
 #include "mg/box/Time.h"
-
-#include "mg/sch/TaskScheduler.h"
-
 #include "mg/test/Random.h"
+
+#include "UnitTest.h"
 
 namespace mg {
 namespace unittests {
@@ -24,8 +23,8 @@ namespace sch {
 		// Simple test for a task being executed 3 times.
 		progress.StoreRelaxed(0);
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == tp);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == tp);
+			TEST_CHECK(aTask->IsExpired());
 			if (progress.IncrementFetchRelaxed() < 3)
 				sched.Post(aTask);
 		};
@@ -39,9 +38,9 @@ namespace sch {
 		uint64_t timestamp = mg::box::GetMilliseconds();
 		progress.StoreRelaxed(false);
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == tp);
-			MG_BOX_ASSERT(aTask->IsExpired());
-			MG_BOX_ASSERT(mg::box::GetMilliseconds() >= timestamp + 5);
+			TEST_CHECK(aTask == tp);
+			TEST_CHECK(aTask->IsExpired());
+			TEST_CHECK(mg::box::GetMilliseconds() >= timestamp + 5);
 			progress.StoreRelaxed(true);
 		};
 		t.SetCallback(cb);
@@ -54,14 +53,14 @@ namespace sch {
 		timestamp = 0;
 		progress.StoreRelaxed(false);
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == tp);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == tp);
+			TEST_CHECK(aTask->IsExpired());
 			if (timestamp == 0)
 			{
 				timestamp = mg::box::GetMilliseconds() + 5;
 				return sched.PostDeadline(aTask, timestamp);
 			}
-			MG_BOX_ASSERT(mg::box::GetMilliseconds() >= timestamp);
+			TEST_CHECK(mg::box::GetMilliseconds() >= timestamp);
 			progress.StoreRelaxed(true);
 		};
 		t.SetCallback(cb);
@@ -73,8 +72,8 @@ namespace sch {
 		progress.StoreRelaxed(false);
 		tp = new mg::sch::Task();
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == tp);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == tp);
+			TEST_CHECK(aTask->IsExpired());
 			progress.StoreRelaxed(true);
 			delete aTask;
 		};
@@ -108,22 +107,22 @@ namespace sch {
 		mg::sch::Task t3;
 		mg::box::AtomicU32 progress(0);
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(progress.LoadRelaxed() == 0);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(progress.LoadRelaxed() == 0);
+			TEST_CHECK(aTask->IsExpired());
 			progress.IncrementRelaxed();
 		};
 		t1.SetCallback(cb);
 
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(progress.LoadRelaxed() == 1);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(progress.LoadRelaxed() == 1);
+			TEST_CHECK(aTask->IsExpired());
 			progress.IncrementRelaxed();
 		};
 		t2.SetCallback(cb);
 
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(progress.LoadRelaxed() == 2);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(progress.LoadRelaxed() == 2);
+			TEST_CHECK(aTask->IsExpired());
 			progress.IncrementRelaxed();
 		};
 		t3.SetCallback(cb);
@@ -152,7 +151,7 @@ namespace sch {
 		mg::box::AtomicU32 progress(0);
 		mg::box::AtomicBool finish(false);
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask->IsExpired());
 			progress.IncrementRelaxed();
 			while (!finish.LoadAcquire())
 				mg::box::Sleep(1);
@@ -248,7 +247,7 @@ namespace sch {
 				// PostWait(), because the signal is still active.
 				while (progress.LoadRelaxed() != 2)
 					mg::box::Sleep(1);
-				MG_BOX_ASSERT(aTask->ReceiveSignal());
+				TEST_CHECK(aTask->ReceiveSignal());
 				return sched.PostWait(aTask);
 			}
 			progress.StoreRelaxed(3);
@@ -262,7 +261,7 @@ namespace sch {
 		sched.Wakeup(&t1);
 		progress.StoreRelaxed(2);
 		mg::box::Sleep(1);
-		MG_BOX_ASSERT(progress.LoadRelaxed() == 2);
+		TEST_CHECK(progress.LoadRelaxed() == 2);
 		while (t1.IsSignaled())
 			mg::box::Sleep(1);
 
@@ -284,8 +283,8 @@ namespace sch {
 		// deadline.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(!aTask->ReceiveSignal());
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(!aTask->ReceiveSignal());
+			TEST_CHECK(aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Post(&t1);
@@ -308,8 +307,8 @@ namespace sch {
 		// Expiration check for woken task having a deadline.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(!aTask->ReceiveSignal());
-			MG_BOX_ASSERT(!aTask->IsExpired());
+			TEST_CHECK(!aTask->ReceiveSignal());
+			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Wakeup(&t1);
@@ -321,8 +320,8 @@ namespace sch {
 		// deadline.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask->ReceiveSignal());
+			TEST_CHECK(aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Signal(&t1);
@@ -333,8 +332,8 @@ namespace sch {
 		// Expiration check for signaled task having a deadline.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
-			MG_BOX_ASSERT(!aTask->IsExpired());
+			TEST_CHECK(aTask->ReceiveSignal());
+			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Signal(&t1);
@@ -346,8 +345,8 @@ namespace sch {
 		// wait.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(!aTask->ReceiveSignal());
-			MG_BOX_ASSERT(!aTask->IsExpired());
+			TEST_CHECK(!aTask->ReceiveSignal());
+			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Wakeup(&t1);
@@ -359,8 +358,8 @@ namespace sch {
 		// infinite wait.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
-			MG_BOX_ASSERT(!aTask->IsExpired());
+			TEST_CHECK(aTask->ReceiveSignal());
+			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Signal(&t1);
@@ -371,16 +370,16 @@ namespace sch {
 		// Deadline adjustment.
 		progress.StoreRelaxed(false);
 		t1.SetDeadline(MG_DEADLINE_INFINITE);
-		MG_BOX_ASSERT(t1.GetDeadline() == MG_DEADLINE_INFINITE);
+		TEST_CHECK(t1.GetDeadline() == MG_DEADLINE_INFINITE);
 		t1.AdjustDeadline(1);
-		MG_BOX_ASSERT(t1.GetDeadline() == 1);
+		TEST_CHECK(t1.GetDeadline() == 1);
 		t1.AdjustDeadline(MG_DEADLINE_INFINITE);
-		MG_BOX_ASSERT(t1.GetDeadline() == 1);
+		TEST_CHECK(t1.GetDeadline() == 1);
 		t1.AdjustDelay(1000000);
 		// Does not adjust to a bigger value.
-		MG_BOX_ASSERT(t1.GetDeadline() == 1);
+		TEST_CHECK(t1.GetDeadline() == 1);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
 		sched.Post(&t1);
@@ -403,16 +402,16 @@ namespace sch {
 		// A task can schedule another task into the same or
 		// different scheduler.
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == &t1);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == &t1);
+			TEST_CHECK(aTask->IsExpired());
 			sched1.Post(&t2);
 			progress.IncrementRelaxed();
 		};
 		t1.SetCallback(cb);
 
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == &t2);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == &t2);
+			TEST_CHECK(aTask->IsExpired());
 			sched2.Post(&t3);
 			progress.IncrementRelaxed();
 		};
@@ -420,8 +419,8 @@ namespace sch {
 		t2.SetDelay(3);
 
 		cb = [&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == &t3);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == &t3);
+			TEST_CHECK(aTask->IsExpired());
 			progress.IncrementRelaxed();
 		};
 		t3.SetCallback(cb);
@@ -437,10 +436,10 @@ namespace sch {
 		// again.
 		progress.StoreRelaxed(false);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == &t1);
-			MG_BOX_ASSERT(aTask->IsExpired());
+			TEST_CHECK(aTask == &t1);
+			TEST_CHECK(aTask->IsExpired());
 			if (progress.ExchangeRelaxed(true))
-				MG_BOX_ASSERT(aTask->ReceiveSignal());
+				TEST_CHECK(aTask->ReceiveSignal());
 		});
 		sched1.Post(&t1);
 		while (!progress.LoadRelaxed())
@@ -448,7 +447,7 @@ namespace sch {
 
 		sched1.Signal(&t1);
 		mg::box::Sleep(1);
-		MG_BOX_ASSERT(t1.IsSignaled());
+		TEST_CHECK(t1.IsSignaled());
 		sched1.Post(&t1);
 		while (t1.IsSignaled())
 			mg::box::Sleep(1);
@@ -457,11 +456,11 @@ namespace sch {
 		// task is not executed until posted again.
 		progress.StoreRelaxed(0);
 		t1.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask == &t1);
+			TEST_CHECK(aTask == &t1);
 			if (progress.IncrementFetchRelaxed() != 1)
-				MG_BOX_ASSERT(!aTask->IsExpired());
+				TEST_CHECK(!aTask->IsExpired());
 			else
-				MG_BOX_ASSERT(aTask->IsExpired());
+				TEST_CHECK(aTask->IsExpired());
 		});
 		sched1.Post(&t1);
 		while (progress.LoadRelaxed() != 1)
@@ -469,7 +468,7 @@ namespace sch {
 
 		sched1.Wakeup(&t1);
 		mg::box::Sleep(1);
-		MG_BOX_ASSERT(progress.LoadRelaxed() == 1);
+		TEST_CHECK(progress.LoadRelaxed() == 1);
 		sched1.PostWait(&t1);
 		while (progress.LoadRelaxed() != 2)
 			mg::box::Sleep(1);
@@ -506,7 +505,7 @@ namespace sch {
 		// Signal works for tasks in the front queue.
 		progress.StoreRelaxed(false);
 		t.SetCallback([&](mg::sch::Task*) {
-			MG_BOX_ASSERT(t.ReceiveSignal());
+			TEST_CHECK(t.ReceiveSignal());
 			progress.StoreRelaxed(true);
 		});
 		sched.PostDeadline(&t, MG_DEADLINE_INFINITE);
@@ -527,7 +526,7 @@ namespace sch {
 		t.SetCallback([&](mg::sch::Task* aTask) {
 			if (!aTask->IsSignaled())
 				return sched.PostWait(aTask);
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
+			TEST_CHECK(aTask->ReceiveSignal());
 		});
 		sched.Post(&t);
 		sched.Signal(&t);
@@ -539,8 +538,8 @@ namespace sch {
 		t.SetCallback([&](mg::sch::Task* aTask) {
 			while (!progress.LoadRelaxed())
 				mg::box::Sleep(1);
-			MG_BOX_ASSERT(aTask->IsSignaled());
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
+			TEST_CHECK(aTask->IsSignaled());
+			TEST_CHECK(aTask->ReceiveSignal());
 		});
 		sched.Post(&t);
 		sched.Signal(&t);
@@ -552,7 +551,7 @@ namespace sch {
 		// Task is rescheduled until signal is received.
 		progress.StoreRelaxed(0);
 		t.SetCallback([&](mg::sch::Task* aTask) {
-			MG_BOX_ASSERT(aTask->IsSignaled());
+			TEST_CHECK(aTask->IsSignaled());
 			uint32_t p = progress.IncrementFetchRelaxed();
 			if (p == 1)
 				return sched.PostWait(aTask);
@@ -562,13 +561,13 @@ namespace sch {
 				return sched.PostDelay(aTask, 1000000);
 			if (p == 4)
 				return sched.Post(aTask);
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
+			TEST_CHECK(aTask->ReceiveSignal());
 		});
 		sched.Signal(&t);
 		sched.Post(&t);
 		while (t.IsSignaled())
 			mg::box::Sleep(1);
-		MG_BOX_ASSERT(progress.LoadRelaxed() == 5);
+		TEST_CHECK(progress.LoadRelaxed() == 5);
 	}
 
 	struct UTTSchedulerTask;
@@ -653,7 +652,7 @@ namespace sch {
 		ExecuteHeavy(
 			mg::sch::Task* aTask)
 		{
-			MG_BOX_ASSERT(aTask == this);
+			TEST_CHECK(aTask == this);
 			aTask->ReceiveSignal();
 			++myExecuteCount;
 			myCtx->myTotalExecuteCount.IncrementRelaxed();
@@ -694,7 +693,7 @@ namespace sch {
 		ExecuteMicro(
 			mg::sch::Task* aTask)
 		{
-			MG_BOX_ASSERT(aTask == this);
+			TEST_CHECK(aTask == this);
 			++myExecuteCount;
 			myCtx->myTotalExecuteCount.IncrementRelaxed();
 			if (myExecuteCount >= myCtx->myExecuteCount)
@@ -706,9 +705,9 @@ namespace sch {
 		ExecuteSignaled(
 			mg::sch::Task* aTask)
 		{
-			MG_BOX_ASSERT(aTask == this);
-			MG_BOX_ASSERT(!aTask->IsExpired());
-			MG_BOX_ASSERT(aTask->ReceiveSignal());
+			TEST_CHECK(aTask == this);
+			TEST_CHECK(!aTask->IsExpired());
+			TEST_CHECK(aTask->ReceiveSignal());
 			++myExecuteCount;
 			myCtx->myTotalExecuteCount.IncrementRelaxed();
 			if (myExecuteCount >= myCtx->myExecuteCount)
@@ -767,7 +766,7 @@ namespace sch {
 	{
 		uint64_t total = myExecuteCount * myTaskCount;
 		WaitExecuteCount(total);
-		MG_BOX_ASSERT(total == myTotalExecuteCount.LoadRelaxed());
+		TEST_CHECK(total == myTotalExecuteCount.LoadRelaxed());
 	}
 
 	void
@@ -784,7 +783,7 @@ namespace sch {
 		while (myStopCount.LoadRelaxed() != myTaskCount)
 			mg::box::Sleep(1);
 		for (uint32_t i = 0; i < myTaskCount; ++i)
-			MG_BOX_ASSERT(myTasks[i].myExecuteCount == myExecuteCount);
+			TEST_CHECK(myTasks[i].myExecuteCount == myExecuteCount);
 	}
 
 	void
@@ -961,7 +960,7 @@ namespace sch {
 
 		// Try to simulate load close to reality, when RPS may be
 		// relatively stable, and not millions.
-		MG_BOX_ASSERT(aTaskCount % aDuration == 0);
+		TEST_CHECK(aTaskCount % aDuration == 0);
 		uint32_t tasksPer50ms = aTaskCount / aDuration * 50;
 		Report("Mild load test: %u threads, %u tasks, %u executes, %u per 50ms",
 			aThreadCount, aTaskCount, aExecuteCount, tasksPer50ms);

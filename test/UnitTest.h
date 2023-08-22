@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mg/box/Assert.h"
 #include "mg/box/QPTimer.h"
 
 #include <cstdarg>
@@ -13,6 +14,8 @@
 #else
 #define FUNCTION_NAME_WITH_NAMESPACE __FUNCTION__
 #endif
+
+#define TEST_CHECK MG_BOX_ASSERT
 
 namespace mg {
 namespace unittests {

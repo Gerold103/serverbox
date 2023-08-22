@@ -1,5 +1,6 @@
-#include "mg/box/Atomic.h"
 #include "mg/box/ConditionVariable.h"
+
+#include "mg/box/Atomic.h"
 #include "mg/box/ThreadFunc.h"
 
 #include "UnitTest.h"
@@ -50,7 +51,7 @@ namespace box {
 			mutex.Lock();
 			UnitTestCondVarSend(stepCounter, workerNext);
 			var.Wait(mutex);
-			MG_BOX_ASSERT(mutex.IsOwnedByThisThread());
+			TEST_CHECK(mutex.IsOwnedByThisThread());
 			mutex.Unlock();
 			mutex.Lock();
 			UnitTestCondVarSend(stepCounter, workerNext);
@@ -61,8 +62,8 @@ namespace box {
 
 			bool isTimedOut = false;
 			var.TimedWait(mutex, 100, &isTimedOut);
-			MG_BOX_ASSERT(isTimedOut);
-			MG_BOX_ASSERT(mutex.IsOwnedByThisThread());
+			TEST_CHECK(isTimedOut);
+			TEST_CHECK(mutex.IsOwnedByThisThread());
 			UnitTestCondVarSend(stepCounter, workerNext);
 
 			// Test that timed wait does not set the flag if
@@ -72,15 +73,15 @@ namespace box {
 			UnitTestCondVarSend(stepCounter, workerNext);
 			// Wait signal.
 			var.TimedWait(mutex, UNIT_TEST_CONDVAR_TIMEOUT, &isTimedOut);
-			MG_BOX_ASSERT(!isTimedOut);
-			MG_BOX_ASSERT(mutex.IsOwnedByThisThread());
+			TEST_CHECK(!isTimedOut);
+			TEST_CHECK(mutex.IsOwnedByThisThread());
 
 			UnitTestCondVarReceive(stepCounter, workerNext);
 			UnitTestCondVarSend(stepCounter, workerNext);
 			// Wait broadcast.
 			var.TimedWait(mutex, UNIT_TEST_CONDVAR_TIMEOUT, &isTimedOut);
-			MG_BOX_ASSERT(!isTimedOut);
-			MG_BOX_ASSERT(mutex.IsOwnedByThisThread());
+			TEST_CHECK(!isTimedOut);
+			TEST_CHECK(mutex.IsOwnedByThisThread());
 
 			mutex.Unlock();
 		});

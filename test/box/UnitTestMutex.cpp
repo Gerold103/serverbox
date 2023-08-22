@@ -1,3 +1,5 @@
+#include "mg/box/Mutex.h"
+
 #include "mg/box/ThreadFunc.h"
 #include "mg/box/Time.h"
 
@@ -25,11 +27,11 @@ namespace box {
 				while (mg::box::GetMilliseconds() < deadline)
 				{
 					mg::box::MutexLock lock(mutex);
-					MG_BOX_ASSERT(counter == 0);
+					TEST_CHECK(counter == 0);
 					counter++;
-					MG_BOX_ASSERT(counter == 1);
+					TEST_CHECK(counter == 1);
 					counter--;
-					MG_BOX_ASSERT(counter == 0);
+					TEST_CHECK(counter == 0);
 					if (++yield % 1000 == 0)
 						mg::box::Sleep(1);
 				}
@@ -39,7 +41,7 @@ namespace box {
 			f->Start();
 		for (mg::box::ThreadFunc* f : threads)
 			delete f;
-		MG_BOX_ASSERT(counter == 0);
+		TEST_CHECK(counter == 0);
 	}
 
 	void

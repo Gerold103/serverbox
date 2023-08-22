@@ -1,10 +1,6 @@
 #include "mg/box/StringFunctions.h"
 
-#include "mg/box/Assert.h"
-
 #include "UnitTest.h"
-
-#define TEST_CHECK MG_BOX_ASSERT
 
 namespace mg {
 namespace unittests {

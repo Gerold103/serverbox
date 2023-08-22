@@ -1,9 +1,6 @@
-#include "mg/box/Assert.h"
 #include "mg/box/Atomic.h"
 
 #include "UnitTest.h"
-
-#define TEST_CHECK MG_BOX_ASSERT
 
 namespace mg {
 namespace unittests {

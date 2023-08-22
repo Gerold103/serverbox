@@ -1,6 +1,6 @@
 #include "mg/box/MultiProducerQueueIntrusive.h"
-#include "mg/box/ThreadFunc.h"
 
+#include "mg/box/ThreadFunc.h"
 #include "mg/test/Random.h"
 
 #include "UnitTest.h"
@@ -30,82 +30,82 @@ namespace box {
 
 			mg::box::MultiProducerQueueIntrusive<Entry> queue;
 			Entry* tail;
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(queue.PopAll(tail) == nullptr && tail == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(queue.PopAll(tail) == nullptr && tail == nullptr);
 			Entry* garbage = (Entry*) &queue;
 			e1.myNext = garbage;
 			e2.myNext = garbage;
 			e3.myNext = garbage;
 
-			MG_BOX_ASSERT(queue.Push(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.Push(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			Entry* res = queue.PopAll(tail);
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(res->myNext == nullptr);
-			MG_BOX_ASSERT(tail == &e1);
-			MG_BOX_ASSERT(queue.PopAll(tail) == nullptr && tail == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(res->myNext == nullptr);
+			TEST_CHECK(tail == &e1);
+			TEST_CHECK(queue.PopAll(tail) == nullptr && tail == nullptr);
 			e1.myNext = garbage;
 
-			MG_BOX_ASSERT(queue.Push(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
-			MG_BOX_ASSERT(!queue.Push(&e2));
+			TEST_CHECK(queue.Push(&e1));
+			TEST_CHECK(!queue.IsEmpty());
+			TEST_CHECK(!queue.Push(&e2));
 			res = queue.PopAll(tail);
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == nullptr);
-			MG_BOX_ASSERT(tail == &e2);
-			MG_BOX_ASSERT(queue.PopAll(tail) == nullptr && tail == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == nullptr);
+			TEST_CHECK(tail == &e2);
+			TEST_CHECK(queue.PopAll(tail) == nullptr && tail == nullptr);
 			e1.myNext = garbage;
 			e2.myNext = garbage;
 
-			MG_BOX_ASSERT(queue.Push(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
-			MG_BOX_ASSERT(!queue.Push(&e2));
-			MG_BOX_ASSERT(!queue.Push(&e3));
+			TEST_CHECK(queue.Push(&e1));
+			TEST_CHECK(!queue.IsEmpty());
+			TEST_CHECK(!queue.Push(&e2));
+			TEST_CHECK(!queue.Push(&e3));
 			res = queue.PopAll(tail);
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == &e3);
-			MG_BOX_ASSERT(e3.myNext == nullptr);
-			MG_BOX_ASSERT(tail == &e3);
-			MG_BOX_ASSERT(queue.PopAll(tail) == nullptr && tail == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == &e3);
+			TEST_CHECK(e3.myNext == nullptr);
+			TEST_CHECK(tail == &e3);
+			TEST_CHECK(queue.PopAll(tail) == nullptr && tail == nullptr);
 
 			// Push empty reversed.
-			MG_BOX_ASSERT(queue.PushManyFastReversed(nullptr));
-			MG_BOX_ASSERT(queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(nullptr));
+			TEST_CHECK(queue.IsEmpty());
 
 			// Push one reversed.
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1 && res->myNext == nullptr);
-			MG_BOX_ASSERT(queue.IsEmpty());
+			TEST_CHECK(res == &e1 && res->myNext == nullptr);
+			TEST_CHECK(queue.IsEmpty());
 
 			// Push 2 reversed.
 			e2.myNext = &e1;
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e2));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e2));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == nullptr);
 
 			// Push 3 reversed.
 			e3.myNext = &e2;
 			e2.myNext = &e1;
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e3));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e3));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == &e3);
-			MG_BOX_ASSERT(e3.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == &e3);
+			TEST_CHECK(e3.myNext == nullptr);
 
 			// Push 4 reversed.
 			Entry e4;
@@ -114,36 +114,36 @@ namespace box {
 			e3.myNext = &e2;
 			e2.myNext = &e1;
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e4));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e4));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == &e3);
-			MG_BOX_ASSERT(e3.myNext == &e4);
-			MG_BOX_ASSERT(e4.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == &e3);
+			TEST_CHECK(e3.myNext == &e4);
+			TEST_CHECK(e4.myNext == nullptr);
 
 			// Push empty reversed range.
-			MG_BOX_ASSERT(queue.PushManyFastReversed(nullptr, nullptr));
-			MG_BOX_ASSERT(queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(nullptr, nullptr));
+			TEST_CHECK(queue.IsEmpty());
 
 			// Push one item in a reversed range.
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e1, &e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e1, &e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1 && res->myNext == nullptr);
-			MG_BOX_ASSERT(queue.IsEmpty());
+			TEST_CHECK(res == &e1 && res->myNext == nullptr);
+			TEST_CHECK(queue.IsEmpty());
 
 			// Push 2 in a reversed range.
 			e2.myNext = &e1;
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e2, &e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e2, &e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == nullptr);
 
 			// Make reversed range with non empty last next.
 			e4.myNext = &e3;
@@ -151,61 +151,61 @@ namespace box {
 			e2.myNext = &e1;
 			e1.myNext = nullptr;
 			// Should cut e4.
-			MG_BOX_ASSERT(queue.PushManyFastReversed(&e4, &e2));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushManyFastReversed(&e4, &e2));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e2);
-			MG_BOX_ASSERT(e2.myNext == &e3);
-			MG_BOX_ASSERT(e3.myNext == &e4);
-			MG_BOX_ASSERT(e4.myNext == nullptr);
+			TEST_CHECK(res == &e2);
+			TEST_CHECK(e2.myNext == &e3);
+			TEST_CHECK(e3.myNext == &e4);
+			TEST_CHECK(e4.myNext == nullptr);
 
 			// Push many empty.
-			MG_BOX_ASSERT(queue.PushMany(nullptr));
-			MG_BOX_ASSERT(queue.IsEmpty());
+			TEST_CHECK(queue.PushMany(nullptr));
+			TEST_CHECK(queue.IsEmpty());
 
 			// Push 1 as many.
 			e1.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushMany(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushMany(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1 && res->myNext == nullptr);
-			MG_BOX_ASSERT(queue.IsEmpty());
+			TEST_CHECK(res == &e1 && res->myNext == nullptr);
+			TEST_CHECK(queue.IsEmpty());
 
 			// Push 2 as many.
 			e1.myNext = &e2;
 			e2.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushMany(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushMany(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == nullptr);
 
 			// Push 3 as many.
 			e1.myNext = &e2;
 			e2.myNext = &e3;
 			e3.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushMany(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushMany(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == &e3);
-			MG_BOX_ASSERT(e3.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == &e3);
+			TEST_CHECK(e3.myNext == nullptr);
 
 			// Push 4 as many.
 			e1.myNext = &e2;
 			e2.myNext = &e3;
 			e3.myNext = &e4;
 			e4.myNext = nullptr;
-			MG_BOX_ASSERT(queue.PushMany(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushMany(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll();
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNext == &e2);
-			MG_BOX_ASSERT(e2.myNext == &e3);
-			MG_BOX_ASSERT(e3.myNext == &e4);
-			MG_BOX_ASSERT(e4.myNext == nullptr);
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNext == &e2);
+			TEST_CHECK(e2.myNext == &e3);
+			TEST_CHECK(e3.myNext == &e4);
+			TEST_CHECK(e4.myNext == nullptr);
 		}
 		{
 			// Try non-default link name.
@@ -222,32 +222,32 @@ namespace box {
 
 			mg::box::MultiProducerQueueIntrusive<Entry, &Entry::myNextInQueue> queue;
 			Entry* tail;
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(queue.PopAll(tail) == nullptr && tail == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(queue.PopAll(tail) == nullptr && tail == nullptr);
 			Entry* garbage = (Entry*) &queue;
 			e1.myNextInQueue = garbage;
 			e2.myNextInQueue = garbage;
 
-			MG_BOX_ASSERT(queue.Push(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
-			MG_BOX_ASSERT(!queue.Push(&e2));
+			TEST_CHECK(queue.Push(&e1));
+			TEST_CHECK(!queue.IsEmpty());
+			TEST_CHECK(!queue.Push(&e2));
 			Entry* res = queue.PopAll(tail);
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNextInQueue == &e2);
-			MG_BOX_ASSERT(e2.myNextInQueue == nullptr);
-			MG_BOX_ASSERT(tail == &e2);
-			MG_BOX_ASSERT(queue.PopAll(tail) == nullptr && tail == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNextInQueue == &e2);
+			TEST_CHECK(e2.myNextInQueue == nullptr);
+			TEST_CHECK(tail == &e2);
+			TEST_CHECK(queue.PopAll(tail) == nullptr && tail == nullptr);
 
 			e1.myNextInQueue = &e2;
 			e2.myNextInQueue = nullptr;
-			MG_BOX_ASSERT(queue.PushMany(&e1));
-			MG_BOX_ASSERT(!queue.IsEmpty());
+			TEST_CHECK(queue.PushMany(&e1));
+			TEST_CHECK(!queue.IsEmpty());
 			res = queue.PopAll(tail);
-			MG_BOX_ASSERT(queue.IsEmpty());
-			MG_BOX_ASSERT(res == &e1);
-			MG_BOX_ASSERT(e1.myNextInQueue == &e2);
-			MG_BOX_ASSERT(e2.myNextInQueue == nullptr);
+			TEST_CHECK(queue.IsEmpty());
+			TEST_CHECK(res == &e1);
+			TEST_CHECK(e1.myNextInQueue == &e2);
+			TEST_CHECK(e2.myNextInQueue == nullptr);
 		}
 	}
 
@@ -329,7 +329,7 @@ namespace box {
 			if (++yield % 1000 == 0)
 				mg::box::Sleep(1);
 		}
-		MG_BOX_ASSERT(data.size() == itemCount * threadCount);
+		TEST_CHECK(data.size() == itemCount * threadCount);
 		for (mg::box::ThreadFunc* f : threads)
 			delete f;
 		std::vector<uint32_t> counters;
@@ -337,9 +337,9 @@ namespace box {
 		for (uint32_t i = 0; i < threadCount; ++i)
 			counters.push_back(0);
 		for (Entry* e : data)
-			MG_BOX_ASSERT(e->myId == counters[e->myThreadId]++);
+			TEST_CHECK(e->myId == counters[e->myThreadId]++);
 		for (uint32_t count : counters)
-			MG_BOX_ASSERT(count == itemCount);
+			TEST_CHECK(count == itemCount);
 	}
 
 	void

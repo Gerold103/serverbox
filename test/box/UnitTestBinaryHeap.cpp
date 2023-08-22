@@ -65,7 +65,7 @@ namespace box {
 			int aToUse)
 		{
 			ourCopyConstrCount -= aToUse;
-			MG_BOX_ASSERT(ourCopyConstrCount >= 0);
+			TEST_CHECK(ourCopyConstrCount >= 0);
 		}
 
 		static void
@@ -73,7 +73,7 @@ namespace box {
 			int aToUse)
 		{
 			ourCopyAssignCount -= aToUse;
-			MG_BOX_ASSERT(ourCopyAssignCount >= 0);
+			TEST_CHECK(ourCopyAssignCount >= 0);
 		}
 
 		static void
@@ -81,7 +81,7 @@ namespace box {
 			int aToUse)
 		{
 			ourMoveConstrCount -= aToUse;
-			MG_BOX_ASSERT(ourMoveConstrCount >= 0);
+			TEST_CHECK(ourMoveConstrCount >= 0);
 		}
 
 		static void
@@ -89,7 +89,7 @@ namespace box {
 			int aToUse)
 		{
 			ourMoveAssignCount -= aToUse;
-			MG_BOX_ASSERT(ourMoveAssignCount >= 0);
+			TEST_CHECK(ourMoveAssignCount >= 0);
 		}
 
 		static void
@@ -97,7 +97,7 @@ namespace box {
 			int aToUse)
 		{
 			ourConstrCount -= aToUse;
-			MG_BOX_ASSERT(ourConstrCount >= 0);
+			TEST_CHECK(ourConstrCount >= 0);
 		}
 
 		static void
@@ -105,7 +105,7 @@ namespace box {
 			int aToUse)
 		{
 			ourDestrCount -= aToUse;
-			MG_BOX_ASSERT(ourDestrCount >= 0);
+			TEST_CHECK(ourDestrCount >= 0);
 		}
 
 		static void
@@ -122,7 +122,7 @@ namespace box {
 		static void
 		CheckCounters()
 		{
-			MG_BOX_ASSERT(
+			TEST_CHECK(
 				ourCopyConstrCount == 0 && ourCopyAssignCount == 0 &&
 				ourMoveConstrCount == 0 && ourMoveAssignCount == 0 &&
 				ourConstrCount == 0 && ourDestrCount == 0
@@ -172,8 +172,8 @@ namespace box {
 		{
 			mg::box::BinaryHeapMinPtr<UTBHeapValue> heap;
 			UTBHeapValue* pop = nullptr;
-			MG_BOX_ASSERT(!heap.Pop(pop));
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(!heap.Pop(pop));
+			TEST_CHECK(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = i;
 
@@ -186,24 +186,24 @@ namespace box {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(&values[indexes[i]]);
-					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
+					TEST_CHECK(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop = nullptr;
-						MG_BOX_ASSERT(heap.GetTop() == &values[i]);
-						MG_BOX_ASSERT(heap.Pop(pop));
-						MG_BOX_ASSERT(pop == &values[i]);
+						TEST_CHECK(heap.GetTop() == &values[i]);
+						TEST_CHECK(heap.Pop(pop));
+						TEST_CHECK(pop == &values[i]);
 					}
-					MG_BOX_ASSERT(!heap.Pop(pop));
-					MG_BOX_ASSERT(heap.Count() == 0);
+					TEST_CHECK(!heap.Pop(pop));
+					TEST_CHECK(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
 		{
 			mg::box::BinaryHeapMaxPtr<UTBHeapValue> heap;
 			UTBHeapValue* pop = nullptr;
-			MG_BOX_ASSERT(!heap.Pop(pop));
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(!heap.Pop(pop));
+			TEST_CHECK(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = count - 1 - i;
 
@@ -216,16 +216,16 @@ namespace box {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(&values[indexes[i]]);
-					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
+					TEST_CHECK(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop = nullptr;
-						MG_BOX_ASSERT(heap.GetTop() == &values[i]);
-						MG_BOX_ASSERT(heap.Pop(pop));
-						MG_BOX_ASSERT(pop == &values[i]);
+						TEST_CHECK(heap.GetTop() == &values[i]);
+						TEST_CHECK(heap.Pop(pop));
+						TEST_CHECK(pop == &values[i]);
 					}
-					MG_BOX_ASSERT(!heap.Pop(pop));
-					MG_BOX_ASSERT(heap.Count() == 0);
+					TEST_CHECK(!heap.Pop(pop));
+					TEST_CHECK(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
@@ -233,8 +233,8 @@ namespace box {
 			mg::box::BinaryHeapMax<UTBHeapValue> heap;
 			UTBHeapValue pop;
 			pop.myValue = INT_MAX;
-			MG_BOX_ASSERT(!heap.Pop(pop));
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(!heap.Pop(pop));
+			TEST_CHECK(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = count - 1 - i;
 
@@ -247,16 +247,16 @@ namespace box {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(values[indexes[i]]);
-					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
+					TEST_CHECK(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop.myValue = INT_MAX;
-						MG_BOX_ASSERT(heap.GetTop().myValue == values[i].myValue);
-						MG_BOX_ASSERT(heap.Pop(pop));
-						MG_BOX_ASSERT(pop.myValue == values[i].myValue);
+						TEST_CHECK(heap.GetTop().myValue == values[i].myValue);
+						TEST_CHECK(heap.Pop(pop));
+						TEST_CHECK(pop.myValue == values[i].myValue);
 					}
-					MG_BOX_ASSERT(!heap.Pop(pop));
-					MG_BOX_ASSERT(heap.Count() == 0);
+					TEST_CHECK(!heap.Pop(pop));
+					TEST_CHECK(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
@@ -264,8 +264,8 @@ namespace box {
 			mg::box::BinaryHeapMin<UTBHeapValue> heap;
 			UTBHeapValue pop;
 			pop.myValue = INT_MAX;
-			MG_BOX_ASSERT(!heap.Pop(pop));
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(!heap.Pop(pop));
+			TEST_CHECK(heap.Count() == 0);
 			for (int i = 0; i < count; ++i)
 				values[i].myValue = i;
 
@@ -278,16 +278,16 @@ namespace box {
 				{
 					for (int i = 0; i < counti; ++i)
 						heap.Push(values[indexes[i]]);
-					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
+					TEST_CHECK(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop.myValue = INT_MAX;
-						MG_BOX_ASSERT(heap.GetTop().myValue == values[i].myValue);
-						MG_BOX_ASSERT(heap.Pop(pop));
-						MG_BOX_ASSERT(pop.myValue == values[i].myValue);
+						TEST_CHECK(heap.GetTop().myValue == values[i].myValue);
+						TEST_CHECK(heap.Pop(pop));
+						TEST_CHECK(pop.myValue == values[i].myValue);
 					}
-					MG_BOX_ASSERT(!heap.Pop(pop));
-					MG_BOX_ASSERT(heap.Count() == 0);
+					TEST_CHECK(!heap.Pop(pop));
+					TEST_CHECK(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
@@ -295,8 +295,8 @@ namespace box {
 			mg::box::BinaryHeapMin<UTBHeapValue> heap;
 			UTBHeapValue pop;
 			pop.myValue = INT_MAX;
-			MG_BOX_ASSERT(!heap.Pop(pop));
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(!heap.Pop(pop));
+			TEST_CHECK(heap.Count() == 0);
 
 			for (int counti = 1; counti <= count; ++counti)
 			{
@@ -315,16 +315,16 @@ namespace box {
 						heap.GetTop().myValue = indexes[i];
 						heap.UpdateTop();
 					}
-					MG_BOX_ASSERT(heap.Count() == (uint32_t)counti);
+					TEST_CHECK(heap.Count() == (uint32_t)counti);
 					for (int i = 0; i < counti; ++i)
 					{
 						pop.myValue = INT_MAX;
-						MG_BOX_ASSERT(heap.GetTop().myValue == i);
-						MG_BOX_ASSERT(heap.Pop(pop));
-						MG_BOX_ASSERT(pop.myValue == i);
+						TEST_CHECK(heap.GetTop().myValue == i);
+						TEST_CHECK(heap.Pop(pop));
+						TEST_CHECK(pop.myValue == i);
 					}
-					MG_BOX_ASSERT(!heap.Pop(pop));
-					MG_BOX_ASSERT(heap.Count() == 0);
+					TEST_CHECK(!heap.Pop(pop));
+					TEST_CHECK(heap.Count() == 0);
 				} while (std::next_permutation(&indexes[0], &indexes[counti]));
 			}
 		}
@@ -350,21 +350,21 @@ namespace box {
 						}
 						values[srci].myValue = newv;
 						heap.Update(&values[srci]);
-						MG_BOX_ASSERT(values[srci].myIndex >= 0);
-						MG_BOX_ASSERT(values[srci].myIndex < counti);
+						TEST_CHECK(values[srci].myIndex >= 0);
+						TEST_CHECK(values[srci].myIndex < counti);
 						int prev = -1;
 						for (int i = 0; i < counti; ++i)
 						{
 							pop = nullptr;
-							MG_BOX_ASSERT(heap.Pop(pop));
-							MG_BOX_ASSERT(pop->myIndex == -1);
-							MG_BOX_ASSERT(pop->myValue >= prev);
-							MG_BOX_ASSERT(pop->myValue >= 0);
+							TEST_CHECK(heap.Pop(pop));
+							TEST_CHECK(pop->myIndex == -1);
+							TEST_CHECK(pop->myValue >= prev);
+							TEST_CHECK(pop->myValue >= 0);
 							prev = pop->myValue;
 							pop->myValue = -1;
 						}
-						MG_BOX_ASSERT(!heap.Pop(pop));
-						MG_BOX_ASSERT(heap.Count() == 0);
+						TEST_CHECK(!heap.Pop(pop));
+						TEST_CHECK(heap.Count() == 0);
 					}
 				}
 			}
@@ -388,20 +388,20 @@ namespace box {
 					}
 					values[srci].myValue = INT_MAX;
 					heap.Remove(&values[srci]);
-					MG_BOX_ASSERT(values[srci].myIndex == -1);
+					TEST_CHECK(values[srci].myIndex == -1);
 					int prev = INT_MAX;
 					for (int i = 1; i < counti; ++i)
 					{
 						pop = nullptr;
-						MG_BOX_ASSERT(heap.Pop(pop));
-						MG_BOX_ASSERT(pop->myIndex == -1);
-						MG_BOX_ASSERT(pop->myValue < prev);
-						MG_BOX_ASSERT(pop->myValue >= 0);
+						TEST_CHECK(heap.Pop(pop));
+						TEST_CHECK(pop->myIndex == -1);
+						TEST_CHECK(pop->myValue < prev);
+						TEST_CHECK(pop->myValue >= 0);
 						prev = pop->myValue;
 						pop->myValue = -1;
 					}
-					MG_BOX_ASSERT(!heap.Pop(pop));
-					MG_BOX_ASSERT(heap.Count() == 0);
+					TEST_CHECK(!heap.Pop(pop));
+					TEST_CHECK(heap.Count() == 0);
 				}
 			}
 		}
@@ -409,9 +409,9 @@ namespace box {
 			// Check reservation.
 			mg::box::BinaryHeapMaxIntrusive<UTBHeapValue> heap;
 			heap.Reserve(1);
-			MG_BOX_ASSERT(heap.GetCapacity() >= 1);
+			TEST_CHECK(heap.GetCapacity() >= 1);
 			heap.Reserve(100);
-			MG_BOX_ASSERT(heap.GetCapacity() >= 100);
+			TEST_CHECK(heap.GetCapacity() >= 100);
 		}
 	}
 
@@ -470,7 +470,7 @@ namespace box {
 			UTBHeapValue::UseMoveAssignCount(3);
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_BOX_ASSERT(heap.Pop(pop));
+			TEST_CHECK(heap.Pop(pop));
 			// Return result.
 			UTBHeapValue::UseMoveAssignCount(1);
 			// Move the rightmost value to the root to start its
@@ -486,7 +486,7 @@ namespace box {
 			// Removed element is destroyed in the heap.
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_BOX_ASSERT(heap.Pop(pop));
+			TEST_CHECK(heap.Pop(pop));
 			// The tree becomes 2 level - root and 2 children. So
 			// one move to return the old root, and one move to
 			// set a new root to one of the children.
@@ -494,13 +494,13 @@ namespace box {
 			// Removed element is destroyed in the heap.
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_BOX_ASSERT(heap.Pop(pop));
+			TEST_CHECK(heap.Pop(pop));
 			// The same.
 			UTBHeapValue::UseMoveAssignCount(2);
 			// Removed element is destroyed in the heap.
 			UTBHeapValue::UseDestrCount(1);
 
-			MG_BOX_ASSERT(heap.Pop(pop));
+			TEST_CHECK(heap.Pop(pop));
 			// Move the single value to the out parameter.
 			UTBHeapValue::UseMoveAssignCount(1);
 			// Removed element is destroyed in the heap.
@@ -591,32 +591,32 @@ namespace box {
 		UTBHeapValue v4;
 		v1.myValue = 0;
 		heap.Push(&v1);
-		MG_BOX_ASSERT(v1.myIndex == 0);
+		TEST_CHECK(v1.myIndex == 0);
 
 		heap.Update(&v1);
-		MG_BOX_ASSERT(v1.myIndex == 0);
+		TEST_CHECK(v1.myIndex == 0);
 
 		v2.myValue = 1;
 		heap.Push(&v2);
-		MG_BOX_ASSERT(v2.myIndex == 1);
+		TEST_CHECK(v2.myIndex == 1);
 		heap.Update(&v1);
 		heap.Update(&v2);
 
 		v2.myValue = -1;
 		heap.Update(&v2);
-		MG_BOX_ASSERT(v2.myIndex == 0);
-		MG_BOX_ASSERT(v1.myIndex == 1);
+		TEST_CHECK(v2.myIndex == 0);
+		TEST_CHECK(v1.myIndex == 1);
 
 		UTBHeapValue* pop = nullptr;
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIndex == -1);
-		MG_BOX_ASSERT(pop == &v2);
-		MG_BOX_ASSERT(v1.myIndex == 0);
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIndex == -1);
+		TEST_CHECK(pop == &v2);
+		TEST_CHECK(v1.myIndex == 0);
 
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIndex == -1);
-		MG_BOX_ASSERT(pop == &v1);
-		MG_BOX_ASSERT(!heap.Pop(pop));
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIndex == -1);
+		TEST_CHECK(pop == &v1);
+		TEST_CHECK(!heap.Pop(pop));
 
 		v1.myValue = 0;
 		v2.myValue = 1;
@@ -626,41 +626,41 @@ namespace box {
 		heap.Push(&v2);
 		heap.Push(&v3);
 		heap.Push(&v4);
-		MG_BOX_ASSERT(v1.myIndex == 0);
-		MG_BOX_ASSERT(v2.myIndex == 1);
-		MG_BOX_ASSERT(v3.myIndex == 2);
-		MG_BOX_ASSERT(v4.myIndex == 3);
+		TEST_CHECK(v1.myIndex == 0);
+		TEST_CHECK(v2.myIndex == 1);
+		TEST_CHECK(v3.myIndex == 2);
+		TEST_CHECK(v4.myIndex == 3);
 
 		v4.myValue = -4;
 		heap.Update(&v4);
-		MG_BOX_ASSERT(v4.myIndex == 0);
+		TEST_CHECK(v4.myIndex == 0);
 
 		v3.myValue = -3;
 		heap.Update(&v3);
-		MG_BOX_ASSERT(v3.myIndex == 2);
+		TEST_CHECK(v3.myIndex == 2);
 
 		v2.myValue = -2;
 		heap.Update(&v2);
-		MG_BOX_ASSERT(v2.myIndex == 1);
+		TEST_CHECK(v2.myIndex == 1);
 
 		v1.myValue = -1;
 		heap.Update(&v1);
-		MG_BOX_ASSERT(v1.myIndex == 3);
+		TEST_CHECK(v1.myIndex == 3);
 
 		pop = nullptr;
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIndex == -1);
-		MG_BOX_ASSERT(pop == &v4);
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIndex == -1);
-		MG_BOX_ASSERT(pop == &v3);
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIndex == -1);
-		MG_BOX_ASSERT(pop == &v2);
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIndex == -1);
-		MG_BOX_ASSERT(pop == &v1);
-		MG_BOX_ASSERT(!heap.Pop(pop));
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIndex == -1);
+		TEST_CHECK(pop == &v4);
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIndex == -1);
+		TEST_CHECK(pop == &v3);
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIndex == -1);
+		TEST_CHECK(pop == &v2);
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIndex == -1);
+		TEST_CHECK(pop == &v1);
+		TEST_CHECK(!heap.Pop(pop));
 	}
 
 	static void
@@ -682,16 +682,16 @@ namespace box {
 
 			// NOP on empty.
 			heap.RemoveTop();
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(heap.Count() == 0);
 
 			// Single element remove does not copy nor move
 			// anything.
 			heap.Push(v1);
-			MG_BOX_ASSERT(heap.Count() == 1);
+			TEST_CHECK(heap.Count() == 1);
 			UTBHeapValue::UseCopyConstrCount(1);
 			heap.RemoveTop();
 			UTBHeapValue::UseDestrCount(1);
-			MG_BOX_ASSERT(heap.Count() == 0);
+			TEST_CHECK(heap.Count() == 0);
 			UTBHeapValue::CheckCounters();
 
 			// Remove() costs less than Pop().
@@ -699,7 +699,7 @@ namespace box {
 			heap.Push(v2);
 			heap.Push(v3);
 			heap.Push(v4);
-			MG_BOX_ASSERT(heap.Count() == 4);
+			TEST_CHECK(heap.Count() == 4);
 			UTBHeapValue::ResetCounters();
 			heap.RemoveTop();
 			// Move end to the deleted root.
@@ -729,24 +729,24 @@ namespace box {
 		UTBHeapValue v4;
 		v1.myValue = 0;
 		heap.Push(&v1);
-		MG_BOX_ASSERT(v1.myIndex == 0);
+		TEST_CHECK(v1.myIndex == 0);
 
 		heap.Remove(&v1);
-		MG_BOX_ASSERT(v1.myIndex == -1);
-		MG_BOX_ASSERT(heap.Count() == 0);
+		TEST_CHECK(v1.myIndex == -1);
+		TEST_CHECK(heap.Count() == 0);
 
 		v2.myValue = 1;
 		heap.Push(&v1);
 		heap.Push(&v2);
 
 		heap.Remove(&v1);
-		MG_BOX_ASSERT(v1.myIndex == -1);
-		MG_BOX_ASSERT(v2.myIndex == 0);
-		MG_BOX_ASSERT(heap.Count() == 1);
+		TEST_CHECK(v1.myIndex == -1);
+		TEST_CHECK(v2.myIndex == 0);
+		TEST_CHECK(heap.Count() == 1);
 
 		heap.Remove(&v2);
-		MG_BOX_ASSERT(v2.myIndex == -1);
-		MG_BOX_ASSERT(heap.Count() == 0);
+		TEST_CHECK(v2.myIndex == -1);
+		TEST_CHECK(heap.Count() == 0);
 
 		v1.myValue = 0;
 		v2.myValue = 1;
@@ -756,29 +756,29 @@ namespace box {
 		heap.Push(&v2);
 		heap.Push(&v3);
 		heap.Push(&v4);
-		MG_BOX_ASSERT(v1.myIndex == 0);
-		MG_BOX_ASSERT(v2.myIndex == 1);
-		MG_BOX_ASSERT(v3.myIndex == 2);
-		MG_BOX_ASSERT(v4.myIndex == 3);
+		TEST_CHECK(v1.myIndex == 0);
+		TEST_CHECK(v2.myIndex == 1);
+		TEST_CHECK(v3.myIndex == 2);
+		TEST_CHECK(v4.myIndex == 3);
 
 		heap.Remove(&v1);
-		MG_BOX_ASSERT(v1.myIndex == -1);
-		MG_BOX_ASSERT(v2.myIndex == 0);
-		MG_BOX_ASSERT(v3.myIndex == 2);
-		MG_BOX_ASSERT(v4.myIndex == 1);
+		TEST_CHECK(v1.myIndex == -1);
+		TEST_CHECK(v2.myIndex == 0);
+		TEST_CHECK(v3.myIndex == 2);
+		TEST_CHECK(v4.myIndex == 1);
 
 		heap.Remove(&v2);
-		MG_BOX_ASSERT(v2.myIndex == -1);
-		MG_BOX_ASSERT(v3.myIndex == 0);
-		MG_BOX_ASSERT(v4.myIndex == 1);
+		TEST_CHECK(v2.myIndex == -1);
+		TEST_CHECK(v3.myIndex == 0);
+		TEST_CHECK(v4.myIndex == 1);
 
 		heap.Remove(&v3);
-		MG_BOX_ASSERT(v3.myIndex == -1);
-		MG_BOX_ASSERT(v4.myIndex == 0);
+		TEST_CHECK(v3.myIndex == -1);
+		TEST_CHECK(v4.myIndex == 0);
 
 		heap.Remove(&v4);
-		MG_BOX_ASSERT(v4.myIndex == -1);
-		MG_BOX_ASSERT(heap.Count() == 0);
+		TEST_CHECK(v4.myIndex == -1);
+		TEST_CHECK(heap.Count() == 0);
 	}
 
 	static void
@@ -807,29 +807,29 @@ namespace box {
 		v2.myIdx = -1;
 		heap.Push(&v1);
 		heap.Push(&v2);
-		MG_BOX_ASSERT(v1.myIdx == 0);
-		MG_BOX_ASSERT(v2.myIdx == 1);
+		TEST_CHECK(v1.myIdx == 0);
+		TEST_CHECK(v2.myIdx == 1);
 		TestValue* pop = nullptr;
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIdx == -1);
-		MG_BOX_ASSERT(pop == &v1);
-		MG_BOX_ASSERT(heap.Pop(pop));
-		MG_BOX_ASSERT(pop->myIdx == -1);
-		MG_BOX_ASSERT(pop == &v2);
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIdx == -1);
+		TEST_CHECK(pop == &v1);
+		TEST_CHECK(heap.Pop(pop));
+		TEST_CHECK(pop->myIdx == -1);
+		TEST_CHECK(pop == &v2);
 
 		heap.Push(&v1);
 		heap.Push(&v2);
 		v2.myValue = 0;
 		heap.Update(&v2);
-		MG_BOX_ASSERT(v1.myIdx == 1);
-		MG_BOX_ASSERT(v2.myIdx == 0);
+		TEST_CHECK(v1.myIdx == 1);
+		TEST_CHECK(v2.myIdx == 0);
 
 		heap.Remove(&v2);
-		MG_BOX_ASSERT(v1.myIdx == 0);
-		MG_BOX_ASSERT(v2.myIdx == -1);
+		TEST_CHECK(v1.myIdx == 0);
+		TEST_CHECK(v2.myIdx == -1);
 
 		heap.Remove(&v1);
-		MG_BOX_ASSERT(v1.myIdx == -1);
+		TEST_CHECK(v1.myIdx == -1);
 	}
 
 	static void
@@ -861,10 +861,10 @@ namespace box {
 			UTBHeapValue::UseCopyConstrCount(1);
 #if IS_PLATFORM_WIN
 			// Somewhy on Windows it grows not x2 each time.
-			MG_BOX_ASSERT(heap.GetCapacity() >= 3);
+			TEST_CHECK(heap.GetCapacity() >= 3);
 #else
 			// Grows x2 at least.
-			MG_BOX_ASSERT(heap.GetCapacity() == 4);
+			TEST_CHECK(heap.GetCapacity() == 4);
 #endif
 		}
 		UTBHeapValue::UseDestrCount(4);

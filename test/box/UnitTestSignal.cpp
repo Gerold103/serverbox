@@ -1,5 +1,5 @@
-#include "mg/box/Assert.h"
 #include "mg/box/Signal.h"
+
 #include "mg/box/ThreadFunc.h"
 
 #include "UnitTest.h"
@@ -14,25 +14,25 @@ namespace box {
 	UnitTestSignalBasic()
 	{
 		mg::box::Signal s;
-		MG_BOX_ASSERT(!s.Receive());
+		TEST_CHECK(!s.Receive());
 
 		s.Send();
-		MG_BOX_ASSERT(s.Receive());
-		MG_BOX_ASSERT(!s.Receive());
+		TEST_CHECK(s.Receive());
+		TEST_CHECK(!s.Receive());
 
 		s.Send();
 		s.ReceiveBlocking();
-		MG_BOX_ASSERT(!s.Receive());
+		TEST_CHECK(!s.Receive());
 
 		s.Send();
-		MG_BOX_ASSERT(s.ReceiveTimed(1000000));
-		MG_BOX_ASSERT(!s.Receive());
+		TEST_CHECK(s.ReceiveTimed(1000000));
+		TEST_CHECK(!s.Receive());
 
 		s.Send();
-		MG_BOX_ASSERT(s.ReceiveTimed(0));
-		MG_BOX_ASSERT(!s.Receive());
+		TEST_CHECK(s.ReceiveTimed(0));
+		TEST_CHECK(!s.Receive());
 
-		MG_BOX_ASSERT(!s.ReceiveTimed(1));
+		TEST_CHECK(!s.ReceiveTimed(1));
 	}
 
 	static void
