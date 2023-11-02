@@ -1,0 +1,10 @@
+- Introduce socket options and allow to pass them to tcpserver and tcpsocket. Allow to set which of them are critical;
+- Introduce const shared ptr;
+- Introduce UDPSocket;
+- Use uint32_t in Error.h for all codes, not int;
+- File IPV6 testing ticket;
+- Introduce destructor of all globals including DomainToIP;
+- Perform IOCore benchmarks same way as the others, via report.py;
+- Introduce mg::net create and destroy, for WSAStartup;
+- Rename TCPSocketIFace to StreamSocket;
+- Allow to destroy IOCore while having sockets in it. They should all get a special on-close event;
