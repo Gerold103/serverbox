@@ -282,7 +282,7 @@ namespace box {
 		mg::box::AtomicU32 readyCount(0);
 		for (uint32_t ti = 0; ti < threadCount; ++ti)
 		{
-			threads.push_back(new mg::box::ThreadFunc([&]() {
+			threads.push_back(new mg::box::ThreadFunc("mgtst", [&]() {
 
 				const uint32_t packMaxSize = 5;
 

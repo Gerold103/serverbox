@@ -17,6 +17,7 @@ namespace box {
 	{
 	public:
 		ThreadFunc(
+			const char *aName,
 			const ThreadCallback& aCallback);
 
 		~ThreadFunc();
@@ -31,8 +32,10 @@ namespace box {
 
 	inline
 	ThreadFunc::ThreadFunc(
+		const char *aName,
 		const ThreadCallback& aCallback)
-		: myCallback(aCallback)
+		: Thread(aName)
+		, myCallback(aCallback)
 	{
 	}
 

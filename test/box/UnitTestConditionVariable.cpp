@@ -42,7 +42,7 @@ namespace box {
 		mg::box::Mutex mutex;
 		mg::box::AtomicU32 stepCounter(0);
 		uint32_t next = 0;
-		mg::box::ThreadFunc worker([&]() {
+		mg::box::ThreadFunc worker("mgtst", [&]() {
 			uint32_t workerNext = 1;
 
 			// Test that simple lock/unlock work correct.

@@ -50,7 +50,7 @@ namespace box {
 		signals.reserve(count);
 		for (uint32_t i = 0; i < count; ++i)
 			signals.push_back(new mg::box::Signal());
-		mg::box::ThreadFunc worker([&]() {
+		mg::box::ThreadFunc worker("mgtst", [&]() {
 			uint32_t count = (uint32_t)signals.size();
 			for (uint32_t i = 0; i < count; ++i)
 				signals[i]->Send();

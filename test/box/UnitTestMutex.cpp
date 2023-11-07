@@ -21,7 +21,7 @@ namespace box {
 		threads.reserve(threadCount);
 		for (uint32_t i = 0; i < threadCount; ++i)
 		{
-			threads.push_back(new mg::box::ThreadFunc([&]() {
+			threads.push_back(new mg::box::ThreadFunc("mgtst", [&]() {
 				uint64_t deadline = mg::box::GetMilliseconds() + 2000;
 				uint64_t yield = 0;
 				while (mg::box::GetMilliseconds() < deadline)

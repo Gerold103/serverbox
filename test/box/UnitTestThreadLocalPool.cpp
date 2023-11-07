@@ -124,7 +124,7 @@ namespace threadlocalpool {
 		mg::box::Atomic<int> threadIdCounter(0);
 		for (uint32_t threadI = 0; threadI < threadCount; ++threadI)
 		{
-			threads.push_back(new mg::box::ThreadFunc([&]() {
+			threads.push_back(new mg::box::ThreadFunc("mgtst", [&]() {
 				int threadId = threadIdCounter.IncrementFetchRelaxed();
 				std::vector<ValueT*> values;
 				values.resize(valueCount);
