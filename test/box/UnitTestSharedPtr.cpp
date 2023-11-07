@@ -176,7 +176,7 @@ public:
 			std::vector<mg::box::ThreadFunc*> threads;
 			for (int i = 0; i < threadCount; ++i)
 			{
-				threads.push_back(new mg::box::ThreadFunc([&]() {
+				threads.push_back(new mg::box::ThreadFunc("mgtst", [&]() {
 					Value::Ptr localPtr = ptr;
 					uint64_t yield = 0;
 					while (!isStopRequested.LoadRelaxed())
