@@ -132,6 +132,7 @@ namespace box {
 	ForwardListIterator<T, myLink>::ForwardListIterator(
 		T* aHead)
 		: myPos(aHead)
+		, myNext(nullptr)
 	{
 		if (aHead != nullptr)
 			myNext = aHead->*myLink;

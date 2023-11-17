@@ -18,7 +18,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	add_compile_options(
 		/Wall /WX /wd4324 /wd4355 /wd4365 /wd4458 /wd4514 /wd4625 /wd4626 /wd4668 /wd4710
-		/wd4820 /wd5026 /wd5027 /wd5039 /wd5045 /wd5219
+		/wd4820 /wd5026 /wd5027 /wd5039 /wd5045 /wd5219 /wd26439 /wd26800
 	)
 endif()
 

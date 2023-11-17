@@ -17,8 +17,16 @@ namespace box {
 #if IS_PLATFORM_UNIX
 		abort();
 #else
+#if IS_COMPILER_MSVC
+#pragma warning(push)
+		// "Dereferencing NULL pointer".
+#pragma warning(disable: 6011)
+#endif
 		int* t = NULL;
 		*t = 0;
+#if IS_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 #endif
 	}
 
