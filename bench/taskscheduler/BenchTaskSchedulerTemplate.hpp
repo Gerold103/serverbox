@@ -288,13 +288,13 @@ namespace bench {
 		{
 			uint32_t i;
 			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-			myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
+			myCtx->myTasks[i].PostWakeup();
 			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-			myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
+			myCtx->myTasks[i].PostSignal();
 			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-			myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
+			myCtx->myTasks[i].PostWakeup();
 			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-			myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
+			myCtx->myTasks[i].PostSignal();
 			return isLast ? Stop() : myCtx->myScheduler->Post(aTask);
 		}
 		if (myExecuteCount % 3 == 0)

@@ -145,7 +145,7 @@ private:
 
 		myClient.Get(someUrl, &myRequest, [&]() {
 			// Atomically wakeup + notify the task about request completion.
-			sched.Signal(&myTask);
+			myTask.PostSignal();
 		});
 
 		// Start waiting.
@@ -206,7 +206,7 @@ public:
 		myQueue.Append(aRequest);
 
 		// Wakeup the task to let it know there is new work to do.
-		sched.Wakeup(&myTask);
+		myTask.PostWakeup();
 	}
 
 private:
@@ -392,7 +392,7 @@ void
 FinishSomeWork()
 {
 	isReady = true;                 // (1)
-	scheduler.Wakeup(task);         // (2)
+	task.PostWakeup();              // (2)
 }
 
 void
@@ -420,7 +420,7 @@ TaskStart()
 // FinishSomeWork() is called somewhere after TaskStart().
 ```
 
-This code is broken. Because after (1) the task may be woken up by a timeout, will see `isReady`, and will delete itself in (3). Then `Wakeup()` in (2) will crash.
+This code is broken. Because after (1) the task may be woken up by a timeout, will see `isReady`, and will delete itself in (3). Then `PostWakeup()` in (2) will crash.
 
 Task signal feature allows to do `FinishSomeWork()` atomically. See an example above in this document in the *"Examples"* section.
 

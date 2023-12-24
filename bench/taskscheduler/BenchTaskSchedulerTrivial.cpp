@@ -30,6 +30,10 @@ namespace bench {
 
 		bool ReceiveSignal();
 
+		void PostWakeup();
+
+		void PostSignal();
+
 		Task* myNext;
 	private:
 		TaskCallback myCallback;
@@ -68,12 +72,6 @@ namespace bench {
 		void PostDelay(
 			Task* aTask,
 			uint32_t aDelay);
-
-		void Wakeup(
-			Task* aTask);
-
-		void Signal(
-			Task* aTask);
 
 		void Reserve(
 			uint32_t aCount);
@@ -134,6 +132,18 @@ namespace bench {
 		return false;
 	}
 
+	void
+	Task::PostWakeup()
+	{
+		MG_BOX_ASSERT(!"Not implemented");
+	}
+
+	void
+	Task::PostSignal()
+	{
+		MG_BOX_ASSERT(!"Not implemented");
+	}
+
 	TaskScheduler::TaskScheduler(
 		const char* aName,
 		uint32_t aThreadCount,
@@ -190,20 +200,6 @@ namespace bench {
 	TaskScheduler::PostDelay(
 		Task* /*aTask*/,
 		uint32_t /*aDelay*/)
-	{
-		MG_BOX_ASSERT(!"Not implemented");
-	}
-
-	void
-	TaskScheduler::Wakeup(
-		Task* /*aTask*/)
-	{
-		MG_BOX_ASSERT(!"Not implemented");
-	}
-
-	void
-	TaskScheduler::Signal(
-		Task* /*aTask*/)
 	{
 		MG_BOX_ASSERT(!"Not implemented");
 	}
