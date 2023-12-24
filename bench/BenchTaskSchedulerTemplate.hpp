@@ -287,13 +287,13 @@ namespace bench {
 		if (myExecuteCount % 10 == 0)
 		{
 			uint32_t i;
-			i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 			myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
-			i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 			myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
-			i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 			myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
-			i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+			i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 			myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
 			return isLast ? Stop() : myCtx->myScheduler->Post(aTask);
 		}
@@ -424,7 +424,7 @@ main(
 	char** aArgv)
 {
 	using namespace mg::bench;
-	mg::test::CommandLine cmdLine(aArgc - 1, aArgv + 1);
+	mg::tst::CommandLine cmdLine(aArgc - 1, aArgv + 1);
 	BenchLoadType loadType = BenchLoadTypeFromString(cmdLine.GetStr("load"));
 	uint32_t threadCount = cmdLine.GetU32("threads");
 	uint32_t taskCount = cmdLine.GetU32("tasks");

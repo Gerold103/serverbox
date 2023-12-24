@@ -3,7 +3,7 @@
 #include "mg/box/Definitions.h"
 
 namespace mg {
-namespace test {
+namespace tst {
 
 	uint32_t RandomUInt32();
 

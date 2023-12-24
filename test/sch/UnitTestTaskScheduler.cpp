@@ -666,19 +666,19 @@ namespace sch {
 				myCtx->myMaxParallel.CmpExchgStrong(max, old);
 			// Simulate heavy work.
 			for (i = 0; i < 100; ++i)
-				mg::test::RandomBool();
+				mg::tst::RandomBool();
 			myCtx->myCurrentParallel.DecrementRelaxed();
 
 			bool isLast = myExecuteCount >= myCtx->myExecuteCount;
 			if (myExecuteCount % 10 == 0)
 			{
-				i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 				myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
-				i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 				myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
-				i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 				myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
-				i = mg::test::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
+				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
 				myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
 				return isLast ? Stop() : myCtx->myScheduler->Post(aTask);
 			}

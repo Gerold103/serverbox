@@ -17,7 +17,7 @@ namespace unittests {
 	};
 
 	static TestSettings ParseSettings(
-		const mg::test::CommandLine& aCmd);
+		const mg::tst::CommandLine& aCmd);
 
 	static void RunTest(
 		const TestSettings& aSettings,
@@ -52,7 +52,7 @@ main(
 
 	Report("======== Unit tests ========");
 
-	mg::test::CommandLine cmd(aArgc, aArgv);
+	mg::tst::CommandLine cmd(aArgc, aArgv);
 	TestSettings settings = ParseSettings(cmd);
 
 #define MG_RUN_TEST(nm, func) RunTest(settings, nm::func, #nm, #func)
@@ -77,7 +77,7 @@ namespace unittests {
 
 	static TestSettings
 	ParseSettings(
-		const mg::test::CommandLine& aCmd)
+		const mg::tst::CommandLine& aCmd)
 	{
 		TestSettings res;
 		std::string& pattern = res.myPattern;

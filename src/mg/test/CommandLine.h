@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace mg {
-namespace test {
+namespace tst {
 
 	class CommandLine
 	{

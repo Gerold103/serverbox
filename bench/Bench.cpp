@@ -125,7 +125,7 @@ namespace bench {
 	{
 		for (int i = 0; i < aCount; ++i)
 		{
-			mg::box::AtomicBool flag(mg::test::RandomBool());
+			mg::box::AtomicBool flag(mg::tst::RandomBool());
 			flag.Store(true);
 		}
 	}

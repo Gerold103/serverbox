@@ -6,7 +6,7 @@
 #include <ctime>
 
 namespace mg {
-namespace test {
+namespace tst {
 
 	using RandomGenerator = std::mt19937;
 

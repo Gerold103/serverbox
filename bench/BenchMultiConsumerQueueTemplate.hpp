@@ -72,7 +72,7 @@ namespace bench {
 		std::vector<BenchConsumerThread*>& aWorkers);
 
 	static BenchRunReport BenchQueueRun(
-		mg::test::CommandLine& aCmdLine);
+		mg::tst::CommandLine& aCmdLine);
 
 	static BenchRunReport BenchQueueRunPush(
 		uint32_t aItemCount,
@@ -226,7 +226,7 @@ namespace bench {
 
 	static BenchRunReport
 	BenchQueueRun(
-		mg::test::CommandLine& aCmdLine)
+		mg::tst::CommandLine& aCmdLine)
 	{
 		const char* operation = aCmdLine.GetStr("op");
 		uint32_t itemCount = aCmdLine.GetU32("items");
@@ -403,7 +403,7 @@ main(
 	char** aArgv)
 {
 	using namespace mg::bench;
-	mg::test::CommandLine cmdLine(aArgc - 1, aArgv + 1);
+	mg::tst::CommandLine cmdLine(aArgc - 1, aArgv + 1);
 	uint32_t runCount = 1;
 	if (cmdLine.IsPresent("runs"))
 		runCount = cmdLine.GetU32("runs");

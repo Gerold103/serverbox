@@ -293,7 +293,7 @@ namespace box {
 				uint32_t i = 0;
 				while (i < itemCount)
 				{
-					uint32_t packSize = mg::test::RandomUInt32() % packMaxSize + 1;
+					uint32_t packSize = mg::tst::RandomUInt32() % packMaxSize + 1;
 					if (i + packSize > itemCount)
 						packSize = itemCount - i;
 

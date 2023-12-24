@@ -4,7 +4,7 @@
 #include "mg/box/StringFunctions.h"
 
 namespace mg {
-namespace test {
+namespace tst {
 
 	CommandLine::CommandLine(
 		int aArgc,

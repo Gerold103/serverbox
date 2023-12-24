@@ -329,7 +329,7 @@ main(
 	char** aArgv)
 {
 	using namespace mg::bench;
-	mg::test::CommandLine cmdLine(aArgc - 1, aArgv + 1);
+	mg::tst::CommandLine cmdLine(aArgc - 1, aArgv + 1);
 	BenchLoadType loadType = BenchLoadTypeFromString(cmdLine.GetStr("load"));
 	uint32_t senderCount = cmdLine.GetU32("senders");
 	uint32_t itemCount = cmdLine.GetU32("items");
