@@ -189,14 +189,14 @@ namespace sch {
 		// Wakeup while the task is in the front queue. Should be
 		// dispatched immediately to the ready queue.
 		sched.Post(&t1);
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
 		// Works for deadlined tasks too.
 		progress.StoreRelaxed(false);
 		sched.PostDeadline(&t1, MG_TIME_INFINITE - 1);
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
@@ -209,7 +209,7 @@ namespace sch {
 		};
 		t1.SetCallback(cb);
 		sched.PostWait(&t1);
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		while (progress.LoadRelaxed() != 2)
 			mg::box::Sleep(1);
 
@@ -231,7 +231,7 @@ namespace sch {
 		sched.Post(&t1);
 		while (progress.LoadRelaxed() != 1)
 			mg::box::Sleep(1);
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		progress.StoreRelaxed(2);
 		while (progress.LoadRelaxed() != 3)
 			mg::box::Sleep(1);
@@ -253,18 +253,18 @@ namespace sch {
 		};
 		t1.SetCallback(cb);
 		sched.PostWait(&t1);
-		sched.Signal(&t1);
+		t1.PostSignal();
 		while (progress.LoadRelaxed() != 1)
 			mg::box::Sleep(1);
 
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		progress.StoreRelaxed(2);
 		mg::box::Sleep(1);
 		TEST_CHECK(progress.LoadRelaxed() == 2);
 		while (t1.IsSignaled())
 			mg::box::Sleep(1);
 
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		while (progress.LoadRelaxed() != 3)
 			mg::box::Sleep(1);
 	}
@@ -292,7 +292,7 @@ namespace sch {
 
 		// Expiration check for woken task not having a deadline.
 		progress.StoreRelaxed(false);
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		sched.Post(&t1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -310,7 +310,7 @@ namespace sch {
 			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		sched.PostDeadline(&t1, MG_TIME_INFINITE - 1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -323,7 +323,7 @@ namespace sch {
 			TEST_CHECK(aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
-		sched.Signal(&t1);
+		t1.PostSignal();
 		sched.Post(&t1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -335,7 +335,7 @@ namespace sch {
 			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
-		sched.Signal(&t1);
+		t1.PostSignal();
 		sched.PostDeadline(&t1, MG_TIME_INFINITE - 1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -348,7 +348,7 @@ namespace sch {
 			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
-		sched.Wakeup(&t1);
+		t1.PostWakeup();
 		sched.PostWait(&t1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -361,7 +361,7 @@ namespace sch {
 			TEST_CHECK(!aTask->IsExpired());
 			progress.StoreRelaxed(true);
 		});
-		sched.Signal(&t1);
+		t1.PostSignal();
 		sched.PostWait(&t1);
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
@@ -444,7 +444,7 @@ namespace sch {
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
-		sched1.Signal(&t1);
+		t1.PostSignal();
 		mg::box::Sleep(1);
 		TEST_CHECK(t1.IsSignaled());
 		sched1.Post(&t1);
@@ -465,7 +465,7 @@ namespace sch {
 		while (progress.LoadRelaxed() != 1)
 			mg::box::Sleep(1);
 
-		sched1.Wakeup(&t1);
+		t1.PostWakeup();
 		mg::box::Sleep(1);
 		TEST_CHECK(progress.LoadRelaxed() == 1);
 		sched1.PostWait(&t1);
@@ -496,7 +496,7 @@ namespace sch {
 		sched.Post(&t);
 		while (progress.LoadRelaxed() != 1)
 			mg::box::Sleep(1);
-		sched.Signal(&t);
+		t.PostSignal();
 		progress.IncrementRelaxed();
 		while (progress.LoadRelaxed() != 3)
 			mg::box::Sleep(1);
@@ -508,7 +508,7 @@ namespace sch {
 			progress.StoreRelaxed(true);
 		});
 		sched.PostDeadline(&t, MG_TIME_INFINITE);
-		sched.Signal(&t);
+		t.PostSignal();
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
@@ -517,7 +517,7 @@ namespace sch {
 		progress.StoreRelaxed(false);
 		sched.PostDeadline(&t, MG_TIME_INFINITE - 1);
 		mg::box::Sleep(1);
-		sched.Signal(&t);
+		t.PostSignal();
 		while (!progress.LoadRelaxed())
 			mg::box::Sleep(1);
 
@@ -528,7 +528,7 @@ namespace sch {
 			TEST_CHECK(aTask->ReceiveSignal());
 		});
 		sched.Post(&t);
-		sched.Signal(&t);
+		t.PostSignal();
 		while (t.IsSignaled())
 			mg::box::Sleep(1);
 
@@ -541,8 +541,8 @@ namespace sch {
 			TEST_CHECK(aTask->ReceiveSignal());
 		});
 		sched.Post(&t);
-		sched.Signal(&t);
-		sched.Signal(&t);
+		t.PostSignal();
+		t.PostSignal();
 		progress.StoreRelaxed(true);
 		while (t.IsSignaled())
 			mg::box::Sleep(1);
@@ -562,7 +562,7 @@ namespace sch {
 				return sched.Post(aTask);
 			TEST_CHECK(aTask->ReceiveSignal());
 		});
-		sched.Signal(&t);
+		t.PostSignal();
 		sched.Post(&t);
 		while (t.IsSignaled())
 			mg::box::Sleep(1);
@@ -672,13 +672,13 @@ namespace sch {
 			if (myExecuteCount % 10 == 0)
 			{
 				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-				myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
+				myCtx->myTasks[i].PostWakeup();
 				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-				myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
+				myCtx->myTasks[i].PostSignal();
 				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-				myCtx->myScheduler->Wakeup(&myCtx->myTasks[i]);
+				myCtx->myTasks[i].PostWakeup();
 				i = mg::tst::RandomUniformUInt32(0, myCtx->myTaskCount - 1);
-				myCtx->myScheduler->Signal(&myCtx->myTasks[i]);
+				myCtx->myTasks[i].PostSignal();
 				return isLast ? Stop() : myCtx->myScheduler->Post(aTask);
 			}
 			if (myExecuteCount % 3 == 0)
@@ -1018,7 +1018,7 @@ namespace sch {
 		// wakeup from the end, because the front queue is
 		// reversed.
 		for (int i = aTaskCount - 1; i >= 0; --i)
-			sched.Wakeup(&ctx.myTasks[i]);
+			ctx.myTasks[i].PostWakeup();
 		ctx.WaitAllExecuted();
 
 		double duration = mg::box::GetMillisecondsPrecise() - startMs;
@@ -1047,7 +1047,7 @@ namespace sch {
 		for (uint32_t i = 0; i < aExecuteCount; ++i)
 		{
 			for (uint32_t j = 0; j < aTaskCount; ++j)
-				sched.Signal(&ctx.myTasks[j]);
+				ctx.myTasks[j].PostSignal();
 			uint64_t total = aTaskCount * (i + 1);
 			ctx.WaitExecuteCount(total);
 		}

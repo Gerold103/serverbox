@@ -52,65 +52,16 @@ namespace sch {
 	TaskScheduler::Post(
 		Task* aTask)
 	{
-		MG_DEV_ASSERT(!aTask->myIsInQueues);
-		aTask->myIsInQueues = true;
+		MG_DEV_ASSERT(aTask->myScheduler == nullptr);
+		aTask->myScheduler = this;
 		PrivPost(aTask);
-	}
-
-	void
-	TaskScheduler::Wakeup(
-		Task* aTask)
-	{
-		// Don't do the load inside of the cycle. It is needed
-		// only first time. On next iterations the cmpxchg returns
-		// the old value anyway.
-		TaskStatus old = aTask->myStatus.LoadRelaxed();
-		// Note, that the loop is not a busy loop nor a spin-lock.
-		// Because it would mean the thread couldn't progress
-		// until some other thread does something. Here, on the
-		// contrary, the thread does progress always, and even
-		// better if other threads don't do anything. Should be
-		// one iteration in like 99.9999% cases.
-		do
-		{
-			// Signal and ready mean the task will be executed
-			// ASAP anyway. Also can't override the signal,
-			// because it is stronger than a wakeup.
-			if (old == TASK_STATUS_SIGNALED || old == TASK_STATUS_READY)
-				return;
-			// Relaxed is fine. The memory sync will happen via the scheduler
-			// queues if the wakeup succeeds.
-		} while (!aTask->myStatus.CmpExchgWeakRelaxed(
-			old, TASK_STATUS_READY));
-
-		// If the task was in the waiting queue. Need to re-push
-		// it to let the scheduler know the task must be removed
-		// from the queue earlier.
-		if (old == TASK_STATUS_WAITING)
-			PrivPost(aTask);
-	}
-
-	void
-	TaskScheduler::Signal(
-		Task* aTask)
-	{
-		// Release-barrier to sync with the acquire-barrier on the
-		// signal receipt. Can't be relaxed, because the task might send
-		// and receive the signal without the scheduler's participation
-		// and can't count on synchronizing any memory via it.
-		TaskStatus old = aTask->myStatus.ExchangeRelease(TASK_STATUS_SIGNALED);
-		// WAITING - the task was in the waiting queue. Need to
-		// re-push it to let the scheduler know the task must be
-		// removed from the queue earlier.
-		if (old == TASK_STATUS_WAITING)
-			PrivPost(aTask);
 	}
 
 	inline void
 	TaskScheduler::PrivPost(
 		Task* aTask)
 	{
-		MG_DEV_ASSERT(aTask->myIsInQueues);
+		MG_DEV_ASSERT(aTask->myScheduler == this);
 		if (myQueueFront.Push(aTask))
 			mySignalFront.Send();
 	}
@@ -319,8 +270,8 @@ namespace sch {
 	{
 		if (aTask == nullptr)
 			return false;
-		MG_DEV_ASSERT(aTask->myIsInQueues);
-		aTask->myIsInQueues = false;
+		MG_DEV_ASSERT(aTask->myScheduler == this);
+		aTask->myScheduler = nullptr;
 		TaskStatus old = TASK_STATUS_READY;
 		aTask->myStatus.CmpExchgStrongRelaxed(old, TASK_STATUS_PENDING);
 		MG_DEV_ASSERT(old == TASK_STATUS_READY || old == TASK_STATUS_SIGNALED);
