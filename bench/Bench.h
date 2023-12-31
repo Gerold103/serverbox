@@ -1,6 +1,5 @@
 #pragma once
 
-#include "mg/box/QPTimer.h"
 #include "mg/box/StringFunctions.h"
 #include "mg/test/CommandLine.h"
 
@@ -48,7 +47,7 @@ namespace bench {
 		double GetMilliseconds();
 
 	private:
-		mg::box::QPTimer myTimer;
+		double myStartMs;
 		std::string myName;
 		bool myIsStopped;
 		double myDuration;

@@ -1,5 +1,7 @@
 #include "UnitTest.h"
 
+#include "mg/box/Time.h"
+
 #include <cstdio>
 
 namespace mg {
@@ -29,31 +31,31 @@ namespace unittests {
 
 	TestSuiteGuard::TestSuiteGuard(
 		const char* aName)
+		: myStartMs(mg::box::GetMillisecondsPrecise())
 	{
 		Report("======== [%s] start", aName);
-		myTimer.Start();
 	}
 
 	TestSuiteGuard::~TestSuiteGuard()
 	{
-		Report("======== took %.6lf ms", myTimer.GetMilliSeconds());
+		Report("======== took %.6lf ms", mg::box::GetMillisecondsPrecise() - myStartMs);
 	}
 
 	MG_STRFORMAT_PRINTF(2, 3)
 	TestCaseGuard::TestCaseGuard(
 		const char* aFormat,
 		...)
+		: myStartMs(mg::box::GetMillisecondsPrecise())
 	{
 		va_list va;
 		va_start(va, aFormat);
 		ReportV(aFormat, va);
 		va_end(va);
-		myTimer.Start();
 	}
 
 	TestCaseGuard::~TestCaseGuard()
 	{
-		Report("took %.6lf ms", myTimer.GetMilliSeconds());
+		Report("took %.6lf ms", mg::box::GetMillisecondsPrecise() - myStartMs);
 	}
 
 }

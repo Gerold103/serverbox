@@ -3,6 +3,7 @@
 #include "mg/box/Assert.h"
 #include "mg/box/Atomic.h"
 #include "mg/box/StringFunctions.h"
+#include "mg/box/Time.h"
 
 #include "mg/test/Random.h"
 
@@ -56,22 +57,22 @@ namespace bench {
 	TimedGuard::TimedGuard(
 		const char* aFormat,
 		...)
-		: myIsStopped(false)
+		: myStartMs(mg::box::GetMillisecondsPrecise())
+		, myIsStopped(false)
 		, myDuration(0)
 	{
 		va_list va;
 		va_start(va, aFormat);
 		myName = mg::box::StringVFormat(aFormat, va);
 		va_end(va);
-		myTimer.Start();
 	}
 
 	void
 	TimedGuard::Stop()
 	{
 		MG_BOX_ASSERT(!myIsStopped);
-		myDuration = myTimer.GetMilliSeconds();
 		myIsStopped = true;
+		myDuration = GetMilliseconds();
 	}
 
 	void
@@ -86,7 +87,7 @@ namespace bench {
 	TimedGuard::GetMilliseconds()
 	{
 		MG_BOX_ASSERT(myIsStopped);
-		return myTimer.GetMilliSeconds();
+		return mg::box::GetMillisecondsPrecise() - myStartMs;
 	}
 
 	const char*

@@ -15,7 +15,6 @@ set(mgbox_src
 	MultiProducerQueueIntrusive.h
 	Mutex.cpp
 	Mutex.h
-	QPTimer.h
 	Signal.cpp
 	Signal.h
 	StringFunctions.cpp
@@ -29,13 +28,11 @@ set(mgbox_src
 
 if(WIN32)
 	set(mgbox_src ${mgbox_src}
-		QPTimer_Win.cpp
 		Thread_Win.cpp
 		Time_Win.cpp
 	)
 else()
 	set(mgbox_src ${mgbox_src}
-		QPTimer_Unix.cpp
 		Thread_Unix.cpp
 		Time_Unix.cpp
 	)
