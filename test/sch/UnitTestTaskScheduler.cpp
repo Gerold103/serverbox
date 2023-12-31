@@ -1,6 +1,5 @@
 #include "mg/sch/TaskScheduler.h"
 
-#include "mg/box/QPTimer.h"
 #include "mg/box/Time.h"
 #include "mg/test/Random.h"
 
@@ -848,13 +847,12 @@ namespace sch {
 		Report("Micro test: %u threads, %u tasks", aThreadCount, aTaskCount);
 		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
 		UTTSchedulerTaskCtx ctx(aTaskCount, 1, &sched);
-		mg::box::QPTimer timer;
 
 		ctx.CreateMicro();
-		timer.Start();
+		double startMs = mg::box::GetMillisecondsPrecise();
 		ctx.PostAll();
 		ctx.WaitAllExecuted();
-		double duration = timer.GetMilliSeconds();
+		double duration = mg::box::GetMillisecondsPrecise() - startMs;
 		Report("Duration: %lf ms", duration);
 		ctx.WaitAllStopped();
 
@@ -880,14 +878,13 @@ namespace sch {
 				delete aTask;
 			}
 		);
-		mg::box::QPTimer timer;
 
-		timer.Start();
+		double startMs = mg::box::GetMillisecondsPrecise();
 		for (uint32_t i = 0; i < aTaskCount; ++i)
 			sched.Post(new mg::sch::Task(cb));
 		while (executeCount.LoadRelaxed() != aTaskCount)
 			mg::box::Sleep(1);
-		double duration = timer.GetMilliSeconds();
+		double duration = mg::box::GetMillisecondsPrecise() - startMs;
 		Report("Duration: %lf ms", duration);
 
 		UnitTestTaskSchedulerPrintStat(&sched);
@@ -908,14 +905,13 @@ namespace sch {
 		mg::sch::TaskCallbackOneShot cb([&](void) -> void {
 			executeCount.IncrementRelaxed();
 		});
-		mg::box::QPTimer timer;
 
-		timer.Start();
+		double startMs = mg::box::GetMillisecondsPrecise();
 		for (uint32_t i = 0; i < aTaskCount; ++i)
 			sched.PostOneShot(cb);
 		while (executeCount.LoadRelaxed() != aTaskCount)
 			mg::box::Sleep(1);
-		double duration = timer.GetMilliSeconds();
+		double duration = mg::box::GetMillisecondsPrecise() - startMs;
 		Report("Duration: %lf ms", duration);
 
 		UnitTestTaskSchedulerPrintStat(&sched);
@@ -1010,8 +1006,7 @@ namespace sch {
 			}
 		));
 
-		mg::box::QPTimer timer;
-		timer.Start();
+		double startMs = mg::box::GetMillisecondsPrecise();
 		ctx.PostAll();
 		sched.Post(t.LoadRelaxed());
 
@@ -1026,7 +1021,7 @@ namespace sch {
 			sched.Wakeup(&ctx.myTasks[i]);
 		ctx.WaitAllExecuted();
 
-		double duration = timer.GetMilliSeconds();
+		double duration = mg::box::GetMillisecondsPrecise() - startMs;
 		Report("Duration: %lf ms", duration);
 
 		ctx.WaitAllStopped();

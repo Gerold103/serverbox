@@ -1,7 +1,7 @@
 #include "mg/box/MultiConsumerQueue.h"
 
-#include "mg/box/QPTimer.h"
 #include "mg/box/Thread.h"
+#include "mg/box/Time.h"
 
 #include "UnitTest.h"
 
@@ -661,8 +661,7 @@ namespace box {
 			threads[i].Start();
 		}
 
-		mg::box::QPTimer timer;
-		timer.Start();
+		double startMs = mg::box::GetMillisecondsPrecise();
 
 		uint64_t yield = 0;
 		for (int i = 0; i < aElementCount; ++i)
@@ -675,7 +674,7 @@ namespace box {
 		while (popCount.LoadRelaxed() != (uint32_t)aElementCount)
 			mg::box::Sleep(1);
 
-		double duration = timer.GetMilliSeconds();
+		double duration = mg::box::GetMillisecondsPrecise() - startMs;
 
 		for (int i = 0; i < aThreadCount; ++i)
 			threads[i].BlockingStop();
@@ -765,8 +764,7 @@ namespace box {
 			threads[i].Start();
 		}
 
-		mg::box::QPTimer timer;
-		timer.Start();
+		double startMs = mg::box::GetMillisecondsPrecise();
 
 		if (aIsPushPending)
 		{
@@ -779,12 +777,14 @@ namespace box {
 			for (int i = 0; i < aElementCount; ++i)
 				queue.Push(&values[i]);
 		}
-		double durationPush = timer.GetMilliSeconds();
+		double endMs = mg::box::GetMillisecondsPrecise();
+		double durationPush = endMs - startMs;
 
+		startMs = endMs;
 		while (popCount.LoadRelaxed() != (uint32_t)aElementCount)
 			mg::box::Sleep(1);
 
-		double duration = timer.GetMilliSeconds();
+		double duration = mg::box::GetMillisecondsPrecise() - startMs;
 
 		for (int i = 0; i < aThreadCount; ++i)
 			threads[i].BlockingStop();
