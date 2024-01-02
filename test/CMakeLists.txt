@@ -25,6 +25,7 @@ add_executable(test
 	net/UnitTestBuffer.cpp
 	net/UnitTestDomainToIP.cpp
 	net/UnitTestHost.cpp
+	net/UnitTestURL.cpp
 	sch/UnitTestTaskScheduler.cpp
 )
 

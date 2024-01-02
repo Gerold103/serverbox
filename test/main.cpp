@@ -49,6 +49,7 @@ namespace net {
 	void UnitTestBuffer();
 	void UnitTestDomainToIP();
 	void UnitTestHost();
+	void UnitTestURL();
 }
 namespace sch {
 	void UnitTestTaskScheduler();
@@ -92,6 +93,7 @@ main(
 	MG_RUN_TEST(net, UnitTestBuffer);
 	MG_RUN_TEST(net, UnitTestDomainToIP);
 	MG_RUN_TEST(net, UnitTestHost);
+	MG_RUN_TEST(net, UnitTestURL);
 	MG_RUN_TEST(sch, UnitTestTaskScheduler);
 	return 0;
 }

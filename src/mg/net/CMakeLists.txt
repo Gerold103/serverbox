@@ -7,6 +7,8 @@ add_library(mgnet
 	DomainToIP.h
 	Host.cpp
 	Host.h
+	URL.cpp
+	URL.h
 )
 
 target_include_directories(mgnet PUBLIC
@@ -26,6 +28,7 @@ set(install_headers
 	Buffer.h
 	DomainToIP.h
 	Host.h
+	URL.h
 )
 
 install(TARGETS mgnet DESTINATION "${install_lib_root}")
