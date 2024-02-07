@@ -2,6 +2,10 @@
 
 #include "mg/box/StringFunctions.h"
 
+#if IS_PLATFORM_WIN
+#include <winsock.h>
+#endif
+
 namespace mg {
 namespace box {
 
@@ -36,6 +40,12 @@ namespace box {
 		case ERR_BOX_UNKNOWN:
 			ERROR_DEF_MAKE(
 				"error_box_unknown", "box unknown error");
+		case ERR_BOX_CANCEL:
+			ERROR_DEF_MAKE(
+				"error_box_cancel", "box cancel");
+		case ERR_BOX_TIMEOUT:
+			ERROR_DEF_MAKE(
+				"error_box_timeout", "box timeout");
 		//////////////////////////////////////////////////////////////////////////////////
 		case ERR_SYS:
 			ERROR_DEF_MAKE(
@@ -103,9 +113,38 @@ namespace box {
 		case ERR_SYS_LOOP:
 			ERROR_DEF_MAKE(
 				"error_sys_loop", "sys loop");
+		case ERR_SYS_INTERRUPTED:
+			ERROR_DEF_MAKE(
+				"error_sys_int", "sys interrupted");
+		//////////////////////////////////////////////////////////////////////////////////
+		case ERR_NET:
+			ERROR_DEF_MAKE(
+				"error_net", "net error");
+		case ERR_NET_CLOSE_BY_PEER:
+			ERROR_DEF_MAKE(
+				"error_net_closed_by_peer", "net closed by peer");
+		case ERR_NET_ADDR_IN_USE:
+			ERROR_DEF_MAKE(
+				"error_net_addr_in_use", "net address in use");
+		case ERR_NET_ABORTED:
+			ERROR_DEF_MAKE(
+				"error_net_aborted", "net aborted");
+		case ERR_NET_ADDR_NOT_AVAIL:
+			ERROR_DEF_MAKE(
+				"error_net_addr_not_avail", "net address not available");
+		case ERR_NET_DOWN:
+			ERROR_DEF_MAKE(
+				"error_net_down", "net down");
+		case ERR_NET_PROTOCOL:
+			ERROR_DEF_MAKE(
+				"error_net_proto", "net protocol");
+		case ERR_NET_HOST_UNREACHABLE:
+			ERROR_DEF_MAKE(
+				"error_net_host_unreach", "net host unreachable");
 		//////////////////////////////////////////////////////////////////////////////////
 		case _ERR_BOX_END:
 		case _ERR_SYS_END:
+		case _ERR_NET_END:
 		default:
 			MG_BOX_ASSERT(!"Unknown error code");
 			ERROR_DEF_MAKE(nullptr, nullptr);
@@ -178,9 +217,38 @@ namespace box {
 		case ERROR_BAD_ARGUMENTS:
 		case ERROR_NOT_A_REPARSE_POINT:
 			return ERR_SYS_BAD_ARG;
+
+		case WSAECONNRESET:
+			return ERR_NET_CLOSE_BY_PEER;
+		case WSAEADDRINUSE:
+			return ERR_NET_ADDR_IN_USE;
+		case WSAEMFILE:
+			return ERR_SYS_TOO_MANY_DESCRIPTORS;
 		default:
 			return ERR_SYS;
 		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	std::string
+	ErrorWSAToString(
+		int aCode)
+	{
+		return ErrorWinToString(aCode);
+	}
+
+	ErrorCode
+	ErrorCodeWSA()
+	{
+		return ErrorCodeFromWSA(WSAGetLastError());
+	}
+
+	ErrorCode
+	ErrorCodeFromWSA(
+		uint32_t aWSACode)
+	{
+		return ErrorCodeFromWin(aWSACode);
 	}
 
 #endif
@@ -262,9 +330,31 @@ namespace box {
 			return ERR_SYS_OVERFLOW;
 		case ELOOP:
 			return ERR_SYS_LOOP;
+		case ECONNRESET:
+			return ERR_NET_CLOSE_BY_PEER;
+		case EADDRINUSE:
+			return ERR_NET_ADDR_IN_USE;
+		case ECONNABORTED:
+			return ERR_NET_ABORTED;
+		case EINTR:
+			return ERR_SYS_INTERRUPTED;
+		case ENETDOWN:
+		case ENETUNREACH:
+			return ERR_NET_DOWN;
+		case EPROTO:
+		case ENOPROTOOPT:
+			return ERR_NET_PROTOCOL;
+		case EHOSTUNREACH:
+			return ERR_NET_HOST_UNREACHABLE;
 #if !IS_PLATFORM_WIN
 		case ESTALE:
 			return ERR_SYS_BAD_DESCRIPTOR;
+		case EHOSTDOWN:
+			return ERR_NET_ABORTED;
+#if !IS_PLATFORM_APPLE
+		case ENONET:
+			return ERR_NET_DOWN;
+#endif
 #endif
 		default:
 			// Can't handle it in the switch, because on some platforms it can be ==
@@ -311,6 +401,8 @@ namespace box {
 			return "box";
 		if (IS_ERROR_TYPE(aCode, SYS))
 			return "sys";
+		if (IS_ERROR_TYPE(aCode, NET))
+			return "net";
 		return "unknown";
 
 #if IS_COMPILER_MSVC
@@ -392,6 +484,60 @@ namespace box {
 		std::string comment;
 		ERROR_STRING_FROM_FORMAT(comment, aCommentFormat);
 		return ErrorRaiseWin(GetLastError(), comment.c_str());
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	ErrorPtrRaised
+	ErrorRaiseWSA()
+	{
+		return ErrorRaiseWSA(WSAGetLastError());
+	}
+
+	ErrorPtrRaised
+	ErrorRaiseWSA(
+		uint32_t aValue)
+	{
+		return ErrorRaiseWSA(aValue, nullptr);
+	}
+
+	ErrorPtrRaised
+	ErrorRaiseWSA(
+		uint32_t aValue,
+		const char* aComment)
+	{
+		return ErrorRaise(ErrorCodeFromWSA(aValue), aValue,
+			ErrorWinToString(aValue, ERROR_FORMAT_EMPTY).c_str(), aComment);
+	}
+
+	ErrorPtrRaised
+	ErrorRaiseWSA(
+		const char* aComment)
+	{
+		return ErrorRaiseWSA(WSAGetLastError(), aComment);
+	}
+
+	MG_STRFORMAT_PRINTF(2, 3)
+	ErrorPtrRaised
+	ErrorRaiseFormatWSA(
+		uint32_t aValue,
+		const char* aCommentFormat,
+		...)
+	{
+		std::string comment;
+		ERROR_STRING_FROM_FORMAT(comment, aCommentFormat);
+		return ErrorRaiseWSA(aValue, comment.c_str());
+	}
+
+	MG_STRFORMAT_PRINTF(1, 2)
+	ErrorPtrRaised
+	ErrorRaiseFormatWSA(
+		const char* aCommentFormat,
+		...)
+	{
+		std::string comment;
+		ERROR_STRING_FROM_FORMAT(comment, aCommentFormat);
+		return ErrorRaiseWSA(WSAGetLastError(), comment.c_str());
 	}
 
 #endif

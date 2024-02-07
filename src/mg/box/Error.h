@@ -42,7 +42,10 @@ namespace box {
 					_ERR_BOX_BEGIN		= 0,
 		ERR_BOX_NONE						= _ERR_BOX_BEGIN + 0,
 		ERR_BOX_UNKNOWN						= _ERR_BOX_BEGIN + 1,
+		ERR_BOX_CANCEL						= _ERR_BOX_BEGIN + 2,
+		ERR_BOX_TIMEOUT						= _ERR_BOX_BEGIN + 3,
 					_ERR_BOX_END,
+		// Generic system errors.
 					_ERR_SYS_BEGIN			= 1000,
 		ERR_SYS								= _ERR_SYS_BEGIN + 0,
 		ERR_SYS_FORBIDDEN					= _ERR_SYS_BEGIN + 1,
@@ -66,7 +69,19 @@ namespace box {
 		ERR_SYS_NOT_EMPTY					= _ERR_SYS_BEGIN + 19,
 		ERR_SYS_OVERFLOW					= _ERR_SYS_BEGIN + 20,
 		ERR_SYS_LOOP						= _ERR_SYS_BEGIN + 21,
+		ERR_SYS_INTERRUPTED					= _ERR_SYS_BEGIN + 22,
 					_ERR_SYS_END,
+		// Network errors.
+					_ERR_NET_BEGIN			= 2000,
+		ERR_NET								= _ERR_NET_BEGIN + 0,
+		ERR_NET_CLOSE_BY_PEER				= _ERR_NET_BEGIN + 1,
+		ERR_NET_ADDR_IN_USE					= _ERR_NET_BEGIN + 2,
+		ERR_NET_ABORTED						= _ERR_NET_BEGIN + 3,
+		ERR_NET_ADDR_NOT_AVAIL				= _ERR_NET_BEGIN + 4,
+		ERR_NET_DOWN                        = _ERR_NET_BEGIN + 5,
+		ERR_NET_PROTOCOL                    = _ERR_NET_BEGIN + 6,
+		ERR_NET_HOST_UNREACHABLE			= _ERR_NET_BEGIN + 7,
+					_ERR_NET_END,
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -79,6 +94,16 @@ namespace box {
 
 	ErrorCode ErrorCodeFromWin(
 		uint32_t aWinCode);
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	std::string ErrorWSAToString(
+		int aCode);
+
+	ErrorCode ErrorCodeWSA();
+
+	ErrorCode ErrorCodeFromWSA(
+		uint32_t aWSACode);
 #endif
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +203,37 @@ namespace box {
 	// GetLastError() + a comment format.
 	MG_STRFORMAT_PRINTF(1, 2)
 	ErrorPtrRaised ErrorRaiseFormatWin(
+		const char* aCommentFormat,
+		...);
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	// WSAGetLastError() + the system message.
+	ErrorPtrRaised ErrorRaiseWSA();
+
+	// Given code + the system message.
+	ErrorPtrRaised ErrorRaiseWSA(
+		uint32_t aValue);
+
+	// Given code + a comment.
+	ErrorPtrRaised ErrorRaiseWSA(
+		uint32_t aValue,
+		const char* aComment);
+
+	// WSAGetLastError() + a comment.
+	ErrorPtrRaised ErrorRaiseWSA(
+		const char* aComment);
+
+	// Given code + a comment format.
+	MG_STRFORMAT_PRINTF(2, 3)
+	ErrorPtrRaised ErrorRaiseFormatWSA(
+		uint32_t aValue,
+		const char* aCommentFormat,
+		...);
+
+	// WSAGetLastError() + a comment format.
+	MG_STRFORMAT_PRINTF(1, 2)
+	ErrorPtrRaised ErrorRaiseFormatWSA(
 		const char* aCommentFormat,
 		...);
 
