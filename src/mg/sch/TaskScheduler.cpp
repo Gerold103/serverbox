@@ -57,7 +57,7 @@ namespace sch {
 		PrivPost(aTask);
 	}
 
-	inline void
+	void
 	TaskScheduler::PrivPost(
 		Task* aTask)
 	{
