@@ -26,6 +26,8 @@ namespace box {
 			return;
 		myHandle.lock();
 		myOwner = GetCurrentThreadId();
+		MG_DEV_ASSERT(myCount == 0);
+		myCount = 1;
 	}
 
 	bool
@@ -33,10 +35,18 @@ namespace box {
 	{
 		if (!myHandle.try_lock())
 		{
+			if (IsOwnedByThisThread())
+			{
+				MG_DEV_ASSERT(myCount > 0);
+				++myCount;
+				return true;
+			}
 			theMutexStartContentCount.IncrementRelaxed();
 			return false;
 		}
 		myOwner = GetCurrentThreadId();
+		MG_DEV_ASSERT(myCount == 0);
+		myCount = 1;
 		return true;
 	}
 
@@ -44,8 +54,15 @@ namespace box {
 	Mutex::Unlock()
 	{
 		MG_BOX_ASSERT(IsOwnedByThisThread());
-		myOwner = 0;
-		myHandle.unlock();
+		if (myCount == 1)
+		{
+			myOwner = 0;
+			myCount = 0;
+			myHandle.unlock();
+			return;
+		}
+		MG_DEV_ASSERT(myCount > 1);
+		--myCount;
 	}
 
 	bool

@@ -29,8 +29,11 @@ namespace box {
 					mg::box::MutexLock lock(mutex);
 					TEST_CHECK(counter == 0);
 					counter++;
+					// Also test recursiveness.
+					mutex.Lock();
 					TEST_CHECK(counter == 1);
 					counter--;
+					mutex.Unlock();
 					TEST_CHECK(counter == 0);
 					if (++yield % 1000 == 0)
 						mg::box::Sleep(1);

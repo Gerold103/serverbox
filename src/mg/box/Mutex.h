@@ -20,8 +20,8 @@ namespace box {
 	class Mutex
 	{
 	public:
-		Mutex() : myOwner(0) {}
-		~Mutex() { MG_BOX_ASSERT(myOwner == 0); }
+		Mutex() : myOwner(0), myCount(0) {}
+		~Mutex() { MG_BOX_ASSERT(myOwner == 0 && myCount == 0); }
 
 		void Lock();
 		bool TryLock();
@@ -34,6 +34,7 @@ namespace box {
 
 		std::mutex myHandle;
 		uint32_t myOwner;
+		uint32_t myCount;
 
 		friend class ConditionVariable;
 	};
