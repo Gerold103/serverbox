@@ -4,6 +4,7 @@
 #include "mg/aio/TCPServer.h"
 #include "mg/aio/TCPSocket.h"
 #include "mg/aio/TCPSocketSubscription.h"
+#include "mg/box/DoublyList.h"
 #include "mg/test/Message.h"
 
 #include "UnitTest.h"
@@ -80,26 +81,128 @@ namespace tcpsocketiface {
 	// Client to connect to a server.
 	//
 
-	struct TestClientSocketParams
-	{
-		TestClientSocketParams()
-			: myRecvSize(TEST_RECV_SIZE)
-			, myReconnectDelay(0)
-			, myDoReconnect(false)
-		{
-		}
+	using TestClientSocketOnConnectOkF = std::function<void(void)>;
+	using TestClientSocketOnRecvOkF = std::function<void(void)>;
+	using TestClientSocketOnCloseF = std::function<void(void)>;
+	using TestClientSocketOnErrorF = std::function<void(mg::box::Error* err)>;
+	using TestClientSocketOnEventF = std::function<void(void)>;
 
-		uint32_t myRecvSize;
-		uint64_t myReconnectDelay;
-		bool myDoReconnect;
+	enum TestClientEventType
+	{
+		TEST_CLIENT_EVENT_ON_CONNECT_OK,
+		TEST_CLIENT_EVENT_ON_RECV_OK,
+		TEST_CLIENT_EVENT_ON_CLOSE,
+		TEST_CLIENT_EVENT_ON_ERROR,
+		TEST_CLIENT_EVENT_ON_EVENT,
 	};
+
+	struct TestClientSub
+	{
+		TestClientSub(
+			TestClientEventType aType)
+			: myType(aType), myNext(nullptr), myPrev(nullptr) {}
+		virtual ~TestClientSub() = default;
+
+		virtual void Invoke() { TEST_CHECK(false); }
+		virtual void Invoke(mg::box::Error *) { TEST_CHECK(false); }
+
+		uint64_t myID;
+		const TestClientEventType myType;
+		TestClientSub* myNext;
+		TestClientSub* myPrev;
+	};
+
+	using TestClientSubList = mg::box::DoublyList<TestClientSub>;
+
+	struct TestClientSubOnConnectOk final
+		: public TestClientSub
+	{
+		TestClientSubOnConnectOk() : TestClientSub(TEST_CLIENT_EVENT_ON_CONNECT_OK) {}
+		void Invoke() final { myCallback(); }
+
+		TestClientSocketOnConnectOkF myCallback;
+	};
+
+	struct TestClientSubOnRecvOk final
+		: public TestClientSub
+	{
+		TestClientSubOnRecvOk() : TestClientSub(TEST_CLIENT_EVENT_ON_RECV_OK) {}
+		void Invoke() final { myCallback(); }
+
+		TestClientSocketOnRecvOkF myCallback;
+	};
+
+	struct TestClientSubOnClose final
+		: public TestClientSub
+	{
+		TestClientSubOnClose() : TestClientSub(TEST_CLIENT_EVENT_ON_CLOSE) {}
+		void Invoke() final { myCallback(); }
+
+		TestClientSocketOnCloseF myCallback;
+	};
+
+	struct TestClientSubOnError final
+		: public TestClientSub
+	{
+		TestClientSubOnError() : TestClientSub(TEST_CLIENT_EVENT_ON_ERROR) {}
+		void Invoke(mg::box::Error *err) final { myCallback(err); }
+
+		TestClientSocketOnErrorF myCallback;
+	};
+
+	struct TestClientSubOnEvent final
+		: public TestClientSub
+	{
+		TestClientSubOnEvent() : TestClientSub(TEST_CLIENT_EVENT_ON_EVENT) {}
+		void Invoke() final { myCallback(); }
+
+		TestClientSocketOnEventF myCallback;
+	};
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	struct TestClientSubInterval
+	{
+		SHARED_PTR_API(TestClientSubInterval, myRef);
+	public:
+		uint64_t myDeadline;
+		uint64_t myPeriod;
+		uint64_t myID;
+
+	private:
+		mg::box::RefCount myRef;
+	};
+
+	struct TestClientSubWorkerBlock
+	{
+		SHARED_PTR_API(TestClientSubWorkerBlock, myRef);
+	public:
+		mg::box::AtomicBool myDoBlock;
+		mg::box::AtomicBool myIsBlocked;
+		uint64_t myID;
+
+	private:
+		mg::box::RefCount myRef;
+	};
+
+	struct TestClientSubWasConnected
+	{
+		SHARED_PTR_API(TestClientSubWasConnected, myRef);
+	public:
+		mg::box::AtomicBool myWasConnected;
+		uint64_t myID;
+
+	private:
+		mg::box::RefCount myRef;
+	};
+
+	//////////////////////////////////////////////////////////////////////////////////////
 
 	class TestClientSocket
 		: public mg::aio::TCPSocketSubscription
 	{
 	public:
-		TestClientSocket(
-			const TestClientSocketParams& aParams = TestClientSocketParams());
+		TestClientSocket();
 		~TestClientSocket();
 
 		void PostConnect(
@@ -107,21 +210,25 @@ namespace tcpsocketiface {
 		void PostConnect(
 			const mg::aio::TCPSocketConnectParams& aParams);
 
-		void ConnectBlocking(
+		void PostConnectBlocking(
 			uint16_t aPort);
-		void ConnectBlocking(
+		void PostConnectBlocking(
 			const mg::aio::TCPSocketConnectParams& aParams);
 
 		void PostTask();
-		void ConnectTask(
-			const mg::aio::TCPSocketConnectParams& aParams);
 
 		void Send(
 			TestMessage* aMessage);
+		void Recv(
+			uint64_t aSize);
 		void PostSend(
 			TestMessage* aMessage);
 		void PostRecv(
 			uint64_t aSize);
+		void SetDeadline(
+			uint64_t aDeadline);
+		void Connect(
+			const mg::aio::TCPSocketConnectParams& aParams);
 
 		void PostWakeup() { mySocket->PostWakeup(); }
 		void PostShutdown() { mySocket->PostShutdown(); }
@@ -141,24 +248,32 @@ namespace tcpsocketiface {
 		TestMessage* PopBlocking();
 		TestMessage* Pop();
 
-		void DisableReconnect();
-		void DisableRecvOnNextMessage();
-		void BlockInWorker(
-			bool aValue);
-		void SetInterval(
-			uint64_t aInterval);
-		void SetCloseOnError(
-			bool aValue);
-		void SetRecvSize(
-			uint32_t aValue);
-
-		bool IsOnConnectCalled();
 		uint64_t GetWakeupCount();
 
 		mg::box::ErrorCode GetError();
 		mg::box::ErrorCode GetErrorConnect();
 		mg::box::ErrorCode GetErrorSend();
 		mg::box::ErrorCode GetErrorRecv();
+
+		uint64_t SubscribeOnConnectOk(
+			TestClientSocketOnConnectOkF&& aCallback);
+		uint64_t SubscribeOnRecvOk(
+			TestClientSocketOnRecvOkF&& aCallback);
+		uint64_t SubscribeOnClose(
+			TestClientSocketOnCloseF&& aCallback);
+		uint64_t SubscribeOnError(
+			TestClientSocketOnErrorF&& aCallback);
+		uint64_t SubscribeOnEvent(
+			TestClientSocketOnEventF&& aCallback);
+		void Unsubscribe(
+			uint64_t aID);
+
+		void SetAutoRecv(
+			uint64_t aRecvSize = TEST_RECV_SIZE);
+		TestClientSubInterval::Ptr SetInterval(
+			uint64_t aPeriod);
+		TestClientSubWorkerBlock::Ptr SetWorkerBlock();
+		TestClientSubWasConnected::Ptr SetWatchOnConnected();
 
 	private:
 		void OnEvent() override;
@@ -177,30 +292,29 @@ namespace tcpsocketiface {
 		void OnSendError(
 			mg::box::Error* aError) override;
 
-		mg::box::Mutex myLock;
+		template<typename SubType, typename Callback>
+		uint64_t PrivSubscribe(
+			Callback&& aCallback);
+
+		mg::aio::TCPSocketIFace* mySocket;
+
+		mg::box::Mutex myStateMutex;
 		mg::box::ConditionVariable myCond;
 		TestMessageList myOutMessages;
 		TestMessageList myInMessages;
-		mg::aio::TCPSocketIFace* mySocket;
-		mg::aio::TCPSocketConnectParams myConnectParams;
-		bool myDoConnectInTask;
-		bool myIsBlocked;
-		bool myIsBlockRequested;
-		bool myIsOnConnectCalled;
-		bool myIsClosed;
-		bool myDoCloseOnError;
-		bool myDoReconnect;
-		bool myDoDisableRecvOnNextMessage;
-		const uint64_t myReconnectDelay;
-		uint64_t myByteCountInFly;
-		uint32_t myRecvSize;
+		mg::box::AtomicI64 myByteCountInFly;
 		uint64_t myWakeupCount;
 		uint64_t myCloseCount;
-		uint64_t myWakeupInterval;
+		mg::aio::TCPSocketState myState;
 		mg::box::ErrorCode myErrorConnect;
 		mg::box::ErrorCode myError;
 		mg::box::ErrorCode myErrorRecv;
 		mg::box::ErrorCode myErrorSend;
+
+		mg::box::Mutex mySubsMutex;
+		TestClientSubList mySubs;
+		uint64_t mySubID;
+
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -238,27 +352,26 @@ namespace tcpsocketiface {
 		{
 			// Basic test to see if works at all.
 			TestClientSocket client;
-			client.ConnectBlocking(aPort);
+			client.PostConnectBlocking(aPort);
+			client.SetAutoRecv();
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
 			client.CloseBlocking();
 		}
 		{
 			// One buffer for receipt.
-			TestClientSocketParams params;
-			params.myRecvSize = 100;
-			TestClientSocket client(params);
-			client.ConnectBlocking(aPort);
+			TestClientSocket client;
+			client.PostConnectBlocking(aPort);
+			client.SetAutoRecv(100);
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
 			client.CloseBlocking();
 		}
 		{
 			// Big message sent in multiple Buffers.
-			TestClientSocketParams params;
-			params.myRecvSize = 100;
-			TestClientSocket client(params);
-			client.ConnectBlocking(aPort);
+			TestClientSocket client;
+			client.PostConnectBlocking(aPort);
+			client.SetAutoRecv(100);
 			const uint32_t size = 1024 * 100;
 			for (int i = 0; i < 100; ++i)
 			{
@@ -279,27 +392,19 @@ namespace tcpsocketiface {
 		}
 		{
 			// Manual receive many.
-			TestClientSocketParams params;
-			params.myRecvSize = 0;
-			TestClientSocket client(params);
-			client.ConnectBlocking(aPort);
+			TestClientSocket client;
+			client.PostConnectBlocking(aPort);
 			const uint32_t size = 100;
 			for (int i = 0; i < 100; ++i)
 			{
 				TestMessage* msg = new TestMessage();
 				msg->myPaddingSize = size;
-
-				mg::tst::WriteMessage wmsg;
-				msg->ToStream(wmsg);
 				client.Send(msg);
 				mg::box::Sleep(10);
 				TEST_CHECK(client.Pop() == nullptr);
-				client.DisableRecvOnNextMessage();
-				client.SetRecvSize(TEST_RECV_SIZE);
 				client.PostRecv(1);
 
 				msg = client.PopBlocking();
-				client.SetRecvSize(0);
 				TEST_CHECK(msg->myPaddingSize == size);
 				delete msg;
 			}
@@ -323,6 +428,7 @@ namespace tcpsocketiface {
 			// Normal connect to a known local port.
 			TestClientSocket client;
 			client.PostConnect(aPort);
+			client.SetAutoRecv();
 			testIsAlive(client);
 		}
 		mg::box::Error::Ptr err;
@@ -338,6 +444,7 @@ namespace tcpsocketiface {
 			params.mySocket = sock;
 			params.myEndpoint = host.ToString();
 			client.PostConnect(params);
+			client.SetAutoRecv();
 			testIsAlive(client);
 		}
 		{
@@ -347,6 +454,7 @@ namespace tcpsocketiface {
 			params.myEndpoint = mg::box::StringFormat("localhost:%u", aPort);
 			params.myAddrFamily = mg::net::ADDR_FAMILY_IPV4;
 			client.PostConnect(params);
+			client.SetAutoRecv();
 			testIsAlive(client);
 		}
 		{
@@ -360,6 +468,7 @@ namespace tcpsocketiface {
 			params.myEndpoint = mg::box::StringFormat("localhost:%u", aPort);
 			params.myAddrFamily = mg::net::ADDR_FAMILY_IPV4;
 			client.PostConnect(params);
+			client.SetAutoRecv();
 			testIsAlive(client);
 		}
 	}
@@ -378,6 +487,7 @@ namespace tcpsocketiface {
 		{
 			TestClientSocket client;
 			client.PostConnect(aPort);
+			client.SetAutoRecv();
 			TestMessage* msg;
 			for (uint32_t j = 0; j < parallelMsgCount; ++j)
 			{
@@ -398,7 +508,6 @@ namespace tcpsocketiface {
 				delete msg;
 			}
 			client.CloseBlocking();
-			TEST_CHECK(client.IsOnConnectCalled());
 			TEST_CHECK(client.GetError() == 0);
 			TEST_CHECK(client.GetErrorConnect() == 0);
 			TEST_CHECK(client.GetErrorSend() == 0);
@@ -413,9 +522,8 @@ namespace tcpsocketiface {
 		TestCaseGuard guard("Close during send");
 
 		TestClientSocket client;
-		client.ConnectBlocking(aPort);
-		TEST_CHECK(client.IsOnConnectCalled());
-
+		client.PostConnectBlocking(aPort);
+		client.SetAutoRecv();
 		client.Send(new TestMessage());
 		client.CloseBlocking();
 		TEST_CHECK(client.GetErrorConnect() == 0);
@@ -430,7 +538,9 @@ namespace tcpsocketiface {
 		TestCaseGuard guard("Close from server");
 
 		TestClientSocket client;
+		TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
 		client.PostConnect(aPort);
+		client.SetAutoRecv();
 		TestMessage* msg = new TestMessage();
 		client.Send(msg);
 
@@ -439,7 +549,7 @@ namespace tcpsocketiface {
 		client.Send(msg);
 
 		client.WaitClose();
-		TEST_CHECK(client.IsOnConnectCalled());
+		TEST_CHECK(watch->myWasConnected.LoadRelaxed());
 #if IS_PLATFORM_WIN
 		// XXX: graceful remote close on Windows is not considered a success.
 		TEST_CHECK(client.GetError() != 0);
@@ -460,13 +570,16 @@ namespace tcpsocketiface {
 
 		TestClientSocket client;
 		client.PostConnect(aPort);
+		client.SetAutoRecv();
 		client.Send(new TestMessage());
 		delete client.PopBlocking();
 
 		// The test is against Linux specifically. A bunch of sends + shutdown often
 		// generate EPOLLHUP on the socket. There was an issue with how auto-close on
 		// EPOLLHUP coexists with manual post-close.
-		client.SetCloseOnError(true);
+		uint64_t id = client.SubscribeOnError([&](mg::box::Error*) {
+			client.PostClose();
+		});
 		for (int i = 0; i < 10; ++i)
 			client.Send(new TestMessage());
 		client.PostShutdown();
@@ -474,6 +587,7 @@ namespace tcpsocketiface {
 			client.Send(new TestMessage());
 
 		client.WaitClose();
+		client.Unsubscribe(id);
 	}
 
 	static void
@@ -484,19 +598,23 @@ namespace tcpsocketiface {
 
 		TestClientSocket client;
 		client.PostConnect(aPort);
+		client.SetAutoRecv();
 		// Post to connected or connecting client works.
 		client.PostSend(new TestMessage());
 		delete client.PopBlocking();
 
 		// Multiple sends work fine even if the client is blocked somewhere in an IO
 		// worker.
-		client.BlockInWorker(true);
+		TestClientSubWorkerBlock::Ptr sub = client.SetWorkerBlock();
+		while (!sub->myIsBlocked.LoadRelaxed())
+			mg::box::Sleep(1);
+
 		for (int i = 0; i < 3; ++i)
 			client.PostSend(new TestMessage());
-		client.BlockInWorker(false);
+
+		sub->myDoBlock.StoreRelaxed(false);
 		for (int i = 0; i < 3; ++i)
 			delete client.PopBlocking();
-
 		client.CloseBlocking();
 	}
 
@@ -506,9 +624,10 @@ namespace tcpsocketiface {
 		TestCaseGuard guard("Connect error");
 
 		TestClientSocket client;
+		TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
 		client.PostConnect(0);
 		client.WaitClose();
-		TEST_CHECK(!client.IsOnConnectCalled());
+		TEST_CHECK(!watch->myWasConnected.LoadRelaxed());
 		TEST_CHECK(client.GetError() != 0);
 	}
 
@@ -524,6 +643,7 @@ namespace tcpsocketiface {
 			{
 				TestClientSocket client;
 				client.PostConnect(aPort);
+				client.SetAutoRecv();
 				client.PostShutdown();
 				client.Send(new TestMessage());
 				client.WaitClose();
@@ -533,6 +653,7 @@ namespace tcpsocketiface {
 			// Multiple shutdowns should merge into each other.
 			TestClientSocket client;
 			client.PostConnect(aPort);
+			client.SetAutoRecv();
 			for (int i = 0; i < 10; ++i)
 				client.PostShutdown();
 			client.Send(new TestMessage());
@@ -542,15 +663,20 @@ namespace tcpsocketiface {
 			// Shutdown right after send.
 			TestClientSocket client;
 			client.PostConnect(aPort);
+			client.SetAutoRecv();
 			client.WaitConnect();
 			// Receive something to ensure the handshake is done.
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
 
-			client.BlockInWorker(true);
-			client.Send(new TestMessage());
+			TestClientSubWorkerBlock::Ptr sub = client.SetWorkerBlock();
+			while (!sub->myIsBlocked.LoadRelaxed())
+				mg::box::Sleep(1);
+
+			client.PostSend(new TestMessage());
 			client.PostShutdown();
-			client.BlockInWorker(false);
+
+			sub->myDoBlock.StoreRelaxed(false);
 			client.WaitClose();
 			// It is not checked if there was an error. Because on Linux sometimes the
 			// peer notices the shutdown too fast and closes the socket gracefully, so it
@@ -566,25 +692,31 @@ namespace tcpsocketiface {
 		{
 			// Wakeup every given interval even though no data to send or receive.
 			TestClientSocket client;
-			client.ConnectBlocking(aPort);
-			client.SetInterval(1);
+
+			client.PostConnectBlocking(aPort);
+			TestClientSubInterval::Ptr sub = client.SetInterval(1);
 			client.WaitWakeupCountGrow(50);
+			client.Unsubscribe(sub->myID);
 
 			// Change to huge interval. No more wakeups.
-			client.SetInterval(1000000);
+			sub = client.SetInterval(1000000);
 			client.WaitIdleFor(5);
+			client.Unsubscribe(sub->myID);
 
 			// Infinity, same as when not specified, means no wakeups.
-			client.SetInterval(MG_TIME_INFINITE);
+			sub = client.SetInterval(MG_TIME_INFINITE);
 			client.WaitIdleFor(5);
+			client.Unsubscribe(sub->myID);
 
 			// Back to huge interval - no wakeups.
-			client.SetInterval(1000000);
+			sub = client.SetInterval(1000000);
 			client.WaitIdleFor(5);
+			client.Unsubscribe(sub->myID);
 
 			// Reschedule infinitely without a deadline.
-			client.SetInterval(0);
-			client.WaitWakeupCountGrow(0);
+			sub = client.SetInterval(0);
+			client.WaitWakeupCountGrow(50);
+			client.Unsubscribe(sub->myID);
 
 			client.CloseBlocking();
 		}
@@ -597,10 +729,13 @@ namespace tcpsocketiface {
 		TestCaseGuard guard("Resolve");
 		{
 			TestClientSocket client;
+			TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
+
 			mg::aio::TCPSocketConnectParams params;
 			params.myEndpoint = mg::box::StringFormat("127.0.0.1:%u", aPort);
-			client.ConnectBlocking(params);
-			TEST_CHECK(client.IsOnConnectCalled());
+			client.PostConnectBlocking(params);
+			client.SetAutoRecv();
+			TEST_CHECK(watch->myWasConnected.LoadRelaxed());
 			TEST_CHECK(client.GetError() == 0);
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
@@ -608,11 +743,14 @@ namespace tcpsocketiface {
 		}
 		{
 			TestClientSocket client;
+			TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
+
 			mg::aio::TCPSocketConnectParams params;
 			params.myEndpoint = mg::box::StringFormat("localhost:%u", aPort);
 			params.myAddrFamily = mg::net::ADDR_FAMILY_IPV4;
-			client.ConnectBlocking(params);
-			TEST_CHECK(client.IsOnConnectCalled());
+			client.PostConnectBlocking(params);
+			client.SetAutoRecv();
+			TEST_CHECK(watch->myWasConnected.LoadRelaxed());
 			TEST_CHECK(client.GetError() == 0);
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
@@ -620,12 +758,14 @@ namespace tcpsocketiface {
 		}
 		{
 			TestClientSocket client;
+			TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
+
 			mg::aio::TCPSocketConnectParams params;
 			params.myEndpoint = mg::box::StringFormat(
 				"####### invalid host #######:%u", aPort);
 			client.PostConnect(params);
 			client.WaitClose();
-			TEST_CHECK(!client.IsOnConnectCalled());
+			TEST_CHECK(!watch->myWasConnected.LoadRelaxed());
 			TEST_CHECK(client.GetError() != 0);
 		}
 		mg::aio::TCPSocketConnectParams connectLocalhostParams;
@@ -663,6 +803,7 @@ namespace tcpsocketiface {
 		{
 			TestClientSocket client;
 			client.PostConnect(connectLocalhostParams);
+			client.SetAutoRecv();
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
 			client.CloseBlocking();
@@ -687,6 +828,7 @@ namespace tcpsocketiface {
 			uint64_t end = mg::box::GetMilliseconds();
 			TEST_CHECK(end - start >= params.myDelay.myDuration.myValue);
 
+			client.SetAutoRecv();
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
 			client.CloseBlocking();
@@ -703,6 +845,7 @@ namespace tcpsocketiface {
 			uint64_t end = mg::box::GetMilliseconds();
 			TEST_CHECK(end - start >= params.myDelay.myDuration.myValue);
 
+			client.SetAutoRecv();
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
 			client.CloseBlocking();
@@ -721,6 +864,8 @@ namespace tcpsocketiface {
 		// Ensure the socket can be used as a task and then connected later.
 		{
 			TestClientSocket client;
+			TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
+
 			client.PostTask();
 			mg::box::Sleep(10);
 			TEST_CHECK(client.GetWakeupCount() == 0);
@@ -728,18 +873,26 @@ namespace tcpsocketiface {
 			while (client.GetWakeupCount() != 1)
 				mg::box::Sleep(1);
 
+			client.SetAutoRecv();
 			client.PostSend(new TestMessage());
-			TEST_CHECK(!client.IsOnConnectCalled());
+			TEST_CHECK(!watch->myWasConnected.LoadRelaxed());
 			mg::box::Sleep(10);
 			TEST_CHECK(client.Pop() == nullptr);
-			
+
 			client.SetInterval(1);
 			client.WaitWakeupCountGrow(10);
 
-			client.ConnectTask(connParams);
+			mg::box::AtomicBool isConnectStarted(false);
+			uint64_t id = client.SubscribeOnEvent([&]() {
+				if (isConnectStarted.ExchangeRelaxed(true))
+					return;
+				client.Connect(connParams);
+			});
+			client.PostWakeup();
 			client.WaitConnect();
 			delete client.PopBlocking();
 			client.CloseBlocking();
+			client.Unsubscribe(id);
 		}
 		// Stress test for empty tasks closure.
 		{
@@ -759,9 +912,12 @@ namespace tcpsocketiface {
 			{
 				TestClientSocket client;
 				client.PostTask();
-				client.ConnectTask(connParams);
+				uint64_t id = client.SubscribeOnEvent([&]() {
+					client.Connect(connParams);
+				});
 				client.PostWakeup();
 				client.CloseBlocking();
+				client.Unsubscribe(id);
 			}
 		}
 	}
@@ -773,10 +929,12 @@ namespace tcpsocketiface {
 		TestCaseGuard guard("Reconnect");
 		// Basic reconnect test.
 		{
-			TestClientSocketParams params;
-			params.myDoReconnect = true;
-			TestClientSocket client(params);
+			TestClientSocket client;
+			uint64_t id = client.SubscribeOnClose([&]() {
+				client.PostConnect(aPort);
+			});
 			client.PostConnect(aPort);
+			client.SetAutoRecv();
 			TestMessage msgClose;
 			msgClose.myId = 1;
 			msgClose.myDoClose = true;
@@ -804,7 +962,7 @@ namespace tcpsocketiface {
 				TEST_CHECK(msg->myId == msgCheck.myId);
 				delete msg;
 			}
-			client.DisableReconnect();
+			client.Unsubscribe(id);
 			client.CloseBlocking();
 		}
 	}
@@ -828,6 +986,7 @@ namespace tcpsocketiface {
 			{
 				TestClientSocket* cl = &clients[j];
 				cl->PostConnect(aPort);
+				cl->SetAutoRecv();
 				cl->SetInterval(j % 5);
 			}
 			for (int j = 0; j < count; ++j)
@@ -878,17 +1037,25 @@ namespace tcpsocketiface {
 
 		TestMessage msgClose;
 		msgClose.myDoClose = true;
+		mg::box::AtomicBool doReconnect(true);
 
-		TestClientSocketParams params;
-		params.myDoReconnect = true;
 		std::vector<TestClientSocket*> clients;
 		clients.resize(count);
 		for (int i = 0; i < count; ++i)
 		{
-			params.myReconnectDelay = i % 3;
 			TestClientSocket*& cl = clients[i];
-			cl = new TestClientSocket(params);
+			cl = new TestClientSocket();
+			uint64_t reconnDelay = i % 3;
+			cl->SubscribeOnClose([cl, reconnDelay, aPort, &doReconnect]() {
+				if (!doReconnect.LoadRelaxed())
+					return;
+				mg::aio::TCPSocketConnectParams params;
+				params.myDelay = mg::box::TimeDuration(reconnDelay);
+				params.myEndpoint = mg::net::HostMakeLocalIPV4(aPort).ToString();
+				cl->PostConnect(params);
+			});
 			cl->PostConnect(aPort);
+			cl->SetAutoRecv();
 			cl->SetInterval(i % 5);
 		}
 		for (int i = 0; i < iterCount; ++i)
@@ -933,10 +1100,10 @@ namespace tcpsocketiface {
 					delete msg;
 			}
 		}
+		doReconnect.StoreRelaxed(false);
 		for (int i = 0; i < count; ++i)
 		{
 			TestClientSocket*& cl = clients[i];
-			cl->DisableReconnect();
 			cl->CloseBlocking();
 			delete cl;
 		}
@@ -1108,27 +1275,17 @@ namespace tcpsocketiface {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	TestClientSocket::TestClientSocket(
-		const TestClientSocketParams& aParams)
+	TestClientSocket::TestClientSocket()
 		: mySocket(nullptr)
-		, myDoConnectInTask(false)
-		, myIsBlocked(false)
-		, myIsBlockRequested(false)
-		, myIsOnConnectCalled(false)
-		, myIsClosed(false)
-		, myDoCloseOnError(false)
-		, myDoReconnect(aParams.myDoReconnect)
-		, myDoDisableRecvOnNextMessage(false)
-		, myReconnectDelay(aParams.myReconnectDelay)
 		, myByteCountInFly(0)
-		, myRecvSize(aParams.myRecvSize)
 		, myWakeupCount(0)
 		, myCloseCount(0)
-		, myWakeupInterval(MG_TIME_INFINITE)
+		, myState(mg::aio::TCP_SOCKET_STATE_NEW)
 		, myErrorConnect(mg::box::ERR_BOX_NONE)
 		, myError(mg::box::ERR_BOX_NONE)
 		, myErrorRecv(mg::box::ERR_BOX_NONE)
 		, myErrorSend(mg::box::ERR_BOX_NONE)
+		, mySubID(1)
 	{
 	}
 
@@ -1138,6 +1295,13 @@ namespace tcpsocketiface {
 		{
 			WaitClose();
 			mySocket->Delete();
+			myStateMutex.Lock();
+			myStateMutex.Unlock();
+
+			mySubsMutex.Lock();
+			while (!mySubs.IsEmpty())
+				delete mySubs.PopFirst();
+			mySubsMutex.Unlock();
 		}
 		if (myErrorConnect != 0 || myErrorSend != 0 || myErrorRecv != 0)
 			TEST_CHECK(myError != 0);
@@ -1160,20 +1324,23 @@ namespace tcpsocketiface {
 	TestClientSocket::PostConnect(
 		const mg::aio::TCPSocketConnectParams& aParams)
 	{
-		TEST_CHECK(myOutMessages.IsEmpty());
-		TEST_CHECK(myInMessages.IsEmpty());
-		TEST_CHECK(mySocket == nullptr);
+		myStateMutex.Lock();
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_NEW ||
+			myState == mg::aio::TCP_SOCKET_STATE_CLOSED ||
+			myState == mg::aio::TCP_SOCKET_STATE_EMPTY);
+		myState = mg::aio::TCP_SOCKET_STATE_CONNECTING;
+		myErrorConnect = mg::box::ERR_BOX_NONE;
+		myError = mg::box::ERR_BOX_NONE;
+		myErrorRecv = mg::box::ERR_BOX_NONE;
+		myErrorSend = mg::box::ERR_BOX_NONE;
+		myStateMutex.Unlock();
+
 		theContext->OpenSocket(mySocket);
-		// Save params for reconnect.
-		myConnectParams = aParams;
-		myConnectParams.myEndpoint = aParams.myEndpoint;
-		// Socket won't be usable for reconnect after closure.
-		myConnectParams.mySocket = mg::net::theInvalidSocket;
 		mySocket->PostConnect(aParams, this);
 	}
 
 	void
-	TestClientSocket::ConnectBlocking(
+	TestClientSocket::PostConnectBlocking(
 		uint16_t aPort)
 	{
 		PostConnect(aPort);
@@ -1181,7 +1348,7 @@ namespace tcpsocketiface {
 	}
 
 	void
-	TestClientSocket::ConnectBlocking(
+	TestClientSocket::PostConnectBlocking(
 		const mg::aio::TCPSocketConnectParams& aParams)
 	{
 		PostConnect(aParams);
@@ -1191,35 +1358,38 @@ namespace tcpsocketiface {
 	void
 	TestClientSocket::PostTask()
 	{
-		TEST_CHECK(mySocket == nullptr);
+		myStateMutex.Lock();
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_NEW ||
+			myState == mg::aio::TCP_SOCKET_STATE_CLOSED);
+		myState = mg::aio::TCP_SOCKET_STATE_EMPTY;
+		myErrorConnect = mg::box::ERR_BOX_NONE;
+		myError = mg::box::ERR_BOX_NONE;
+		myErrorRecv = mg::box::ERR_BOX_NONE;
+		myErrorSend = mg::box::ERR_BOX_NONE;
+		myStateMutex.Unlock();
+
 		theContext->OpenSocket(mySocket);
 		mySocket->PostTask(this);
-	}
-
-	void
-	TestClientSocket::ConnectTask(
-		const mg::aio::TCPSocketConnectParams& aParams)
-	{
-		myLock.Lock();
-		TEST_CHECK(!myDoConnectInTask);
-		myConnectParams = aParams;
-		myDoConnectInTask = true;
-		myLock.Unlock();
-
-		mySocket->PostWakeup();
 	}
 
 	void
 	TestClientSocket::Send(
 		TestMessage* aMessage)
 	{
-		myLock.Lock();
+		myStateMutex.Lock();
 		bool isFirst = myOutMessages.IsEmpty();
 		myOutMessages.Append(aMessage);
-		myLock.Unlock();
+		myStateMutex.Unlock();
 
 		if (isFirst)
 			mySocket->PostWakeup();
+	}
+
+	void
+	TestClientSocket::Recv(
+		uint64_t aSize)
+	{
+		mySocket->Recv(aSize);
 	}
 
 	void
@@ -1229,7 +1399,7 @@ namespace tcpsocketiface {
 		mg::tst::WriteMessage wmsg;
 		aMessage->ToStream(wmsg);
 		delete aMessage;
-		myByteCountInFly += wmsg.GetTotalSize();
+		myByteCountInFly.AddRelaxed(wmsg.GetTotalSize());
 		return mySocket->PostSendRef(wmsg.TakeData());
 	}
 
@@ -1238,6 +1408,30 @@ namespace tcpsocketiface {
 		uint64_t aSize)
 	{
 		mySocket->PostRecv(aSize);
+	}
+
+	void
+	TestClientSocket::SetDeadline(
+		uint64_t aDeadline)
+	{
+		mySocket->SetDeadline(aDeadline);
+	}
+
+	void
+	TestClientSocket::Connect(
+		const mg::aio::TCPSocketConnectParams& aParams)
+	{
+		myStateMutex.Lock();
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_EMPTY ||
+			myState == mg::aio::TCP_SOCKET_STATE_CLOSED);
+		myState = mg::aio::TCP_SOCKET_STATE_CONNECTING;
+		myErrorConnect = mg::box::ERR_BOX_NONE;
+		myError = mg::box::ERR_BOX_NONE;
+		myErrorRecv = mg::box::ERR_BOX_NONE;
+		myErrorSend = mg::box::ERR_BOX_NONE;
+		myStateMutex.Unlock();
+
+		mySocket->Connect(aParams);
 	}
 
 	void
@@ -1250,29 +1444,23 @@ namespace tcpsocketiface {
 	void
 	TestClientSocket::WaitClose()
 	{
-		mg::box::MutexLock lock(myLock);
-		while (!mySocket->IsClosed() || !myIsClosed)
-			myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+		mg::box::MutexLock lock(myStateMutex);
+		while (myState != mg::aio::TCP_SOCKET_STATE_CLOSED)
+			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
 	}
 
 	void
 	TestClientSocket::WaitConnect()
 	{
-		mg::box::MutexLock lock(myLock);
-		while (!myIsOnConnectCalled)
-		{
-			TEST_CHECK(!myIsClosed);
-			TEST_CHECK(!mySocket->IsClosed() || myDoReconnect);
-			myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
-		}
+		mg::box::MutexLock lock(myStateMutex);
+		while (myState != mg::aio::TCP_SOCKET_STATE_CONNECTED)
+			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
 	}
 
 	void
 	TestClientSocket::WaitIdleFor(
 		uint64_t aDuration)
 	{
-		BlockInWorker(true);
-		BlockInWorker(false);
 		uint64_t wCount = GetWakeupCount();
 		mg::box::Sleep(aDuration);
 		// Worker block works via signaling. So it could wakeup one last time
@@ -1284,179 +1472,206 @@ namespace tcpsocketiface {
 	TestClientSocket::WaitWakeupCountGrow(
 		uint64_t aCount)
 	{
-		myLock.Lock();
+		mg::box::MutexLock lock(myStateMutex);
 		uint64_t target = myWakeupCount + aCount;
 		while (target > myWakeupCount)
-			myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
-		myLock.Unlock();
+			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
 	}
 
 	void
 	TestClientSocket::WaitCloseCount(
 		uint64_t aCount)
 	{
-		myLock.Lock();
+		mg::box::MutexLock lock(myStateMutex);
 		while (myCloseCount < aCount)
-			myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
-		myLock.Unlock();
+			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
 	}
 
 	TestMessage*
 	TestClientSocket::PopBlocking()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		while (myInMessages.IsEmpty())
-			myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
 		return myInMessages.PopFirst();
 	}
 
 	TestMessage*
 	TestClientSocket::Pop()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		if (!myInMessages.IsEmpty())
 			return myInMessages.PopFirst();
 		return nullptr;
 	}
 
-	void
-	TestClientSocket::DisableReconnect()
-	{
-		myLock.Lock();
-		myDoReconnect = false;
-		myLock.Unlock();
-	}
-
-	void
-	TestClientSocket::DisableRecvOnNextMessage()
-	{
-		myLock.Lock();
-		myDoDisableRecvOnNextMessage = true;
-		myLock.Unlock();
-	}
-
-	void
-	TestClientSocket::BlockInWorker(
-		bool aValue)
-	{
-		mg::box::MutexLock lock(myLock);
-		TEST_CHECK(myIsBlockRequested != aValue);
-		myIsBlockRequested = aValue;
-		if (!aValue)
-		{
-			myCond.Broadcast();
-			return;
-		}
-		while (!myIsBlocked)
-		{
-			mySocket->PostWakeup();
-			myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
-		}
-	}
-
-	void
-	TestClientSocket::SetInterval(
-		uint64_t aInterval)
-	{
-		mg::box::MutexLock lock(myLock);
-		if (myWakeupInterval > aInterval)
-			mySocket->PostWakeup();
-		myWakeupInterval = aInterval;
-	}
-
-	void
-	TestClientSocket::SetCloseOnError(
-		bool aValue)
-	{
-		mg::box::MutexLock lock(myLock);
-		myDoCloseOnError = aValue;
-	}
-
-	void
-	TestClientSocket::SetRecvSize(
-		uint32_t aValue)
-	{
-		mg::box::MutexLock lock(myLock);
-		myRecvSize = aValue;
-	}
-
-	bool
-	TestClientSocket::IsOnConnectCalled()
-	{
-		mg::box::MutexLock lock(myLock);
-		return myIsOnConnectCalled;
-	}
-
 	uint64_t
 	TestClientSocket::GetWakeupCount()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		return myWakeupCount;
 	}
 
 	mg::box::ErrorCode
 	TestClientSocket::GetError()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		return myError;
 	}
 
 	mg::box::ErrorCode
 	TestClientSocket::GetErrorConnect()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		return myErrorConnect;
 	}
 
 	mg::box::ErrorCode
 	TestClientSocket::GetErrorSend()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		return myErrorSend;
 	}
 
 	mg::box::ErrorCode
 	TestClientSocket::GetErrorRecv()
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		return myErrorRecv;
+	}
+
+	uint64_t
+	TestClientSocket::SubscribeOnConnectOk(
+		TestClientSocketOnConnectOkF&& aCallback)
+	{
+		return PrivSubscribe<TestClientSubOnConnectOk>(std::move(aCallback));
+	}
+
+	uint64_t
+	TestClientSocket::SubscribeOnRecvOk(
+		TestClientSocketOnRecvOkF&& aCallback)
+	{
+		return PrivSubscribe<TestClientSubOnRecvOk>(std::move(aCallback));
+	}
+
+	uint64_t
+	TestClientSocket::SubscribeOnClose(
+		TestClientSocketOnCloseF&& aCallback)
+	{
+		return PrivSubscribe<TestClientSubOnClose>(std::move(aCallback));
+	}
+
+	uint64_t
+	TestClientSocket::SubscribeOnError(
+		TestClientSocketOnErrorF&& aCallback)
+	{
+		return PrivSubscribe<TestClientSubOnError>(std::move(aCallback));
+	}
+
+	uint64_t
+	TestClientSocket::SubscribeOnEvent(
+		TestClientSocketOnEventF&& aCallback)
+	{
+		return PrivSubscribe<TestClientSubOnEvent>(std::move(aCallback));
+	}
+
+	void
+	TestClientSocket::Unsubscribe(
+		uint64_t aID)
+	{
+		mg::box::MutexLock lock(mySubsMutex);
+		for (TestClientSub* sub : mySubs)
+		{
+			if (sub->myID != aID)
+				continue;
+			mySubs.Remove(sub);
+			delete sub;
+			return;
+		}
+		TEST_CHECK(false);
+	}
+
+	void
+	TestClientSocket::SetAutoRecv(
+		uint64_t aRecvSize)
+	{
+		SubscribeOnConnectOk([this, aRecvSize]() {
+			PostRecv(aRecvSize);
+		});
+		SubscribeOnRecvOk([this, aRecvSize]() {
+			PostRecv(aRecvSize);
+		});
+		PostRecv(aRecvSize);
+	}
+
+	TestClientSubInterval::Ptr
+	TestClientSocket::SetInterval(
+		uint64_t aPeriod)
+	{
+		TestClientSubInterval::Ptr sub = TestClientSubInterval::NewShared();
+		sub->myDeadline = 0;
+		sub->myPeriod = aPeriod;
+		sub->myID = SubscribeOnEvent([this, sub]() mutable {
+			uint64_t now = mg::box::GetMilliseconds();
+			if (now >= sub->myDeadline)
+				sub->myDeadline = now + sub->myPeriod;
+			SetDeadline(sub->myDeadline);
+		});
+		PostWakeup();
+		return sub;
+	}
+
+	TestClientSubWorkerBlock::Ptr
+	TestClientSocket::SetWorkerBlock()
+	{
+		TestClientSubWorkerBlock::Ptr sub = TestClientSubWorkerBlock::NewShared();
+		sub->myDoBlock.StoreRelaxed(true);
+		sub->myIsBlocked.StoreRelaxed(false);
+		sub->myID = SubscribeOnEvent([sub]() mutable {
+			while (sub->myDoBlock.LoadRelaxed()) {
+				sub->myIsBlocked.StoreRelaxed(true);
+				mg::box::Sleep(1);
+			}
+			sub->myIsBlocked.StoreRelaxed(false);
+		});
+		PostWakeup();
+		return sub;
+	}
+
+	TestClientSubWasConnected::Ptr
+	TestClientSocket::SetWatchOnConnected()
+	{
+		TestClientSubWasConnected::Ptr sub = TestClientSubWasConnected::NewShared();
+		sub->myWasConnected.StoreRelaxed(false);
+		sub->myID = SubscribeOnConnectOk([sub]() mutable {
+			sub->myWasConnected.StoreRelaxed(true);
+		});
+		return sub;
 	}
 
 	void
 	TestClientSocket::OnEvent()
 	{
-		myLock.Lock();
-		if (myWakeupInterval == 0)
-			mySocket->Reschedule();
-		else if (myWakeupInterval < MG_TIME_INFINITE)
-			mySocket->SetDeadline(mg::box::GetMilliseconds() + myWakeupInterval);
+		myStateMutex.Lock();
 		++myWakeupCount;
 		myCond.Broadcast();
-		if (myIsBlockRequested)
-		{
-			myIsBlocked = true;
-			do
-			{
-				myCond.TimedWait(myLock, mg::box::TimeDuration(TEST_YIELD_PERIOD));
-			} while (myIsBlockRequested);
-			myIsBlocked = false;
-		}
-		if (myDoConnectInTask)
-		{
-			myDoConnectInTask = false;
-			mySocket->Connect(myConnectParams);
-		}
-
 		TestMessage* head = myOutMessages.PopAll();
-		myLock.Unlock();
-		TestMessage* next;
+		myStateMutex.Unlock();
+
+		mySubsMutex.Lock();
+		for (TestClientSub* sub : mySubs)
+		{
+			if (sub->myType == TEST_CLIENT_EVENT_ON_EVENT)
+				sub->Invoke();
+		}
+		mySubsMutex.Unlock();
 
 		while (head != nullptr)
 		{
 			mg::tst::WriteMessage wmsg;
-			next = head->myNext;
+			TestMessage* next = head->myNext;
 			head->ToStream(wmsg);
-			myByteCountInFly += wmsg.GetTotalSize();
+			myByteCountInFly.AddRelaxed(wmsg.GetTotalSize());
 			mySocket->SendRef(wmsg.TakeData());
 			delete head;
 			head = next;
@@ -1467,19 +1682,18 @@ namespace tcpsocketiface {
 	TestClientSocket::OnSend(
 		uint32_t aByteCount)
 	{
-		TEST_CHECK(myIsOnConnectCalled);
-		TEST_CHECK(aByteCount <= myByteCountInFly);
+		mg::box::MutexLock lock(myStateMutex);
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_CONNECTED);
 		// Ensure it never reports more sent bytes than it was actually provided. The main
 		// intension here is to test that SSL reports number of raw bytes, not encoded
 		// bytes.
-		myByteCountInFly -= aByteCount;
+		TEST_CHECK(myByteCountInFly.SubFetchRelaxed(aByteCount) >= 0);
 	}
 
 	void
 	TestClientSocket::OnRecv(
 		mg::net::BufferReadStream& aStream)
 	{
-		TEST_CHECK(myIsOnConnectCalled);
 		mg::tst::ReadMessage rmsg(aStream);
 		TestMessageList msgs;
 		while (rmsg.IsComplete())
@@ -1488,73 +1702,89 @@ namespace tcpsocketiface {
 			msg->FromStream(rmsg);
 			msgs.Append(msg);
 		}
-		mg::box::MutexLock lock(myLock);
+
+		myStateMutex.Lock();
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_CONNECTED);
 		bool hasMessage = !msgs.IsEmpty();
 		if (hasMessage)
 		{
 			myInMessages.Append(std::move(msgs));
 			myCond.Broadcast();
 		}
-		if (myRecvSize > 0 && !myDoDisableRecvOnNextMessage)
-			mySocket->Recv(myRecvSize);
-		if (hasMessage)
-			myDoDisableRecvOnNextMessage = false;
+		myStateMutex.Unlock();
+
+		mySubsMutex.Lock();
+		for (TestClientSub* sub : mySubs)
+		{
+			if (sub->myType == TEST_CLIENT_EVENT_ON_RECV_OK)
+				sub->Invoke();
+		}
+		mySubsMutex.Unlock();
 	}
 
 	void
 	TestClientSocket::OnClose()
 	{
-		mg::box::MutexLock lock(myLock);
-		TEST_CHECK(!myIsClosed);
+		mg::box::MutexLock lock(myStateMutex);
+		TEST_CHECK(myState != mg::aio::TCP_SOCKET_STATE_CLOSED);
+		myState = mg::aio::TCP_SOCKET_STATE_CLOSED;
 		++myCloseCount;
-		if (myDoReconnect)
-		{
-			myIsOnConnectCalled = false;
-			myErrorRecv = mg::box::ERR_BOX_NONE;
-			myErrorSend = mg::box::ERR_BOX_NONE;
-			myErrorConnect = mg::box::ERR_BOX_NONE;
-			myError = mg::box::ERR_BOX_NONE;
-			theContext->OpenSocket(mySocket);
-			myCond.Broadcast();
-			myConnectParams.myDelay = mg::box::TimeDuration(myReconnectDelay);
-			mySocket->PostConnect(myConnectParams, this);
-			return;
-		}
 		while (!myOutMessages.IsEmpty())
 			delete myOutMessages.PopFirst();
 		while (!myInMessages.IsEmpty())
 			delete myInMessages.PopFirst();
-		myIsClosed = true;
 		myCond.Broadcast();
+
+		mySubsMutex.Lock();
+		for (TestClientSub* sub : mySubs)
+		{
+			if (sub->myType == TEST_CLIENT_EVENT_ON_CLOSE)
+				sub->Invoke();
+		}
+		mySubsMutex.Unlock();
 	}
 
 	void
 	TestClientSocket::OnError(
 		mg::box::Error* aError)
 	{
-		mg::box::MutexLock lock(myLock);
+		myStateMutex.Lock();
 		TEST_CHECK(myError == 0);
 		myError = aError->myCode;
-		if (myDoCloseOnError)
-			mySocket->PostClose();
+		myStateMutex.Unlock();
+
+		mySubsMutex.Lock();
+		for (TestClientSub* sub : mySubs)
+		{
+			if (sub->myType == TEST_CLIENT_EVENT_ON_ERROR)
+				sub->Invoke(aError);
+		}
+		mySubsMutex.Unlock();
 	}
 
 	void
 	TestClientSocket::OnConnect()
 	{
-		mg::box::MutexLock lock(myLock);
-		TEST_CHECK(!myIsOnConnectCalled);
-		myIsOnConnectCalled = true;
+		mg::box::MutexLock lock(myStateMutex);
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_CONNECTING);
+		myState = mg::aio::TCP_SOCKET_STATE_CONNECTED;
 		myCond.Broadcast();
-		if (myRecvSize > 0)
-			mySocket->Recv(myRecvSize);
+
+		mySubsMutex.Lock();
+		for (TestClientSub* sub : mySubs)
+		{
+			if (sub->myType == TEST_CLIENT_EVENT_ON_CONNECT_OK)
+				sub->Invoke();
+		}
+		mySubsMutex.Unlock();
 	}
 
 	void
 	TestClientSocket::OnConnectError(
 		mg::box::Error* aError)
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
+		TEST_CHECK(myState == mg::aio::TCP_SOCKET_STATE_CONNECTING);
 		TEST_CHECK(myErrorConnect == 0);
 		myErrorConnect = aError->myCode;
 	}
@@ -1563,7 +1793,7 @@ namespace tcpsocketiface {
 	TestClientSocket::OnRecvError(
 		mg::box::Error* aError)
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		TEST_CHECK(myErrorRecv == 0);
 		myErrorRecv = aError->myCode;
 	}
@@ -1572,9 +1802,24 @@ namespace tcpsocketiface {
 	TestClientSocket::OnSendError(
 		mg::box::Error* aError)
 	{
-		mg::box::MutexLock lock(myLock);
+		mg::box::MutexLock lock(myStateMutex);
 		TEST_CHECK(myErrorSend == 0);
 		myErrorSend = aError->myCode;
+	}
+
+	template<typename SubType, typename Callback>
+	uint64_t
+	TestClientSocket::PrivSubscribe(
+		Callback&& aCallback)
+	{
+		SubType* sub = new SubType();
+
+		mg::box::MutexLock lock(mySubsMutex);
+		uint64_t id = mySubID++;
+		sub->myID = id;
+		sub->myCallback = std::forward<Callback>(aCallback);
+		mySubs.Append(sub);
+		return id;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
