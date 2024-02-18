@@ -417,6 +417,8 @@ main(
 	reports.resize(runCount);
 	for (BenchRunReport& r : reports)
 		r = BenchQueueRun(cmdLine);
+	if (runCount == 1)
+		return 0;
 	if (runCount < 3)
 		return -1;
 	std::sort(reports.begin(), reports.end());
