@@ -160,16 +160,16 @@ namespace net {
 		~BufferLinkList() { Clear(); }
 
 		void AppendRef(
-			const Buffer* aHead) { AppendMove(new BufferLink(aHead)); }
+			const Buffer* aHead);
 		void AppendRef(
 			const Buffer::Ptr& aHead) { AppendRef(aHead.GetPointer()); }
 		void AppendRef(
-			Buffer::Ptr&& aHead) { AppendMove(new BufferLink(std::move(aHead))); }
+			Buffer::Ptr&& aHead);
 		void AppendRef(
 			const void* aData,
 			uint64_t aSize);
 		void AppendMove(
-			BufferLink* aHead) { myLinks.Append(aHead); }
+			BufferLink* aHead) { if (aHead != nullptr) myLinks.Append(aHead); }
 		void Append(
 			BufferLinkList&& aList) { myLinks.Append(std::move(aList.myLinks)); }
 		void AppendCopy(
@@ -395,6 +395,22 @@ namespace net {
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
+
+	inline void
+	BufferLinkList::AppendRef(
+		const Buffer* aHead)
+	{
+		if (aHead != nullptr)
+			AppendMove(new BufferLink(aHead));
+	}
+
+	inline void
+	BufferLinkList::AppendRef(
+		Buffer::Ptr&& aHead)
+	{
+		if (aHead.GetPointer() != nullptr)
+			AppendMove(new BufferLink(std::move(aHead)));
+	}
 
 	inline void
 	BufferLinkList::AppendRef(

@@ -168,6 +168,12 @@ namespace buffer {
 		const mg::net::BufferLink* link = list.GetFirst();
 		TEST_CHECK(link->myHead == b1);
 		TEST_CHECK(link->myHead->myNext == b2);
+
+		// Null buffers are skipped. Makes no sense to store them, can't be neither read
+		// from nor written to.
+		list.Clear();
+		list.AppendRef((const mg::net::Buffer*)nullptr);
+		TEST_CHECK(list.IsEmpty());
 	}
 
 	static void
@@ -189,6 +195,11 @@ namespace buffer {
 		const mg::net::BufferLink* link = list.GetFirst();
 		TEST_CHECK(link->myHead == b1);
 		TEST_CHECK(link->myHead->myNext == b2);
+
+		list.Clear();
+		b1.Clear();
+		list.AppendRef(b1);
+		TEST_CHECK(list.IsEmpty());
 	}
 
 	static void
@@ -212,6 +223,10 @@ namespace buffer {
 		const mg::net::BufferLink* link = list.GetFirst();
 		TEST_CHECK(link->myHead == b1);
 		TEST_CHECK(link->myHead->myNext == b2);
+
+		list.Clear();
+		list.AppendRef(mg::net::Buffer::Ptr());
+		TEST_CHECK(list.IsEmpty());
 	}
 
 	static void
@@ -243,6 +258,10 @@ namespace buffer {
 		TEST_CHECK(b3->myRData == data + (uint64_t)UINT32_MAX * 2);
 		TEST_CHECK(b3->myPos == 100);
 		TEST_CHECK(b3->myCapacity == 100);
+
+		list.Clear();
+		list.AppendRef("123", 0);
+		TEST_CHECK(list.IsEmpty());
 	}
 
 	static void
@@ -267,6 +286,10 @@ namespace buffer {
 		TEST_CHECK(link == linkToMove);
 		TEST_CHECK(link->myHead == b1);
 		TEST_CHECK(link->myHead->myNext == b2);
+
+		list.Clear();
+		list.AppendMove((mg::net::BufferLink*)nullptr);
+		TEST_CHECK(list.IsEmpty());
 	}
 
 	static void
@@ -340,6 +363,10 @@ namespace buffer {
 		TEST_CHECK(memcmp(buf->myRData,
 			big + mg::net::theBufferCopySize * 2, 5) == 0);
 		TEST_CHECK(!buf->myNext.IsSet());
+
+		list.Clear();
+		list.AppendCopy("123", 0);
+		TEST_CHECK(list.IsEmpty());
 	}
 
 	static void
