@@ -35,13 +35,13 @@ namespace aio {
 		// Can't destroy the task which is being kept by the worker. In case it would be
 		// freed and another task would be allocated in the same memory, it might think it
 		// is being executed, which is untrue.
-		MG_DEV_ASSERT(!IsInWorkerNow());
+		MG_BOX_ASSERT(!IsInWorkerNow());
 #if IS_BUILD_DEBUG
 		IOTaskStatus status = myStatus.LoadRelaxed();
-		MG_DEV_ASSERT(status == IOTASK_STATUS_CLOSED || status == IOTASK_STATUS_PENDING);
+		MG_BOX_ASSERT(status == IOTASK_STATUS_CLOSED || status == IOTASK_STATUS_PENDING);
 #endif
-		MG_DEV_ASSERT(mySocket == mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(myNext == nullptr);
+		MG_BOX_ASSERT(mySocket == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myNext == nullptr);
 		PrivDestructPlatform();
 	}
 
@@ -50,8 +50,8 @@ namespace aio {
 		mg::net::Socket aSocket,
 		IOSubscription* aSub)
 	{
-		MG_DEV_ASSERT(mySub == nullptr);
-		MG_DEV_ASSERT(aSocket != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(mySub == nullptr);
+		MG_BOX_ASSERT(aSocket != mg::net::theInvalidSocket);
 		PrivAttach(aSub, aSocket);
 		myCore.PrivPostStart(this);
 	}
@@ -61,14 +61,14 @@ namespace aio {
 		IOServerSocket* aSocket,
 		IOSubscription* aSub)
 	{
-		MG_DEV_ASSERT(mySub == nullptr);
-		MG_DEV_ASSERT(aSocket->mySock != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(mySub == nullptr);
+		MG_BOX_ASSERT(aSocket->mySock != mg::net::theInvalidSocket);
 		// Move the socket ownership to the task.
 		PrivAttach(aSub, aSocket->mySock);
 		aSocket->mySock = mg::net::theInvalidSocket;
 #if MG_IOCORE_USE_IOCP
 		// Only IOCP with its weird WSA API needs the context to be kept.
-		MG_DEV_ASSERT(myServerSock == nullptr);
+		MG_BOX_ASSERT(myServerSock == nullptr);
 		myServerSock = aSocket;
 #else
 		// Unix-based implementations are simpler in this sense. Can just delete
@@ -82,7 +82,7 @@ namespace aio {
 	IOTask::Post(
 		IOSubscription* aSub)
 	{
-		MG_DEV_ASSERT(mySub == nullptr);
+		MG_BOX_ASSERT(mySub == nullptr);
 		PrivAttach(aSub, mg::net::theInvalidSocket);
 		myCore.PrivPostStart(this);
 	}
@@ -102,7 +102,7 @@ namespace aio {
 		// queue) and would be actually closed + deleted in some worker thread even before
 		// this function ends.
 		IOTaskStatus oldStatus = myStatus.ExchangeRelaxed(IOTASK_STATUS_CLOSING);
-		MG_DEV_ASSERT_F(
+		MG_BOX_ASSERT_F(
 			oldStatus == IOTASK_STATUS_PENDING ||
 			oldStatus == IOTASK_STATUS_READY ||
 			oldStatus == IOTASK_STATUS_WAITING, "status: %d", (int)oldStatus);
@@ -139,7 +139,7 @@ namespace aio {
 				return;
 			if (oldStatus == IOTASK_STATUS_WAITING)
 				return myCore.PrivRePost(this);
-			MG_DEV_ASSERT_F(false, "status: %d", (int)oldStatus);
+			MG_BOX_ASSERT_F(false, "status: %d", (int)oldStatus);
 		}
 	}
 
@@ -153,9 +153,9 @@ namespace aio {
 	IOTask::AttachSocket(
 		mg::net::Socket aSocket)
 	{
-		MG_DEV_ASSERT(IsInWorkerNow());
-		MG_DEV_ASSERT(!IsClosed());
-		MG_DEV_ASSERT(mySocket == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(!IsClosed());
+		MG_BOX_ASSERT(mySocket == mg::net::theInvalidSocket);
 		mySocket = aSocket;
 		myCore.PrivKernelRegister(this);
 	}
@@ -200,7 +200,7 @@ namespace aio {
 		}
 		if (ConnectStart(sock, aHost, aEvent))
 			return true;
-		MG_DEV_ASSERT(aEvent.IsError());
+		MG_BOX_ASSERT(aEvent.IsError());
 		if (!HasSocket())
 			mg::net::SocketClose(sock);
 		return false;
@@ -245,10 +245,10 @@ namespace aio {
 	void
 	IOTask::PrivCloseDo()
 	{
-		MG_DEV_ASSERT(myCloseGuard.LoadRelaxed());
-		MG_DEV_ASSERT(!myIsClosed);
-		MG_DEV_ASSERT(myNext == nullptr);
-		MG_DEV_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSING);
+		MG_BOX_ASSERT(myCloseGuard.LoadRelaxed());
+		MG_BOX_ASSERT(!myIsClosed);
+		MG_BOX_ASSERT(myNext == nullptr);
+		MG_BOX_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSING);
 		// Closed flag is ok to update non-atomically. Close is done in the scheduler, so
 		// the task is not executed in any worker now and they can't see this flag before
 		// the task's socket is finally removed from the kernel.
@@ -265,15 +265,15 @@ namespace aio {
 		IOSubscription* aSub,
 		mg::net::Socket aSocket)
 	{
-		MG_DEV_ASSERT(!mySub.IsSet());
-		MG_DEV_ASSERT(mySocket == mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(myNext == nullptr);
+		MG_BOX_ASSERT(!mySub.IsSet());
+		MG_BOX_ASSERT(mySocket == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myNext == nullptr);
 		IOTaskStatus oldStatus = IOTASK_STATUS_CLOSED;
 		if (myStatus.CmpExchgStrongRelaxed(oldStatus, IOTASK_STATUS_PENDING))
 		{
 			// The task is reused.
-			MG_DEV_ASSERT(IsInWorkerNow());
-			MG_DEV_ASSERT(myIsClosed);
+			MG_BOX_ASSERT(IsInWorkerNow());
+			MG_BOX_ASSERT(myIsClosed);
 			myIsClosed = false;
 			// Clear the guard in the end to prevent a new closure while the task is being
 			// re-created.
@@ -281,7 +281,7 @@ namespace aio {
 		}
 		else
 		{
-			MG_DEV_ASSERT(!myIsClosed);
+			MG_BOX_ASSERT(!myIsClosed);
 		}
 		mySub.Set(aSub);
 		mySocket = aSocket;

@@ -37,12 +37,12 @@ namespace aio {
 	IOTask::PrivDestructPlatform()
 	{
 		PrivTouch();
-		MG_DEV_ASSERT(myReadyEvents.IsEmpty());
-		MG_DEV_ASSERT(myReadyEventCount == 0);
-		MG_DEV_ASSERT(myPendingEvents.IsEmpty());
-		MG_DEV_ASSERT(myPendingEventCount == 0);
-		MG_DEV_ASSERT(myOperationCount == 0);
-		MG_DEV_ASSERT(myServerSock == nullptr);
+		MG_BOX_ASSERT(myReadyEvents.IsEmpty());
+		MG_BOX_ASSERT(myReadyEventCount == 0);
+		MG_BOX_ASSERT(myPendingEvents.IsEmpty());
+		MG_BOX_ASSERT(myPendingEventCount == 0);
+		MG_BOX_ASSERT(myOperationCount == 0);
+		MG_BOX_ASSERT(myServerSock == nullptr);
 	}
 
 	void
@@ -57,7 +57,7 @@ namespace aio {
 	{
 		PrivTouch();
 		int count = --myOperationCount;
-		MG_DEV_ASSERT(count >= 0);
+		MG_BOX_ASSERT(count >= 0);
 	}
 
 	bool
@@ -66,7 +66,7 @@ namespace aio {
 		uint32_t aBufferCount,
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(!aEvent.IsLocked());
+		MG_BOX_ASSERT(!aEvent.IsLocked());
 		DWORD bytesSent;
 		int rc = WSASend(GetSocket(), mg::box::IOVecToNative(aBuffers), aBufferCount,
 			&bytesSent, 0, &aEvent.myOverlap, nullptr);
@@ -92,7 +92,7 @@ namespace aio {
 		uint32_t aBufferCount,
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(!aEvent.IsLocked());
+		MG_BOX_ASSERT(!aEvent.IsLocked());
 		DWORD bytesRecvd;
 		DWORD flags = 0;
 		int rc = WSARecv(GetSocket(), mg::box::IOVecToNative(aBuffers), aBufferCount,
@@ -119,9 +119,9 @@ namespace aio {
 		const mg::net::Host& aHost,
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(IsInWorkerNow());
-		MG_DEV_ASSERT(!aEvent.IsLocked());
-		MG_DEV_ASSERT(mySocket == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(!aEvent.IsLocked());
+		MG_BOX_ASSERT(mySocket == mg::net::theInvalidSocket);
 
 		mg::box::Error::Ptr err;
 		if (!mg::net::SocketBindAny(aSocket, aHost.myAddr.sa_family, err))
@@ -157,8 +157,8 @@ namespace aio {
 	IOTask::ConnectUpdate(
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(IsInWorkerNow());
-		MG_DEV_ASSERT(mySocket != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(mySocket != mg::net::theInvalidSocket);
 		if (aEvent.IsLocked())
 			return true;
 		if (aEvent.IsError())
@@ -176,17 +176,17 @@ namespace aio {
 		IOEvent& aEvent,
 		mg::net::Host& aOutPeer)
 	{
-		MG_DEV_ASSERT(IsInWorkerNow());
-		MG_DEV_ASSERT(myServerSock != nullptr);
+		MG_BOX_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(myServerSock != nullptr);
 		// The socket is moved to task->mySocket when posted into IOCore.
-		MG_DEV_ASSERT(myServerSock->mySock == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myServerSock->mySock == mg::net::theInvalidSocket);
 		// Lock = spurious wakeup. Keep waiting then.
 		if (aEvent.IsLocked())
 			return mg::net::theInvalidSocket;
 		if (aEvent.IsEmpty())
 		{
 			// No accept in progress right now. Start one.
-			MG_DEV_ASSERT(myServerSock->myPeerSock == mg::net::theInvalidSocket);
+			MG_BOX_ASSERT(myServerSock->myPeerSock == mg::net::theInvalidSocket);
 			mg::box::Error::Ptr err;
 			myServerSock->myPeerSock = SocketCreate(myServerSock->myAddFamily,
 				mg::net::TRANSPORT_PROT_TCP, err);
@@ -228,7 +228,7 @@ namespace aio {
 		}
 		// A previously started accept has finally ended successfully.
 		MG_BOX_ASSERT(aEvent.PopBytes() == 0);
-		MG_DEV_ASSERT(myServerSock->myPeerSock != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myServerSock->myPeerSock != mg::net::theInvalidSocket);
 		sockaddr* localAddr = nullptr;
 		sockaddr* remoteAddr = nullptr;
 		int localLen;
@@ -289,15 +289,15 @@ namespace aio {
 	void
 	IOTask::PrivCloseEnd()
 	{
-		MG_DEV_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSED);
+		MG_BOX_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSED);
 		// Task couldn't return to the scheduler and get new pending events.
-		MG_DEV_ASSERT(myPendingEventCount == 0);
-		MG_DEV_ASSERT(myPendingEvents.IsEmpty());
+		MG_BOX_ASSERT(myPendingEventCount == 0);
+		MG_BOX_ASSERT(myPendingEvents.IsEmpty());
 		// Ready events are already dumped into IOArgs.
-		MG_DEV_ASSERT(myReadyEventCount == 0);
-		MG_DEV_ASSERT(myReadyEvents.IsEmpty());
+		MG_BOX_ASSERT(myReadyEventCount == 0);
+		MG_BOX_ASSERT(myReadyEvents.IsEmpty());
 		// IOCP can report task as closed only after all its operations are complete.
-		MG_DEV_ASSERT(myOperationCount == 0);
+		MG_BOX_ASSERT(myOperationCount == 0);
 		delete myServerSock;
 		myServerSock = nullptr;
 	}
@@ -335,7 +335,7 @@ namespace aio {
 		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(aSock != nullptr && aSock->mySock != mg::net::theInvalidSocket &&
+		MG_BOX_ASSERT(aSock != nullptr && aSock->mySock != mg::net::theInvalidSocket &&
 			"First bind, then listen");
 		if (listen(aSock->mySock, aBacklog) != 0)
 		{

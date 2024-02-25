@@ -89,9 +89,9 @@ namespace aio {
 		TCPSocketCtl* aSrc)
 	{
 		// Handshake is always added first. Can't be merged from a non-first ctl.
-		MG_DEV_ASSERT(!aSrc->myHasHandshake);
-		MG_DEV_ASSERT(aSrc->myHandshake == nullptr);
-		MG_DEV_ASSERT(myTask == aSrc->myTask);
+		MG_BOX_ASSERT(!aSrc->myHasHandshake);
+		MG_BOX_ASSERT(aSrc->myHandshake == nullptr);
+		MG_BOX_ASSERT(myTask == aSrc->myTask);
 		if (aSrc->myHasShutdown)
 		{
 			// Shutdown can be requested multiple times.
@@ -101,7 +101,7 @@ namespace aio {
 		if (aSrc->myHasAttach)
 		{
 			// Can attach only one socket.
-			MG_DEV_ASSERT(!myHasAttach);
+			MG_BOX_ASSERT(!myHasAttach);
 			myHasAttach = true;
 			myAttachSocket = aSrc->myAttachSocket;
 			aSrc->myAttachSocket = mg::net::theInvalidSocket;
@@ -110,8 +110,8 @@ namespace aio {
 		if (aSrc->myHasConnect)
 		{
 			// Can connect only once (until the socket is closed and re-opened).
-			MG_DEV_ASSERT(!myHasConnect);
-			MG_DEV_ASSERT(!aSrc->myConnectIsStarted);
+			MG_BOX_ASSERT(!myHasConnect);
+			MG_BOX_ASSERT(!aSrc->myConnectIsStarted);
 			myHasConnect = true;
 			myConnectHost = aSrc->myConnectHost;
 			myConnectDomain = aSrc->myConnectDomain;
@@ -132,12 +132,12 @@ namespace aio {
 	{
 		// Connect or attach are mutually exclusive and are always the first ctl. Shutdown
 		// couldn't be requested before them.
-		MG_DEV_ASSERT(!myHasConnect);
-		MG_DEV_ASSERT(!myHasAttach);
-		MG_DEV_ASSERT(!myHasShutdown);
-		MG_DEV_ASSERT(myConnectSocket == mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(myConnectDomain == nullptr);
-		MG_DEV_ASSERT(!myConnectIsStarted);
+		MG_BOX_ASSERT(!myHasConnect);
+		MG_BOX_ASSERT(!myHasAttach);
+		MG_BOX_ASSERT(!myHasShutdown);
+		MG_BOX_ASSERT(myConnectSocket == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myConnectDomain == nullptr);
+		MG_BOX_ASSERT(!myConnectIsStarted);
 		myHasConnect = true;
 		myConnectSocket = aParams.mySocket;
 		myConnectDelay = aParams.myDelay;
@@ -159,9 +159,9 @@ namespace aio {
 	{
 		// Connect or attach are mutually exclusive and are always the first ctl. Shutdown
 		// couldn't be requested before them.
-		MG_DEV_ASSERT(!myHasConnect);
-		MG_DEV_ASSERT(!myHasAttach);
-		MG_DEV_ASSERT(!myHasShutdown);
+		MG_BOX_ASSERT(!myHasConnect);
+		MG_BOX_ASSERT(!myHasAttach);
+		MG_BOX_ASSERT(!myHasShutdown);
 		myHasAttach = true;
 		myAttachSocket = aSocket;
 	}
@@ -172,11 +172,11 @@ namespace aio {
 	{
 		// Needs to be added before all the other steps, especially before connect/attach.
 		// Otherwise it might be too late.
-		MG_DEV_ASSERT(!myHasAttach);
-		MG_DEV_ASSERT(!myHasConnect);
-		MG_DEV_ASSERT(!myHasHandshake);
-		MG_DEV_ASSERT(!myHasShutdown);
-		MG_DEV_ASSERT(myHandshake == nullptr);
+		MG_BOX_ASSERT(!myHasAttach);
+		MG_BOX_ASSERT(!myHasConnect);
+		MG_BOX_ASSERT(!myHasHandshake);
+		MG_BOX_ASSERT(!myHasShutdown);
+		MG_BOX_ASSERT(myHandshake == nullptr);
 		// Handshake presence flag is set later automatically at a specific stage and is
 		/// mandatory. It just ends right away if no handshake handler was provided.
 		myHandshake = aHandshake;
@@ -205,7 +205,7 @@ namespace aio {
 	TCPSocketCtl::DoShutdown(
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(myHasShutdown);
+		MG_BOX_ASSERT(myHasShutdown);
 		// Shutdown on a non-connected socket simply does not work. Wait to kill it later.
 		if (myHasConnect)
 			return true;
@@ -229,8 +229,8 @@ namespace aio {
 	TCPSocketCtl::DoConnect(
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(myHasConnect);
-		MG_DEV_ASSERT(!myHasAttach);
+		MG_BOX_ASSERT(myHasConnect);
+		MG_BOX_ASSERT(!myHasAttach);
 		if (!myConnectIsStarted)
 		{
 			myConnectIsStarted = true;
@@ -250,7 +250,7 @@ namespace aio {
 		}
 		if (myConnectDomain != nullptr)
 		{
-			MG_DEV_ASSERT(!myConnectHost.IsSet());
+			MG_BOX_ASSERT(!myConnectHost.IsSet());
 			if (!myConnectDomain->Update())
 				return true;
 			aOutErr = std::move(myConnectDomain->myError);
@@ -308,8 +308,8 @@ namespace aio {
 	void
 	TCPSocketCtl::DoAttach()
 	{
-		MG_DEV_ASSERT(myHasAttach);
-		MG_DEV_ASSERT(!myHasConnect);
+		MG_BOX_ASSERT(myHasAttach);
+		MG_BOX_ASSERT(!myHasConnect);
 		myHasAttach = false;
 		myTask->AttachSocket(myAttachSocket);
 		myAttachSocket = mg::net::theInvalidSocket;
@@ -325,9 +325,9 @@ namespace aio {
 	void
 	TCPSocketCtl::DoHandshake()
 	{
-		MG_DEV_ASSERT(!myHasConnect);
-		MG_DEV_ASSERT(!myHasAttach);
-		MG_DEV_ASSERT(myHasHandshake);
+		MG_BOX_ASSERT(!myHasConnect);
+		MG_BOX_ASSERT(!myHasAttach);
+		MG_BOX_ASSERT(myHasHandshake);
 		// Handshake might be optional. In that case it simply ends right away.
 		if (myHandshake == nullptr || myHandshake->Update())
 			PrivEndHandshake();
@@ -336,7 +336,7 @@ namespace aio {
 	void
 	TCPSocketCtl::PrivEndConnect()
 	{
-		MG_DEV_ASSERT(myHasConnect);
+		MG_BOX_ASSERT(myHasConnect);
 		if (myConnectDomain != nullptr)
 		{
 			myConnectDomain->Cancel();
@@ -354,7 +354,7 @@ namespace aio {
 	void
 	TCPSocketCtl::PrivEndAttach()
 	{
-		MG_DEV_ASSERT(myHasAttach);
+		MG_BOX_ASSERT(myHasAttach);
 		mg::net::SocketClose(myAttachSocket);
 		myAttachSocket = mg::net::theInvalidSocket;
 		myHasAttach = false;
@@ -363,9 +363,9 @@ namespace aio {
 	void
 	TCPSocketCtl::PrivStartHandshake()
 	{
-		MG_DEV_ASSERT(!myHasConnect);
-		MG_DEV_ASSERT(!myHasAttach);
-		MG_DEV_ASSERT(!myHasHandshake);
+		MG_BOX_ASSERT(!myHasConnect);
+		MG_BOX_ASSERT(!myHasAttach);
+		MG_BOX_ASSERT(!myHasHandshake);
 		myHasHandshake = true;
 	}
 
@@ -390,7 +390,7 @@ namespace aio {
 		, myAddrFamily(aAddrFamily)
 		, myIsSent(false)
 	{
-		MG_DEV_ASSERT(aDomain != nullptr);
+		MG_BOX_ASSERT(aDomain != nullptr);
 	}
 
 	bool

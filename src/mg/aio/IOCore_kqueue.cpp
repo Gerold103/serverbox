@@ -50,10 +50,10 @@ namespace aio {
 	IOCore::PrivKernelRegister(
 		IOTask* aTask)
 	{
-		MG_DEV_ASSERT(aTask->myReadyEvents.IsEmpty());
-		MG_DEV_ASSERT(aTask->myPendingEvents.IsEmpty());
-		MG_DEV_ASSERT(aTask->mySocket != mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(myNativeCore >= 0);
+		MG_BOX_ASSERT(aTask->myReadyEvents.IsEmpty());
+		MG_BOX_ASSERT(aTask->myPendingEvents.IsEmpty());
+		MG_BOX_ASSERT(aTask->mySocket != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myNativeCore >= 0);
 		struct kevent events[2];
 		struct kevent& eventIn = events[0];
 		struct kevent& eventOut = events[1];
@@ -70,7 +70,7 @@ namespace aio {
 	IOCore::PrivKernelUnregister(
 		IOTask* aTask)
 	{
-		MG_DEV_ASSERT(myNativeCore >= 0);
+		MG_BOX_ASSERT(myNativeCore >= 0);
 		if (aTask->mySocket == mg::net::theInvalidSocket)
 			return;
 
@@ -228,7 +228,7 @@ namespace aio {
 				// destroyed in one of the worker threads, and to deliver the close event.
 				t->PrivCloseDo();
 				oldState = t->myStatus.ExchangeRelaxed(IOTASK_STATUS_CLOSED);
-				MG_DEV_ASSERT_F(oldState == IOTASK_STATUS_CLOSING, "status: %d",
+				MG_BOX_ASSERT_F(oldState == IOTASK_STATUS_CLOSING, "status: %d",
 					(int)oldState);
 				// IO events are not delivered if the task is closed. Because its socket
 				// is already closed and the descriptor is not valid. The task owner must

@@ -30,8 +30,8 @@ namespace aio {
 	void
 	IOTask::PrivDestructPlatform()
 	{
-		MG_DEV_ASSERT(myReadyEvents.IsEmpty());
-		MG_DEV_ASSERT(myPendingEvents.IsEmpty());
+		MG_BOX_ASSERT(myReadyEvents.IsEmpty());
+		MG_BOX_ASSERT(myPendingEvents.IsEmpty());
 	}
 
 	void
@@ -54,7 +54,7 @@ namespace aio {
 		uint32_t aBufferCount,
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(!aEvent.IsLocked());
+		MG_BOX_ASSERT(!aEvent.IsLocked());
 		// sendmsg() is preferred over writev() because write*() calls are accounted like
 		// disk operations in IO monitoring in the Linux kernel. In other kernels it is
 		// probably not so important, but is done for keeping the code more similar
@@ -82,14 +82,14 @@ namespace aio {
 			// must reschedule the task if wants more IO.
 			return aEvent.ReturnBytes(rc);
 		}
-		MG_DEV_ASSERT(rc < 0);
+		MG_BOX_ASSERT(rc < 0);
 		if (errno != EWOULDBLOCK && errno != EAGAIN)
 			return aEvent.ReturnError(mg::box::ErrorCodeErrno());
 		// Clear the event. When it will be unlocked, it should not contain any old data
 		// until a next IO attempt happens.
 		aEvent.ReturnEmpty();
 		aEvent.Lock();
-		MG_DEV_ASSERT(myOutEvent == nullptr);
+		MG_BOX_ASSERT(myOutEvent == nullptr);
 		myOutEvent = &aEvent;
 		return true;
 	}
@@ -100,7 +100,7 @@ namespace aio {
 		uint32_t aBufferCount,
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(!aEvent.IsLocked());
+		MG_BOX_ASSERT(!aEvent.IsLocked());
 		// recvmsg() is preferred over readv() because read*() calls are accounted like
 		// disk operations in IO monitoring in the Linux kernel. In other kernels it is
 		// probably not so important, but is done for keeping the code more similar
@@ -134,7 +134,7 @@ namespace aio {
 		// until a next IO attempt happens.
 		aEvent.ReturnEmpty();
 		aEvent.Lock();
-		MG_DEV_ASSERT(myInEvent == nullptr);
+		MG_BOX_ASSERT(myInEvent == nullptr);
 		myInEvent = &aEvent;
 		return true;
 	}
@@ -145,9 +145,9 @@ namespace aio {
 		const mg::net::Host& aHost,
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(IsInWorkerNow());
-		MG_DEV_ASSERT(!aEvent.IsLocked());
-		MG_DEV_ASSERT(mySocket == mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(!aEvent.IsLocked());
+		MG_BOX_ASSERT(mySocket == mg::net::theInvalidSocket);
 
 		bool ok = connect(aSocket, &aHost.myAddr, aHost.GetSockaddrSize()) == 0;
 		if (ok)
@@ -162,7 +162,7 @@ namespace aio {
 		aEvent.Lock();
 		// Connect finish is signaled by the socket becoming writable. Hence wait for
 		// EVFILT_WRITE.
-		MG_DEV_ASSERT(myOutEvent == nullptr);
+		MG_BOX_ASSERT(myOutEvent == nullptr);
 		myOutEvent = &aEvent;
 		return true;
 	}
@@ -171,11 +171,11 @@ namespace aio {
 	IOTask::ConnectUpdate(
 		IOEvent& aEvent)
 	{
-		MG_DEV_ASSERT(mySocket != mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(mySocket != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(IsInWorkerNow());
 		if (aEvent.IsLocked())
 			return true;
-		MG_DEV_ASSERT(aEvent.IsEmpty());
+		MG_BOX_ASSERT(aEvent.IsEmpty());
 		return aEvent.ReturnBytes(0);
 	}
 
@@ -184,14 +184,14 @@ namespace aio {
 		IOEvent& aEvent,
 		mg::net::Host& aOutPeer)
 	{
-		MG_DEV_ASSERT(IsInWorkerNow());
+		MG_BOX_ASSERT(IsInWorkerNow());
 		// Check if still waiting for a kevent.
 		if (aEvent.IsLocked())
 			return mg::net::theInvalidSocket;
 		// Accept never returns 'bytes', and errors are supposed to be consumed by the
 		// user before trying accept() again.
-		MG_DEV_ASSERT(aEvent.IsEmpty());
-		MG_DEV_ASSERT(myInEvent == nullptr);
+		MG_BOX_ASSERT(aEvent.IsEmpty());
+		MG_BOX_ASSERT(myInEvent == nullptr);
 		sockaddr_storage remoteAddr;
 		socklen_t remoteAddrLen = sizeof(remoteAddr);
 		mg::net::Socket sock = accept(mySocket, (sockaddr*)&remoteAddr, &remoteAddrLen);
@@ -262,9 +262,9 @@ namespace aio {
 	void
 	IOTask::PrivCloseEnd()
 	{
-		MG_DEV_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSED);
+		MG_BOX_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSED);
 		// Task couldn't return to the scheduler and get new pending events.
-		MG_DEV_ASSERT(myPendingEvents.IsEmpty());
+		MG_BOX_ASSERT(myPendingEvents.IsEmpty());
 		// Delete whatever the owner tried to 'save'.
 		myReadyEvents = {};
 		if (myInEvent != nullptr)
@@ -314,7 +314,7 @@ namespace aio {
 		uint32_t aBacklog,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(aSock != nullptr && aSock->mySock != mg::net::theInvalidSocket &&
+		MG_BOX_ASSERT(aSock != nullptr && aSock->mySock != mg::net::theInvalidSocket &&
 			"First bind, then listen");
 		bool ok = listen(aSock->mySock, aBacklog) == 0;
 		if (!ok)

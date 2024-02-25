@@ -61,7 +61,7 @@ namespace aio {
 	{
 		if (aThreadCount == MG_IOCORE_DEFAULT_THREAD_COUNT)
 			aThreadCount = mg::box::SysGetCPUCoreCount() * 2;
-		MG_DEV_ASSERT(aThreadCount > 0 && aThreadCount < 256);
+		MG_BOX_ASSERT(aThreadCount > 0 && aThreadCount < 256);
 		myWorkers.reserve(aThreadCount);
 
 		mg::box::MutexLock lock(myMutex);

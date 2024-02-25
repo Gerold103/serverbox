@@ -100,7 +100,7 @@ namespace aio {
 			return;
 		if (myRecvSize == 0)
 		{
-			MG_DEV_ASSERT(myRecvQueue.IsEmpty());
+			MG_BOX_ASSERT(myRecvQueue.IsEmpty());
 			return;
 		}
 		myRecvQueue.EnsureWriteSize(myRecvSize);

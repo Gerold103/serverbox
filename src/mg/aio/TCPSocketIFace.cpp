@@ -47,10 +47,10 @@ namespace aio {
 		params.myDelay = aParams.myDelay;
 
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSED ||
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSED ||
 			myState == TCP_SOCKET_STATE_NEW);
-		MG_DEV_ASSERT(myIsReadyToStart);
-		MG_DEV_ASSERT(!myIsRunning);
+		MG_BOX_ASSERT(myIsReadyToStart);
+		MG_BOX_ASSERT(!myIsRunning);
 		myIsReadyToStart = false;
 		myIsRunning = true;
 		mySub = aSub;
@@ -68,10 +68,10 @@ namespace aio {
 		TCPSocketSubscription* aSub)
 	{
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSED ||
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSED ||
 			myState == TCP_SOCKET_STATE_NEW);
-		MG_DEV_ASSERT(myIsReadyToStart);
-		MG_DEV_ASSERT(!myIsRunning);
+		MG_BOX_ASSERT(myIsReadyToStart);
+		MG_BOX_ASSERT(!myIsRunning);
 		myIsReadyToStart = false;
 		myIsRunning = true;
 		mySub = aSub;
@@ -88,10 +88,10 @@ namespace aio {
 		TCPSocketSubscription* aSub)
 	{
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSED ||
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSED ||
 			myState == TCP_SOCKET_STATE_NEW);
-		MG_DEV_ASSERT(myIsReadyToStart);
-		MG_DEV_ASSERT(!myIsRunning);
+		MG_BOX_ASSERT(myIsReadyToStart);
+		MG_BOX_ASSERT(!myIsRunning);
 		myIsReadyToStart = false;
 		myIsRunning = true;
 		mySub = aSub;
@@ -196,7 +196,7 @@ namespace aio {
 		mg::box::MutexLock lock(myMutex);
 		if (myState >= TCP_SOCKET_STATE_CLOSING)
 			return;
-		MG_DEV_ASSERT(myState != TCP_SOCKET_STATE_NEW);
+		MG_BOX_ASSERT(myState != TCP_SOCKET_STATE_NEW);
 		if (myFrontCtl == nullptr)
 			myFrontCtl = new TCPSocketCtl(&myTask);
 		myFrontCtl->AddShutdown();
@@ -292,7 +292,7 @@ namespace aio {
 	TCPSocketIFace::Connect(
 		const TCPSocketConnectParams& aParams)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		TCPSocketCtlConnectParams params;
 		params.mySocket = aParams.mySocket;
 		params.myEndpoint = aParams.myEndpoint;
@@ -314,8 +314,8 @@ namespace aio {
 			myMutex.Unlock();
 			return;
 		}
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_EMPTY);
-		MG_DEV_ASSERT(myIsRunning);
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_EMPTY);
+		MG_BOX_ASSERT(myIsRunning);
 		myState = TCP_SOCKET_STATE_CONNECTING;
 		if (myFrontCtl == nullptr)
 			myFrontCtl = new TCPSocketCtl(&myTask);
@@ -331,9 +331,9 @@ namespace aio {
 		uint32_t aTimeout,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		mg::net::Socket sock = myTask.GetSocket();
-		MG_DEV_ASSERT(sock != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(sock != mg::net::theInvalidSocket);
 		return mg::net::SocketSetKeepAlive(sock, aValue, aTimeout, aOutErr);
 	}
 
@@ -342,9 +342,9 @@ namespace aio {
 		bool aValue,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		mg::net::Socket sock = myTask.GetSocket();
-		MG_DEV_ASSERT(sock != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(sock != mg::net::theInvalidSocket);
 		return mg::net::SocketSetNoDelay(sock, aValue, aOutErr);
 	}
 
@@ -352,13 +352,13 @@ namespace aio {
 	TCPSocketIFace::ProtOpen()
 	{
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myRecvQueue.IsEmpty());
-		MG_DEV_ASSERT(myRecvSize == 0);
-		MG_DEV_ASSERT(!myWasHandshakeDone);
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_NEW ||
+		MG_BOX_ASSERT(myRecvQueue.IsEmpty());
+		MG_BOX_ASSERT(myRecvSize == 0);
+		MG_BOX_ASSERT(!myWasHandshakeDone);
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_NEW ||
 			myState == TCP_SOCKET_STATE_CLOSED);
-		MG_DEV_ASSERT(!myIsRunning);
-		MG_DEV_ASSERT(!myIsReadyToStart);
+		MG_BOX_ASSERT(!myIsRunning);
+		MG_BOX_ASSERT(!myIsReadyToStart);
 		myIsReadyToStart = true;
 	}
 
@@ -369,12 +369,12 @@ namespace aio {
 		mg::box::MutexLock lock(myMutex);
 		// It should be done from the child class Open() method. Adding the handshake step
 		// after connect is already posted would be too late.
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_NEW ||
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_NEW ||
 			myState == TCP_SOCKET_STATE_CLOSED);
-		MG_DEV_ASSERT(myFrontCtl == nullptr);
-		MG_DEV_ASSERT(myIsReadyToStart);
-		MG_DEV_ASSERT(!myIsRunning);
-		MG_DEV_ASSERT(!myWasHandshakeDone);
+		MG_BOX_ASSERT(myFrontCtl == nullptr);
+		MG_BOX_ASSERT(myIsReadyToStart);
+		MG_BOX_ASSERT(!myIsRunning);
+		MG_BOX_ASSERT(!myWasHandshakeDone);
 		myFrontCtl = new TCPSocketCtl(&myTask);
 		myFrontCtl->AddHandshake(aHandshake);
 	}
@@ -397,11 +397,11 @@ namespace aio {
 	void
 	TCPSocketIFace::ProtClose()
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
-		MG_DEV_ASSERT(myIsRunning);
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myIsRunning);
 
 		myMutex.Lock();
-		MG_DEV_ASSERT(myState != TCP_SOCKET_STATE_NEW);
+		MG_BOX_ASSERT(myState != TCP_SOCKET_STATE_NEW);
 		if (myTask.IsClosed())
 		{
 			if (myState == TCP_SOCKET_STATE_CLOSED)
@@ -437,7 +437,7 @@ namespace aio {
 		if (myState < TCP_SOCKET_STATE_CLOSING)
 			myState = TCP_SOCKET_STATE_CLOSING;
 		else
-			MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSING);
+			MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSING);
 		myMutex.Unlock();
 		// Close the task even if close is already started. IOCore allows that. Easier
 		// than caring about branching here.
@@ -448,7 +448,7 @@ namespace aio {
 	TCPSocketIFace::ProtCloseError(
 		mg::box::Error* aError)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		if (!PrivIsCompromised())
 			mySub->OnError(aError);
 		ProtClose();
@@ -466,7 +466,7 @@ namespace aio {
 	TCPSocketIFace::ProtOnSendError(
 		mg::box::Error* aError)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		if (!PrivIsCompromised())
 		{
 			mySub->OnSendError(aError);
@@ -488,7 +488,7 @@ namespace aio {
 	TCPSocketIFace::ProtOnRecvError(
 		mg::box::Error* aError)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		if (!PrivIsCompromised())
 		{
 			mySub->OnRecvError(aError);
@@ -503,7 +503,7 @@ namespace aio {
 		mg::box::MutexLock lock(myMutex);
 		// If it was connected, it was referenced by IOCore. Therefore couldn't be deleted
 		// before closed.
-		MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSED);
+		MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSED);
 		delete myCtl;
 		myCtl = nullptr;
 		delete myFrontCtl;
@@ -514,7 +514,7 @@ namespace aio {
 	TCPSocketIFace::PrivConnectAbort(
 		mg::box::Error* aError)
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		if (!PrivIsCompromised())
 		{
 			mySub->OnConnectError(aError);
@@ -526,27 +526,27 @@ namespace aio {
 	void
 	TCPSocketIFace::PrivHandshakeStart()
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
-		MG_DEV_ASSERT(!myWasHandshakeDone);
-		MG_DEV_ASSERT(myCtl != nullptr && myCtl->HasHandshake());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(!myWasHandshakeDone);
+		MG_BOX_ASSERT(myCtl != nullptr && myCtl->HasHandshake());
 
 		mg::box::MutexLock lock(myMutex);
 		if (myState == TCP_SOCKET_STATE_CONNECTING)
 			myState = TCP_SOCKET_STATE_HANDSHAKE;
 		else
-			MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSING);
+			MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSING);
 	}
 
 	void
 	TCPSocketIFace::PrivHandshakeCommit()
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
-		MG_DEV_ASSERT(!myWasHandshakeDone);
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(!myWasHandshakeDone);
 		myMutex.Lock();
 		if (myState == TCP_SOCKET_STATE_HANDSHAKE)
 			myState = TCP_SOCKET_STATE_CONNECTED;
 		else
-			MG_DEV_ASSERT(myState == TCP_SOCKET_STATE_CLOSING);
+			MG_BOX_ASSERT(myState == TCP_SOCKET_STATE_CLOSING);
 		myMutex.Unlock();
 
 		myWasHandshakeDone = true;
@@ -556,7 +556,7 @@ namespace aio {
 	bool
 	TCPSocketIFace::PrivIsCompromised() const
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		mg::box::MutexLock lock(myMutex);
 		return myState >= TCP_SOCKET_STATE_CLOSING;
 	}
@@ -599,7 +599,7 @@ namespace aio {
 			if (!myCtl->DoConnect(err))
 			{
 				// Failed connect terminates the operation. Should not still be present.
-				MG_DEV_ASSERT(!myCtl->HasConnect());
+				MG_BOX_ASSERT(!myCtl->HasConnect());
 				PrivConnectAbort(mg::box::ErrorRaise(err, "connect"));
 			}
 			else if (!myCtl->HasConnect())
@@ -641,7 +641,7 @@ namespace aio {
 	void
 	TCPSocketIFace::PrivEnableIO()
 	{
-		MG_DEV_ASSERT(myTask.IsInWorkerNow());
+		MG_BOX_ASSERT(myTask.IsInWorkerNow());
 		mySendEvent.Unlock();
 		myRecvEvent.Unlock();
 	}
@@ -649,7 +649,7 @@ namespace aio {
 	void
 	TCPSocketIFace::PrivDisableIO()
 	{
-		MG_DEV_ASSERT(!myIsRunning);
+		MG_BOX_ASSERT(!myIsRunning);
 		mySendEvent.Reset();
 		mySendEvent.Lock();
 		myRecvEvent.Reset();

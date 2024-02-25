@@ -31,11 +31,11 @@ namespace aio {
 	IOCore::PrivKernelRegister(
 		IOTask* aTask)
 	{
-		MG_DEV_ASSERT(aTask->myOperationCount == 0);
-		MG_DEV_ASSERT(aTask->myReadyEventCount == 0);
-		MG_DEV_ASSERT(aTask->myPendingEventCount == 0);
-		MG_DEV_ASSERT(aTask->mySocket != mg::net::theInvalidSocket);
-		MG_DEV_ASSERT(myNativeCore != nullptr);
+		MG_BOX_ASSERT(aTask->myOperationCount == 0);
+		MG_BOX_ASSERT(aTask->myReadyEventCount == 0);
+		MG_BOX_ASSERT(aTask->myPendingEventCount == 0);
+		MG_BOX_ASSERT(aTask->mySocket != mg::net::theInvalidSocket);
+		MG_BOX_ASSERT(myNativeCore != nullptr);
 		HANDLE handle = CreateIoCompletionPort((HANDLE)aTask->mySocket, myNativeCore,
 			(ULONG_PTR)aTask, 0);
 		if (handle != nullptr)
@@ -138,8 +138,8 @@ namespace aio {
 				// Closed means it couldn't be removed from the scheduler right away via
 				// the front queue - when its socket was closed, it still had not finished
 				// operations inside of iocp.
-				MG_DEV_ASSERT(task->myReadyEventCount == 0);
-				MG_DEV_ASSERT(task->myPendingEventCount <= task->myOperationCount);
+				MG_BOX_ASSERT(task->myReadyEventCount == 0);
+				MG_BOX_ASSERT(task->myPendingEventCount <= task->myOperationCount);
 				if (task->myPendingEventCount != task->myOperationCount)
 					continue;
 			}
@@ -213,13 +213,13 @@ namespace aio {
 				// (because it is just popped from the front queue).
 				task->PrivCloseDo();
 				oldState = task->myStatus.ExchangeRelaxed(IOTASK_STATUS_CLOSED);
-				MG_DEV_ASSERT_F(oldState == IOTASK_STATUS_CLOSING, "status: %d",
+				MG_BOX_ASSERT_F(oldState == IOTASK_STATUS_CLOSING, "status: %d",
 					(int)oldState);
 				if (task->myOperationCount != task->myPendingEventCount)
 				{
 					// Closed, but not all operations has returned from iocp yet. Must
 					// wait for them before can return the task to the external code.
-					MG_DEV_ASSERT(task->myOperationCount > task->myPendingEventCount);
+					MG_BOX_ASSERT(task->myOperationCount > task->myPendingEventCount);
 					continue;
 				}
 				// Closed and no unfinished operations. Can safely return the task to its

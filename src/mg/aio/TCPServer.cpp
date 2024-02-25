@@ -8,7 +8,7 @@ namespace aio {
 		const mg::net::Host& aHost,
 		mg::box::Error::Ptr& aOutErr)
 	{
-		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_NEW);
+		MG_BOX_ASSERT(myState == TCP_SERVER_STATE_NEW);
 		IOServerSocket* sock = SocketBind(aHost, aOutErr);
 		if (sock == nullptr)
 			return false;
@@ -31,8 +31,8 @@ namespace aio {
 		mg::box::Error::Ptr& aOutErr)
 	{
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_BOUND);
-		MG_DEV_ASSERT(mySub == nullptr);
+		MG_BOX_ASSERT(myState == TCP_SERVER_STATE_BOUND);
+		MG_BOX_ASSERT(mySub == nullptr);
 		if (!SocketListen(myBoundSocket, aBacklog, aOutErr))
 			return false;
 		mySub = aSub;
@@ -57,7 +57,7 @@ namespace aio {
 			return;
 		}
 		myState = TCP_SERVER_STATE_CLOSED;
-		MG_DEV_ASSERT(mySub == nullptr);
+		MG_BOX_ASSERT(mySub == nullptr);
 		delete myBoundSocket;
 		myBoundSocket = nullptr;
 	}
@@ -81,9 +81,9 @@ namespace aio {
 	TCPServer::~TCPServer()
 	{
 		mg::box::MutexLock lock(myMutex);
-		MG_DEV_ASSERT(myState == TCP_SERVER_STATE_CLOSED ||
+		MG_BOX_ASSERT(myState == TCP_SERVER_STATE_CLOSED ||
 			myState == TCP_SERVER_STATE_NEW);
-		MG_DEV_ASSERT(mySub == nullptr);
+		MG_BOX_ASSERT(mySub == nullptr);
 		delete myBoundSocket;
 		myBoundSocket = nullptr;
 	}
