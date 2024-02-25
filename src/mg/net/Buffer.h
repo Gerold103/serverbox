@@ -178,6 +178,8 @@ namespace net {
 		void SkipData(
 			uint32_t& aByteOffset,
 			uint64_t aByteCount);
+		void SkipEmptyPrefix(
+			uint32_t& aByteOffset);
 
 		void Clear() { while (!myLinks.IsEmpty()) delete myLinks.PopFirst(); }
 

@@ -521,6 +521,80 @@ namespace buffer {
 	}
 
 	static void
+	UnitTestBufferLinkListSkipEmptyPrefix()
+	{
+		TestCaseGuard guard("BufferLinkList::SkipEmptyPrefix()");
+
+		mg::net::BufferLinkList list;
+		// Empty.
+		uint32_t offset = 0;
+		list.SkipEmptyPrefix(offset);
+		TEST_CHECK(list.IsEmpty());
+		TEST_CHECK(offset == 0);
+
+		// Has empty buffers.
+		list.AppendRef(mg::net::BufferRaw::NewShared());
+		TEST_CHECK(!list.IsEmpty());
+		list.SkipEmptyPrefix(offset);
+		TEST_CHECK(list.IsEmpty());
+		TEST_CHECK(offset == 0);
+
+		// Non-empty offset in the first buffer.
+		list.AppendRef(mg::net::BufferRaw::NewShared("123", 3));
+		for (uint32_t i = 1; i < 3; ++i)
+		{
+			offset = i;
+			list.SkipEmptyPrefix(offset);
+			TEST_CHECK(!list.IsEmpty());
+			TEST_CHECK(list.GetFirst()->myHead->myPos == 3);
+			TEST_CHECK(memcmp(list.GetFirst()->myHead->myRData, "123", 3) == 0);
+			TEST_CHECK(offset == i);
+		}
+		offset = 3;
+		list.SkipEmptyPrefix(offset);
+		TEST_CHECK(list.IsEmpty());
+		TEST_CHECK(offset == 0);
+
+		// Skip multiple links and stop in the middle of one.
+		list.AppendRef(mg::net::BufferRaw::NewShared());
+		list.AppendRef(mg::net::BufferRaw::NewShared());
+		mg::net::Buffer::Ptr b = mg::net::BufferRaw::NewShared();
+		mg::net::Buffer* tail = b.GetPointer();
+		tail = (tail->myNext = mg::net::BufferRaw::NewShared()).GetPointer();
+		tail = (tail->myNext = mg::net::BufferRaw::NewShared("abcd", 4)).GetPointer();
+		tail = (tail->myNext = mg::net::BufferRaw::NewShared()).GetPointer();
+		tail = (tail->myNext = mg::net::BufferRaw::NewShared("efg", 3)).GetPointer();
+		list.AppendRef(std::move(b));
+
+		TEST_CHECK(list.GetFirst()->myHead->myPos == 0);
+		for (uint32_t i = 0; i < 4; ++i)
+		{
+			offset = i;
+			list.SkipEmptyPrefix(offset);
+			TEST_CHECK(list.GetFirst()->myHead->myPos == 4);
+			TEST_CHECK(memcmp(list.GetFirst()->myHead->myRData, "abcd", 4) == 0);
+			TEST_CHECK(offset == i);
+		}
+		offset = 4;
+		list.SkipEmptyPrefix(offset);
+		TEST_CHECK(list.GetFirst()->myHead->myPos == 3);
+		TEST_CHECK(memcmp(list.GetFirst()->myHead->myRData, "efg", 3) == 0);
+		TEST_CHECK(offset == 0);
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			offset = i;
+			list.SkipEmptyPrefix(offset);
+			TEST_CHECK(list.GetFirst()->myHead->myPos == 3);
+			TEST_CHECK(memcmp(list.GetFirst()->myHead->myRData, "efg", 3) == 0);
+			TEST_CHECK(offset == i);
+		}
+		offset = 3;
+		list.SkipEmptyPrefix(offset);
+		TEST_CHECK(list.IsEmpty());
+		TEST_CHECK(offset == 0);
+	}
+
+	static void
 	UnitTestBufferLinkListMisc()
 	{
 		TestCaseGuard guard("BufferLinkList misc");
@@ -1741,6 +1815,7 @@ namespace buffer {
 		UnitTestBufferLinkListAppendCopyData();
 		UnitTestBufferLinkListAppendMany();
 		UnitTestBufferLinkListSkipData();
+		UnitTestBufferLinkListSkipEmptyPrefix();
 		UnitTestBufferLinkListMisc();
 
 		UnitTestBufferStreamPropagateWritePos();

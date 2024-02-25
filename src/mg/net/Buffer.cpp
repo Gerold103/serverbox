@@ -56,6 +56,39 @@ namespace net {
 		aByteOffset = 0;
 	}
 
+	void
+	BufferLinkList::SkipEmptyPrefix(
+		uint32_t& aByteOffset)
+	{
+		BufferLink* link = myLinks.GetFirst();
+		// Fast path - either fully empty or has data right in the beginning.
+		if (link == nullptr)
+		{
+			MG_DEV_ASSERT(aByteOffset == 0);
+			return;
+		}
+		if (link->myHead.GetPointer() && link->myHead->myPos > aByteOffset)
+			return;
+		// Slow path - doesn't happen normally but might happen.
+		do
+		{
+			Buffer::Ptr& head = link->myHead;
+			while (head.GetPointer() != nullptr)
+			{
+				if (head->myPos > 0)
+				{
+					if (aByteOffset < head->myPos)
+						return;
+					MG_DEV_ASSERT(aByteOffset == head->myPos);
+					aByteOffset = 0;
+				}
+				head = std::move(head->myNext);
+			}
+			link = link->myNext;
+			delete myLinks.PopFirst();
+		} while (link != nullptr);
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////////
 
 	void
