@@ -46,6 +46,7 @@ namespace aio {
 		// execution.
 		if (!PrivSendEventConsume())
 			return;
+		mySendQueue.SkipEmptyPrefix(mySendOffset);
 		const mg::net::BufferLink* link = mySendQueue.GetFirst();
 		if (link == nullptr)
 			return;

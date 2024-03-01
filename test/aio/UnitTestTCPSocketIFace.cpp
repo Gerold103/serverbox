@@ -5,6 +5,7 @@
 #include "mg/aio/TCPSocket.h"
 #include "mg/aio/TCPSocketSubscription.h"
 #include "mg/box/DoublyList.h"
+#include "mg/box/IOVec.h"
 #include "mg/test/Message.h"
 
 #include "UnitTest.h"
@@ -16,6 +17,14 @@ namespace mg {
 namespace unittests {
 namespace aio {
 namespace tcpsocketiface {
+
+	static uint64_t BuffersGetSize(
+		const mg::net::BufferLink* aHead);
+
+	static uint64_t BuffersGetSize(
+		const mg::net::Buffer* aHead);
+
+	//////////////////////////////////////////////////////////////////////////////////////
 
 	class TestContext
 	{
@@ -219,10 +228,42 @@ namespace tcpsocketiface {
 
 		void Send(
 			TestMessage* aMessage);
+		void SendMove(
+			mg::net::BufferLink* aHead);
+		void SendRef(
+			mg::net::Buffer* aHead);
+		void SendRef(
+			mg::net::Buffer::Ptr&& aHead);
+		void SendRef(
+			const void* aData,
+			uint64_t aSize);
+		void SendCopy(
+			const mg::net::BufferLink* aHead);
+		void SendCopy(
+			const mg::net::Buffer* aHead);
+		void SendCopy(
+			const void* aData,
+			uint64_t aSize);
 		void Recv(
 			uint64_t aSize);
 		void PostSend(
 			TestMessage* aMessage);
+		void PostSendMove(
+			mg::net::BufferLink* aHead);
+		void PostSendRef(
+			mg::net::Buffer* aHead);
+		void PostSendRef(
+			mg::net::Buffer::Ptr&& aHead);
+		void PostSendRef(
+			const void* aData,
+			uint64_t aSize);
+		void PostSendCopy(
+			const mg::net::BufferLink* aHead);
+		void PostSendCopy(
+			const mg::net::Buffer* aHead);
+		void PostSendCopy(
+			const void* aData,
+			uint64_t aSize);
 		void PostRecv(
 			uint64_t aSize);
 		void SetDeadline(
@@ -599,22 +640,196 @@ namespace tcpsocketiface {
 		TestClientSocket client;
 		client.PostConnect(aPort);
 		client.SetAutoRecv();
+		auto interact = [&]() {
+			client.PostSend(new TestMessage());
+			delete client.PopBlocking();
+		};
 		// Post to connected or connecting client works.
-		client.PostSend(new TestMessage());
-		delete client.PopBlocking();
-
+		{
+			interact();
+		}
 		// Multiple sends work fine even if the client is blocked somewhere in an IO
 		// worker.
-		TestClientSubWorkerBlock::Ptr sub = client.SetWorkerBlock();
-		while (!sub->myIsBlocked.LoadRelaxed())
-			mg::box::Sleep(1);
+		{
+			TestClientSubWorkerBlock::Ptr sub = client.SetWorkerBlock();
+			while (!sub->myIsBlocked.LoadRelaxed())
+				mg::box::Sleep(1);
 
-		for (int i = 0; i < 3; ++i)
-			client.PostSend(new TestMessage());
+			for (int i = 0; i < 3; ++i)
+				client.PostSend(new TestMessage());
 
-		sub->myDoBlock.StoreRelaxed(false);
-		for (int i = 0; i < 3; ++i)
+			sub->myDoBlock.StoreRelaxed(false);
+			for (int i = 0; i < 3; ++i)
+				delete client.PopBlocking();
+			client.Unsubscribe(sub->myID);
+		}
+		// Empty send used to cause a crash.
+		{
+			client.PostSendMove((mg::net::BufferLink*)nullptr);
+			interact();
+
+			client.PostSendMove(new mg::net::BufferLink());
+			interact();
+
+			client.PostSendRef((mg::net::Buffer*)nullptr);
+			interact();
+
+			client.PostSendRef(mg::net::BufferRaw::NewShared(nullptr, 0).GetPointer());
+			interact();
+
+			client.PostSendRef(mg::net::BufferRaw::NewShared(nullptr, 0));
+			interact();
+
+			client.PostSendRef(nullptr, 0);
+			interact();
+
+			client.PostSendCopy((mg::net::BufferLink*)nullptr);
+			interact();
+
+			mg::net::BufferLink* link = new mg::net::BufferLink();
+			client.PostSendCopy(link);
+			delete link;
+			interact();
+
+			client.PostSendCopy((mg::net::Buffer*)nullptr);
+			interact();
+
+			mg::net::Buffer::Ptr buf = mg::net::BufferRaw::NewShared(nullptr, 0);
+			client.PostSendCopy(buf.GetPointer());
+			interact();
+
+			client.PostSendCopy(nullptr, 0);
+			interact();
+		}
+		// Empty buffer in the middle of a buffer list.
+		{
+			TestMessage msg;
+			mg::tst::WriteMessage wm;
+			msg.ToStream(wm);
+			mg::net::Buffer::Ptr data = wm.TakeData();
+			TEST_CHECK(data->myPos > 3);
+
+			mg::net::Buffer::Ptr head = mg::net::BufferRaw::NewShared(data->myRData, 1);
+			mg::net::Buffer* pos = head.GetPointer();
+			pos->myNext = mg::net::BufferRaw::NewShared();
+			pos = pos->myNext.GetPointer();
+
+			pos->myNext = mg::net::BufferRaw::NewShared(data->myRData + 1, 1);
+			pos = pos->myNext.GetPointer();
+
+			data->myRData += 2;
+			data->myPos -= 2;
+			pos->myNext = data;
+
+			client.PostSendRef(std::move(head));
 			delete client.PopBlocking();
+		}
+		// Empty buffer links in the middle of a link chain.
+		{
+			TestMessage msg;
+			mg::tst::WriteMessage wm;
+			msg.ToStream(wm);
+			mg::net::Buffer::Ptr data = wm.TakeData();
+			TEST_CHECK(data->myPos > 3);
+
+			mg::net::BufferLink* head = new mg::net::BufferLink();
+			mg::net::BufferLink* pos = head;
+
+			pos->myHead = mg::net::BufferRaw::NewShared(data->myRData, 1);
+			pos = (pos->myNext = new mg::net::BufferLink());
+			pos = (pos->myNext = new mg::net::BufferLink());
+			pos = (pos->myNext = new mg::net::BufferLink());
+			pos->myHead = mg::net::BufferRaw::NewShared();
+			pos = (pos->myNext = new mg::net::BufferLink());
+			pos->myHead = mg::net::BufferRaw::NewShared(data->myRData + 1, 1);
+			pos = (pos->myNext = new mg::net::BufferLink());
+			data->myRData += 2;
+			data->myPos -= 2;
+			pos->myHead = data;
+
+			client.PostSendMove(head);
+			delete client.PopBlocking();
+		}
+		// More empty buffers than would fit into a single send call.
+		{
+			TestMessage msg;
+			mg::tst::WriteMessage wm;
+			msg.ToStream(wm);
+			mg::net::Buffer::Ptr data = wm.TakeData();
+			TEST_CHECK(data->myPos > 3);
+
+			mg::net::BufferLink* head = new mg::net::BufferLink();
+			head->myHead = mg::net::BufferRaw::NewShared();
+			mg::net::Buffer* pos = head->myHead.GetPointer();
+			for (uint32_t i = 1; i < mg::box::theIOVecMaxCount * 2; ++i)
+				pos = (pos->myNext = mg::net::BufferRaw::NewShared()).GetPointer();
+
+			head->myNext = new mg::net::BufferLink();
+			head->myNext->myHead = std::move(data);
+
+			client.PostSendMove(head);
+			delete client.PopBlocking();
+		}
+		client.CloseBlocking();
+	}
+
+	static void
+	UnitTestTCPSocketIFaceSend(
+		uint16_t aPort)
+	{
+		TestCaseGuard guard("Send");
+
+		TestClientSocket client;
+		client.PostConnect(aPort);
+		client.SetAutoRecv();
+		auto interact = [&](std::function<void(TestClientSocket&)>&& sendEmpty) {
+			uint64_t id = client.SubscribeOnEvent([&]() {
+				sendEmpty(client);
+				client.PostSend(new TestMessage());
+			});
+			client.PostWakeup();
+			delete client.PopBlocking();
+			client.Unsubscribe(id);
+		};
+		// Empty send used to cause a crash.
+		{
+			interact([](TestClientSocket& s) {
+				s.SendMove((mg::net::BufferLink*)nullptr);
+			});
+			interact([](TestClientSocket& s) {
+				s.SendMove(new mg::net::BufferLink());
+			});
+			interact([](TestClientSocket& s) {
+				s.SendRef((mg::net::Buffer*)nullptr);
+			});
+			interact([](TestClientSocket& s) {
+				s.SendRef(mg::net::BufferRaw::NewShared(nullptr, 0).GetPointer());
+			});
+			interact([](TestClientSocket& s) {
+				s.SendRef(mg::net::BufferRaw::NewShared(nullptr, 0));
+			});
+			interact([](TestClientSocket& s) {
+				s.SendRef(nullptr, 0);
+			});
+			interact([](TestClientSocket& s) {
+				s.SendCopy((mg::net::BufferLink*)nullptr);
+			});
+			interact([](TestClientSocket& s) {
+				mg::net::BufferLink* link = new mg::net::BufferLink();
+				s.SendCopy(link);
+				delete link;
+			});
+			interact([](TestClientSocket& s) {
+				s.SendCopy((mg::net::Buffer*)nullptr);
+			});
+			interact([](TestClientSocket& s) {
+				mg::net::Buffer::Ptr buf = mg::net::BufferRaw::NewShared(nullptr, 0);
+				s.SendCopy(buf.GetPointer());
+			});
+			interact([](TestClientSocket& s) {
+				s.SendCopy(nullptr, 0);
+			});
+		}
 		client.CloseBlocking();
 	}
 
@@ -1121,6 +1336,7 @@ namespace tcpsocketiface {
 		UnitTestTCPSocketIFaceCloseFromServer(aPort);
 		UnitTestTCPSocketIFaceCloseOnSendErrorAtShutdown(aPort);
 		UnitTestTCPSocketIFacePostSend(aPort);
+		UnitTestTCPSocketIFaceSend(aPort);
 		UnitTestTCPSocketIFaceConnectError();
 		UnitTestTCPSocketIFaceShutdown(aPort);
 		UnitTestTCPSocketIFaceDeadline(aPort);
@@ -1170,6 +1386,34 @@ namespace tcpsocketiface {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 namespace tcpsocketiface {
+
+	static uint64_t
+	BuffersGetSize(
+		const mg::net::BufferLink* aHead)
+	{
+		uint64_t size = 0;
+		while (aHead != nullptr)
+		{
+			size += BuffersGetSize(aHead->myHead.GetPointer());
+			aHead = aHead->myNext;
+		}
+		return size;
+	}
+
+	static uint64_t
+	BuffersGetSize(
+		const mg::net::Buffer* aHead)
+	{
+		uint64_t size = 0;
+		while (aHead != nullptr)
+		{
+			size += aHead->myPos;
+			aHead = aHead->myNext.GetPointer();
+		}
+		return size;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
 
 	void
 	TestContext::OpenSocket(
@@ -1386,6 +1630,64 @@ namespace tcpsocketiface {
 	}
 
 	void
+	TestClientSocket::SendMove(
+		mg::net::BufferLink* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->SendMove(aHead);
+	}
+
+	void
+	TestClientSocket::SendRef(
+		mg::net::Buffer* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->SendRef(aHead);
+	}
+
+	void
+	TestClientSocket::SendRef(
+		mg::net::Buffer::Ptr&& aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead.GetPointer()));
+		mySocket->SendRef(std::move(aHead));
+	}
+
+	void
+	TestClientSocket::SendRef(
+		const void* aData,
+		uint64_t aSize)
+	{
+		myByteCountInFly.AddRelaxed(aSize);
+		mySocket->SendRef(aData, aSize);
+	}
+
+	void
+	TestClientSocket::SendCopy(
+		const mg::net::BufferLink* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->SendCopy(aHead);
+	}
+
+	void
+	TestClientSocket::SendCopy(
+		const mg::net::Buffer* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->SendCopy(aHead);
+	}
+
+	void
+	TestClientSocket::SendCopy(
+		const void* aData,
+		uint64_t aSize)
+	{
+		myByteCountInFly.AddRelaxed(aSize);
+		mySocket->SendCopy(aData, aSize);
+	}
+
+	void
 	TestClientSocket::Recv(
 		uint64_t aSize)
 	{
@@ -1401,6 +1703,64 @@ namespace tcpsocketiface {
 		delete aMessage;
 		myByteCountInFly.AddRelaxed(wmsg.GetTotalSize());
 		return mySocket->PostSendRef(wmsg.TakeData());
+	}
+
+	void
+	TestClientSocket::PostSendMove(
+		mg::net::BufferLink* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->PostSendMove(aHead);
+	}
+
+	void
+	TestClientSocket::PostSendRef(
+		mg::net::Buffer* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->PostSendRef(aHead);
+	}
+
+	void
+	TestClientSocket::PostSendRef(
+		mg::net::Buffer::Ptr&& aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead.GetPointer()));
+		mySocket->PostSendRef(std::move(aHead));
+	}
+
+	void
+	TestClientSocket::PostSendRef(
+		const void* aData,
+		uint64_t aSize)
+	{
+		myByteCountInFly.AddRelaxed(aSize);
+		mySocket->PostSendRef(aData, aSize);
+	}
+
+	void
+	TestClientSocket::PostSendCopy(
+		const mg::net::BufferLink* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->PostSendCopy(aHead);
+	}
+
+	void
+	TestClientSocket::PostSendCopy(
+		const mg::net::Buffer* aHead)
+	{
+		myByteCountInFly.AddRelaxed(BuffersGetSize(aHead));
+		mySocket->PostSendCopy(aHead);
+	}
+
+	void
+	TestClientSocket::PostSendCopy(
+		const void* aData,
+		uint64_t aSize)
+	{
+		myByteCountInFly.AddRelaxed(aSize);
+		mySocket->PostSendCopy(aData, aSize);
 	}
 
 	void
