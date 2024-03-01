@@ -258,8 +258,13 @@ namespace aio {
 			core.PrivWaitReady();
 		}
 	end:
-		// Wakeup all the workers like a domino when they are terminating.
+		// Wakeup all the workers like a domino when they are terminating. Signal the cond
+		// to let another worker know that the scheduler role is free. And then signal the
+		// scheduler role to notice the exit. Need to do both. Otherwise another worker
+		// might already by the scheduler right now and won't wakeup unless given a
+		// personal signal into its kernel queue.
 		core.PrivSignalReady();
+		core.PrivPlatformSignal();
 	}
 
 }
