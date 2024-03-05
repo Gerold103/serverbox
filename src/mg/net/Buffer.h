@@ -169,7 +169,7 @@ namespace net {
 			const void* aData,
 			uint64_t aSize);
 		void AppendMove(
-			BufferLink* aHead) { if (aHead != nullptr) myLinks.Append(aHead); }
+			BufferLink* aHead);
 		void Append(
 			BufferLinkList&& aList) { myLinks.Append(std::move(aList.myLinks)); }
 		void AppendCopy(
@@ -420,6 +420,18 @@ namespace net {
 		uint64_t aSize)
 	{
 		AppendRef(BuffersRef(aData, aSize));
+	}
+
+	inline void
+	BufferLinkList::AppendMove(
+		BufferLink* aHead)
+	{
+		if (aHead == nullptr)
+			return;
+		BufferLink* last = aHead;
+		while (last->myNext != nullptr)
+			last = last->myNext;
+		myLinks.Append(aHead, last);
 	}
 
 	inline void

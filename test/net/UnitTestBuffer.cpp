@@ -290,6 +290,32 @@ namespace buffer {
 		list.Clear();
 		list.AppendMove((mg::net::BufferLink*)nullptr);
 		TEST_CHECK(list.IsEmpty());
+
+		linkToMove = new mg::net::BufferLink();
+		mg::net::BufferLink* pos = linkToMove;
+		pos->myNext = new mg::net::BufferLink(
+			mg::net::BufferRaw::NewShared(data1, size1));
+		pos = pos->myNext;
+		pos->myNext = new mg::net::BufferLink();
+		pos = pos->myNext;
+		pos->myNext = new mg::net::BufferLink(
+			mg::net::BufferRaw::NewShared(data2, size2));
+		list.AppendMove(linkToMove);
+
+		link = list.GetFirst();
+		TEST_CHECK(link == linkToMove);
+		TEST_CHECK(link->myHead.GetPointer() == nullptr);
+		link = link->myNext;
+		TEST_CHECK(link->myHead->myPos == size1);
+		TEST_CHECK(memcmp(link->myHead->myRData, data1, size1) == 0);
+		TEST_CHECK(link->myHead->myNext.GetPointer() == nullptr);
+		link = link->myNext;
+		TEST_CHECK(link->myHead.GetPointer() == nullptr);
+		link = link->myNext;
+		TEST_CHECK(link->myHead->myPos == size2);
+		TEST_CHECK(memcmp(link->myHead->myRData, data2, size2) == 0);
+		TEST_CHECK(link->myHead->myNext.GetPointer() == nullptr);
+		TEST_CHECK(link->myNext == nullptr);
 	}
 
 	static void
