@@ -169,6 +169,7 @@ namespace aio {
 		mg::box::IOVec bufs[mg::box::theIOVecMaxCount];
 		uint32_t count = mg::net::BuffersToIOVecsForWrite(
 			aHead, aByteOffset, bufs, mg::box::theIOVecMaxCount);
+		MG_BOX_ASSERT(count > 0);
 		return Send(bufs, count, aEvent);
 	}
 
@@ -180,6 +181,7 @@ namespace aio {
 		mg::box::IOVec bufs[mg::box::theIOVecMaxCount];
 		uint32_t count = mg::net::BuffersToIOVecsForRead(
 			aHead, bufs, mg::box::theIOVecMaxCount);
+		MG_BOX_ASSERT(count > 0);
 		return Recv(bufs, count, aEvent);
 	}
 

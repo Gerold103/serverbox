@@ -1717,6 +1717,26 @@ namespace buffer {
 		TEST_CHECK(vecs[0].mySize == 7);
 		TEST_CHECK(vecs[1].myData == data + 10);
 		TEST_CHECK(vecs[1].mySize == 20);
+
+		// Skip empty buffers. The original list is
+		//
+		//   empty -> [data+10, 20] -> empty -> empty -> [data+500, 300]
+		//
+		memset(vecs, 0, sizeof(vecs));
+		head = mg::net::BufferRaw::NewShared();
+		pos = head.GetPointer();
+		pos->myNext = mg::net::BufferRaw::NewShared(data + 10, 20);
+		pos = pos->myNext.GetPointer();
+		pos->myNext = mg::net::BufferRaw::NewShared();
+		pos = pos->myNext.GetPointer();
+		pos->myNext = mg::net::BufferRaw::NewShared();
+		pos = pos->myNext.GetPointer();
+		pos->myNext = mg::net::BufferRaw::NewShared(data + 500, 300);
+		TEST_CHECK(mg::net::BuffersToIOVecsForWrite(head, 3, vecs, vecCount) == 2);
+		TEST_CHECK(vecs[0].myData == data + 13);
+		TEST_CHECK(vecs[0].mySize == 17);
+		TEST_CHECK(vecs[1].myData == data + 500);
+		TEST_CHECK(vecs[1].mySize == 300);
 	}
 
 	static void
@@ -1771,6 +1791,41 @@ namespace buffer {
 		TEST_CHECK(vecs[0].mySize == 3);
 		TEST_CHECK(vecs[1].myData == data + 10);
 		TEST_CHECK(vecs[1].mySize == 100);
+
+		// Skip empty buffers and links.
+		//
+		//   link -> link -> link -> link -> link
+		//            |               |
+		//            |               +-> 0 -> fghi -> 0
+		//            +-> abc -> 0 -> de
+		//
+		mg::net::BufferLink* head = new mg::net::BufferLink();
+		link = head;
+		link->myNext = new mg::net::BufferLink();
+		link = link->myNext;
+		mg::net::Buffer::Ptr buf = mg::net::BufferRaw::NewShared("abc", 3);
+		buf->myNext = mg::net::BufferRaw::NewShared();
+		buf->myNext->myNext = mg::net::BufferRaw::NewShared("de", 2);
+		link->myHead = std::move(buf);
+		link->myNext = new mg::net::BufferLink();
+		link = link->myNext;
+		link->myNext = new mg::net::BufferLink();
+		link = link->myNext;
+		buf = mg::net::BufferRaw::NewShared();
+		buf->myNext = mg::net::BufferRaw::NewShared("fghi", 4);
+		buf->myNext->myNext = mg::net::BufferRaw::NewShared();
+		link->myHead = std::move(buf);
+		link->myNext = new mg::net::BufferLink();
+		memset(vecs, 0, sizeof(vecs));
+		TEST_CHECK(mg::net::BuffersToIOVecsForWrite(head, 2, vecs, vecCount) == 3);
+		list.AppendMove(link);
+		list.Clear();
+		TEST_CHECK(vecs[0].mySize == 1);
+		TEST_CHECK(memcmp(vecs[0].myData, "c", 1) == 0);
+		TEST_CHECK(vecs[1].mySize == 2);
+		TEST_CHECK(memcmp(vecs[1].myData, "de", 2) == 0);
+		TEST_CHECK(vecs[2].mySize == 4);
+		TEST_CHECK(memcmp(vecs[2].myData, "fghi", 4) == 0);
 	}
 
 	static void

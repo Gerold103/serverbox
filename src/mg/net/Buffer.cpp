@@ -338,18 +338,15 @@ namespace net {
 	{
 		mg::box::IOVec* buf = aVectors;
 		mg::box::IOVec* bufEnd = aVectors + aVectorCount;
-		MG_DEV_ASSERT(aByteOffset < aHead->myPos);
-		buf->myData = aHead->myWData + aByteOffset;
-		buf->mySize = aHead->myPos - aByteOffset;
-		++buf;
-		aHead = aHead->myNext.GetPointer();
-		while (buf < bufEnd && aHead != nullptr)
+		for (; aHead != nullptr && buf < bufEnd; aHead = aHead->myNext.GetPointer())
 		{
-			MG_DEV_ASSERT(aHead->myPos > 0);
-			buf->myData = aHead->myWData;
-			buf->mySize = aHead->myPos;
+			if (aHead->myPos == 0)
+				continue;
+			MG_DEV_ASSERT(aByteOffset < aHead->myPos);
+			buf->myData = aHead->myWData + aByteOffset;
+			buf->mySize = aHead->myPos - aByteOffset;
 			++buf;
-			aHead = aHead->myNext.GetPointer();
+			aByteOffset = 0;
 		}
 		return (uint32_t)(buf - aVectors);
 	}
@@ -361,24 +358,26 @@ namespace net {
 		mg::box::IOVec* aVectors,
 		uint32_t aVectorCount)
 	{
-		uint32_t rc = BuffersToIOVecsForWrite(aHead->myHead, aByteOffset,
-			aVectors, aVectorCount);
-		uint32_t res = rc;
-		while (true)
+		mg::box::IOVec* buf = aVectors;
+		mg::box::IOVec* bufEnd = aVectors + aVectorCount;
+		while (aHead != nullptr)
 		{
-			MG_DEV_ASSERT(rc <= aVectorCount);
-			aVectorCount -= rc;
-			if (aVectorCount == 0)
-				return res;
-			aVectors += rc;
-
+			const Buffer* it = aHead->myHead.GetPointer();
+			for (; it != nullptr && buf < bufEnd; it = it->myNext.GetPointer())
+			{
+				if (it->myPos == 0)
+					continue;
+				MG_DEV_ASSERT(aByteOffset < it->myPos);
+				buf->myData = it->myWData + aByteOffset;
+				buf->mySize = it->myPos - aByteOffset;
+				++buf;
+				aByteOffset = 0;
+			}
+			if (buf == bufEnd)
+				return aVectorCount;
 			aHead = aHead->myNext;
-			if (aHead == nullptr)
-				return res;
-			rc = BuffersToIOVecsForWrite(aHead->myHead, 0, aVectors, aVectorCount);
-			res += rc;
-
 		}
+		return (uint32_t)(buf - aVectors);
 	}
 
 	uint32_t
