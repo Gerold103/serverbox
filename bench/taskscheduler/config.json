@@ -73,6 +73,32 @@
 			"count": 5
 		},
 
+		{
+			"name": "Nano load, 50 threads, each task is executed 1 time",
+			"count": 5,
+			"cmd": "-load nano -threads 50 -exes 1",
+			"versions": {
+				"canon": {
+					"cmd": "-tasks 50000000"
+				},
+				"trivial": {
+					"cmd": "-tasks 1000000"
+				}
+			}
+		},
+		{
+			"name": "Nano load, 50 threads, each task is executed 5 times",
+			"count": 5,
+			"cmd": "-load nano -threads 50 -exes 5",
+			"versions": {
+				"canon": {
+					"cmd": "-tasks 10000000"
+				},
+				"trivial": {
+					"cmd": "-tasks 1000000"
+				}
+			}
+		},
 
 
 		{
@@ -128,6 +154,33 @@
 			"name": "Micro load, 10 threads, 1 000 000 tasks, each is executed 10 times",
 			"cmd": "-load micro -threads 10 -tasks 1000000 -exes 10",
 			"count": 5
+		},
+
+		{
+			"name": "Micro load, 50 threads, each task is executed 1 time",
+			"count": 5,
+			"cmd": "-load micro -threads 50 -exes 1",
+			"versions": {
+				"canon": {
+					"cmd": "-tasks 50000000"
+				},
+				"trivial": {
+					"cmd": "-tasks 1000000"
+				}
+			}
+		},
+		{
+			"name": "Micro load, 50 threads, each task is executed 5 times",
+			"count": 5,
+			"cmd": "-load micro -threads 50 -exes 5",
+			"versions": {
+				"canon": {
+					"cmd": "-tasks 10000000"
+				},
+				"trivial": {
+					"cmd": "-tasks 1000000"
+				}
+			}
 		}
 	]
 }
