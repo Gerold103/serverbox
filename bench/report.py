@@ -26,7 +26,8 @@ def find_exe_file(name):
 
 # Description of one version to run.
 class Version:
-	def __init__(self, cfg):
+	def __init__(self, key, cfg):
+		self.key = key
 		# Full name of the version. Like 'Canon Task Scheduler'.
 		self.name = cfg['name']
 		# Short name to use in sentences, like 'canon scheduler'.
@@ -117,15 +118,32 @@ class Scenario:
 		if self.count < 3:
 			print('Run count {} is too small'.format(self.count))
 			sys.exit(-1)
+		self.versions = {}
+		for version_key, version in glob_versions.items():
+			self.versions[version_key] = {'cmd': ''}
+		versions = cfg.get('versions')
+		if versions:
+			for k, cfgv in versions.items():
+				v = self.versions.get(k)
+				if not v:
+					print('Unknown version {} in scenario {}'.format(k, self.name))
+					sys.exit(-1)
+				v['cmd'] = cfgv['cmd']
 
 	def run(self):
 		print('==== Scenario: {}'.format(self.name))
 		reports = {}
 		for version_key, version in glob_versions.items():
 			runs = []
-			print('== Version: {}'.format(version.name))
+			cmd1 = self.cmd
+			cmd2 = self.versions[version.key]['cmd']
+			cmd3 = version.cmd
+			cmd_print = ''
+			if cmd2:
+				cmd_print = ', cmd: {}'.format(cmd2)
+			print('== Version: {}{}'.format(version.key, cmd_print))
 			exe = version.exe
-			args = shlex.split('{} {}'.format(self.cmd, version.cmd))
+			args = shlex.split('{} {} {}'.format(cmd1, cmd2, cmd3))
 			args.insert(0, exe)
 			for i in range(self.count):
 				r = SingleRun(args, exe)
@@ -228,7 +246,7 @@ glob_exedir = args.exedir
 
 glob_versions = {}
 for k, v in config['versions'].items():
-	v = Version(v)
+	v = Version(k, v)
 	if v.exe:
 		glob_versions[k] = v
 
