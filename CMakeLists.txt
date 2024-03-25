@@ -9,7 +9,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 		-Wall -Wextra -Wpedantic -Werror -Wno-unknown-warning-option -Wunused-function
 		-Wno-invalid-offsetof -Wno-unused-value -Wno-deprecated-copy
 		-Wno-gnu-zero-variadic-macro-arguments
-		-fno-exceptions
 		-fno-rtti
 	)
 
