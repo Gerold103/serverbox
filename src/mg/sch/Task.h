@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mg/box/Atomic.h"
+#include "mg/box/Coro.h"
 #include "mg/box/TypeTraits.h"
 
 #include <functional>
@@ -36,10 +37,79 @@ namespace sch {
 
 	using TaskCallback = std::function<void(Task*)>;
 
-	// Task is a callback called in one of the worker threads in a
-	// scheduler. But not just a callback. It also provides some
-	// features such as deadlines, delays, signaling. Also it can
-	// be inherited to add more context.
+#if MG_CORO_IS_ENABLED
+	//////////////////////////////////////////////////////////////////////////////////////
+	// C++20 coroutine operations.
+
+	struct TaskCoroOpYield
+		: public mg::box::CoroOp
+		, public mg::box::CoroOpIsNotReady
+		, public mg::box::CoroOpIsEmptyReturn
+	{
+		TaskCoroOpYield(
+			Task* aTask,
+			TaskScheduler& aSched) : myTask(aTask), mySched(aSched) {}
+		bool await_suspend(
+			mg::box::CoroHandle aThisCoro) noexcept;
+
+	private:
+		Task* const myTask;
+		TaskScheduler& mySched;
+	};
+
+	struct TaskCoroOpReceiveSignal
+		: public mg::box::CoroOp
+		, public mg::box::CoroOpIsNotReady
+	{
+		TaskCoroOpReceiveSignal(
+			Task* aTask,
+			TaskScheduler& aSched) : myTask(aTask), mySched(aSched) {}
+		bool await_suspend(
+			mg::box::CoroHandle aThisCoro) noexcept;
+		bool await_resume() const noexcept;
+
+	private:
+		Task* const myTask;
+		TaskScheduler& mySched;
+	};
+
+	struct TaskCoroOpExitDelete
+		: public mg::box::CoroOp
+		, public mg::box::CoroOpIsNotReady
+		, public mg::box::CoroOpIsEmptyReturn
+	{
+		TaskCoroOpExitDelete(
+			Task* aTask) : myTask(aTask) {}
+		bool await_suspend(
+			mg::box::CoroHandle aThisCoro) noexcept;
+
+	private:
+		Task* const myTask;
+	};
+
+	struct TaskCoroOpExitExec
+		: public mg::box::CoroOp
+		, public mg::box::CoroOpIsNotReady
+		, public mg::box::CoroOpIsEmptyReturn
+	{
+		TaskCoroOpExitExec(
+			Task* aTask,
+			TaskCallback&& aNewCallback)
+			: myTask(aTask), myNewCallback(std::move(aNewCallback)) {}
+		bool await_suspend(
+			mg::box::CoroHandle aThisCoro) noexcept;
+
+	private:
+		Task* const myTask;
+		TaskCallback myNewCallback;
+	};
+
+	//////////////////////////////////////////////////////////////////////////////////////
+#endif
+
+	// Task is code executed called in one of the worker threads in a scheduler. As code
+	// typically is used a callback (bind, lambda, function), but also coroutines are
+	// supported. Task also provides some features such as deadlines, delays, signaling.
 	//
 	class Task
 	{
@@ -51,6 +121,11 @@ namespace sch {
 		template<typename Functor>
 		Task(
 			Functor&& aFunc);
+
+#if MG_CORO_IS_ENABLED
+		Task(
+			mg::box::Coro&& aCoro);
+#endif
 
 		~Task();
 
@@ -182,6 +257,100 @@ namespace sch {
 		//
 		void PostSignal();
 
+#if MG_CORO_IS_ENABLED
+		//////////////////////////////////////////////////////////////////////////////////
+		// C++20 coroutine methods. When a coroutine yields (co_await), its task enters
+		// the waiting state in the chosen scheduler. After wakeup the coroutine might be
+		// scheduled on any worker thread. When a scheduler is not specified, the task
+		// uses the one where it runs right now.
+
+		// Sleep until the task is woken up due to any reason.
+		//
+		//     Coro
+		//     TaskBody(Task* aTask)
+		//     {
+		//         // Deadline. Without a deadline is re-scheduled instantly.
+		//         aTask->[Set/Adjust][Delay/Deadline](...);
+		//         co_await aTask->AsyncYield();
+		//         // Returns when the task is awake.
+		//     }
+		//
+		TaskCoroOpYield AsyncYield();
+		TaskCoroOpYield AsyncYield(
+			TaskScheduler& aSched);
+
+		// Sleep until the task is woken up due to any reason + try to receive a signal.
+		// Returns whether it was received.
+		//
+		//     Coro
+		//     TaskBody(Task* aTask)
+		//     {
+		//         while(true) {
+		//             // Deadline. Without a deadline is re-scheduled instantly.
+		//             aTask->[Set/Adjust][Delay/Deadline](...);
+		//             bool ok = co_await aTask->AsyncReceiveSignal();
+		//             if (ok)
+		//                 break; // Signal was received.
+		//
+		//             // Otherwise spurios wakeup. Not received.
+		//             continue;
+		//         }
+		//     }
+		//
+		TaskCoroOpReceiveSignal AsyncReceiveSignal();
+		TaskCoroOpReceiveSignal AsyncReceiveSignal(
+			TaskScheduler& aSched);
+
+		// Delete the task object and abort the entire stack of the coroutines that it is
+		// running now. Can call from a nested coroutine too. Whatever is after this call,
+		// it will not be executed.
+		//
+		//     Coro
+		//     TaskBody(Task* aTask)
+		//     {
+		//         co_await aTask->AsyncExitDelete();
+		//
+		//         // Code below is unreachable. The task is deleted.
+		//         assert(false);
+		//     }
+		//
+		TaskCoroOpExitDelete AsyncExitDelete();
+
+		// Switch the task's body from a coroutine to a plain non-coroutine callback.
+		// Whatever is after this call, it will not be executed.
+		//
+		//     Coro
+		//     TaskBody(Task* aTask)
+		//     {
+		//         co_await aTask->AsyncExitExec([](Task* aTask) {
+		//             // Non-coroutine callback. Can do here anything what is allowed in
+		//             // plain callbacks.
+		//             scheduler.PostWait(aTask);
+		//         });
+		//
+		//         // Code below is unreachable.
+		//         assert(false);
+		//     }
+		//
+		// It can be used for non-trivial destruction of task resources. For example, to
+		// delete a bigger object which has the task as a member:
+		//
+		//     Coro
+		//     MyObject::Execute()
+		//     {
+		//         co_await myTask.AsyncExitExec([this](Task* aTask) {
+		//             assert(aTask == &myTask);
+		//             delete this;
+		//         });
+		//
+		//         // Code below is unreachable.
+		//         assert(false);
+		//     }
+		//
+		TaskCoroOpExitExec AsyncExitExec(
+			TaskCallback&& aCallback);
+#endif
+
 		//////////////////////////////////////////////////////////////////////////////////
 		// Methods for in-worker invocation or before posting the task. For checking and
 		// handling events, work with the data, etc. Not thread-safe.
@@ -194,6 +363,11 @@ namespace sch {
 		template<typename Functor>
 		void SetCallback(
 			Functor&& aFunc);
+
+#if MG_CORO_IS_ENABLED
+		void SetCallback(
+			mg::box::Coro&& aCoro);
+#endif
 
 		// **You must prefer** Deadline or Wait if you want an
 		// infinite delay. To avoid unnecessary current time get.
@@ -298,6 +472,10 @@ namespace sch {
 		bool myIsExpired;
 
 		friend class TaskScheduler;
+		friend struct TaskCoroOpExitDelete;
+		friend struct TaskCoroOpExitExec;
+		friend struct TaskCoroOpReceiveSignal;
+		friend struct TaskCoroOpYield;
 	};
 
 	inline
@@ -315,11 +493,50 @@ namespace sch {
 		PrivCreate();
 	}
 
+#if MG_CORO_IS_ENABLED
+	inline
+	Task::Task(
+		mg::box::Coro&& aCoro)
+	{
+		PrivCreate();
+		SetCallback(std::move(aCoro));
+	}
+#endif
+
 	inline
 	Task::~Task()
 	{
 		PrivTouch();
 	}
+
+#if MG_CORO_IS_ENABLED
+	inline TaskCoroOpYield
+	Task::AsyncYield(
+		TaskScheduler& aSched)
+	{
+		return TaskCoroOpYield(this, aSched);
+	}
+
+	inline TaskCoroOpReceiveSignal
+	Task::AsyncReceiveSignal(
+		TaskScheduler& aSched)
+	{
+		return TaskCoroOpReceiveSignal(this, aSched);
+	}
+
+	inline TaskCoroOpExitDelete
+	Task::AsyncExitDelete()
+	{
+		return TaskCoroOpExitDelete(this);
+	}
+
+	inline TaskCoroOpExitExec
+	Task::AsyncExitExec(
+		TaskCallback&& aCallback)
+	{
+		return TaskCoroOpExitExec(this, std::move(aCallback));
+	}
+#endif
 
 	template<typename Functor>
 	inline void

@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.8)
 set(mgbox_src
 	Assert.cpp
 	ConditionVariable.cpp
+	Coro.cpp
 	Error.cpp
 	IOVec.cpp
 	Log.cpp
@@ -44,6 +45,7 @@ set(install_headers
 	Atomic.h
 	BinaryHeap.h
 	ConditionVariable.h
+	Coro.h
 	Definitions.h
 	DoublyList.h
 	Error.h

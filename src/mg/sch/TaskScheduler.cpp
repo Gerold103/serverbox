@@ -6,6 +6,8 @@
 namespace mg {
 namespace sch {
 
+	thread_local TaskScheduler* TaskScheduler::ourCurrent = nullptr;
+
 	TaskScheduler::TaskScheduler(
 		const char* aName,
 		uint32_t aThreadCount,
@@ -314,6 +316,7 @@ namespace sch {
 	void
 	TaskSchedulerThread::Run()
 	{
+		TaskScheduler::ourCurrent = myScheduler;
 		uint64_t maxBatch = myScheduler->myExecBatchSize;
 		uint64_t batch;
 		while (!myScheduler->PrivIsStopped())
@@ -331,6 +334,8 @@ namespace sch {
 			myScheduler->PrivWaitReady();
 		}
 		myScheduler->PrivSignalReady();
+		MG_BOX_ASSERT(TaskScheduler::ourCurrent == myScheduler);
+		TaskScheduler::ourCurrent = nullptr;
 	}
 
 	void

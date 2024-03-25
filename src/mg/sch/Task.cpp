@@ -7,6 +7,61 @@
 namespace mg {
 namespace sch {
 
+#if MG_CORO_IS_ENABLED
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	bool
+	TaskCoroOpYield::await_suspend(
+		mg::box::CoroHandle) noexcept
+	{
+		myTask->PrivTouch();
+		mySched.Post(myTask);
+		return true;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	bool
+	TaskCoroOpReceiveSignal::await_suspend(
+		mg::box::CoroHandle) noexcept
+	{
+		myTask->PrivTouch();
+		mySched.Post(myTask);
+		return true;
+	}
+
+	bool
+	TaskCoroOpReceiveSignal::await_resume() const noexcept
+	{
+		return myTask->ReceiveSignal();
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	bool
+	TaskCoroOpExitDelete::await_suspend(
+		mg::box::CoroHandle) noexcept
+	{
+		myTask->PrivTouch();
+		delete myTask;
+		return true;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	bool
+	TaskCoroOpExitExec::await_suspend(
+		mg::box::CoroHandle) noexcept
+	{
+		myTask->PrivTouch();
+		myTask->SetCallback(std::move(myNewCallback));
+		myTask->myCallback(myTask);
+		return true;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+#endif
+
 	void
 	Task::PostWakeup()
 	{
@@ -45,6 +100,29 @@ namespace sch {
 		if (old == TASK_STATUS_WAITING)
 			myScheduler->PrivPost(this);
 	}
+
+#if MG_CORO_IS_ENABLED
+	TaskCoroOpYield
+	Task::AsyncYield()
+	{
+		return AsyncYield(TaskScheduler::This());
+	}
+
+	TaskCoroOpReceiveSignal
+	Task::AsyncReceiveSignal()
+	{
+		return AsyncReceiveSignal(TaskScheduler::This());
+	}
+
+	void
+	Task::SetCallback(
+		mg::box::Coro&& aCoro)
+	{
+		SetCallback([aRef = mg::box::CoroRef(std::move(aCoro))](Task *) {
+			aRef.ResumeTop();
+		});
+	}
+#endif
 
 	void
 	Task::SetDelay(

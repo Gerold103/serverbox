@@ -2,7 +2,12 @@ cmake_minimum_required (VERSION 3.8)
 
 project("ServerBox")
 
-set(CMAKE_CXX_STANDARD 11)
+if (NOT DEFINED CMAKE_CXX_STANDARD)
+	message(STATUS "Using C++20 standard as default")
+	set(CMAKE_CXX_STANDARD 20)
+else()
+	message(STATUS "Using C++${CMAKE_CXX_STANDARD} standard as explicitly requested")
+endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	add_compile_options(

@@ -35,9 +35,10 @@
 #error "Unknown compiler"
 #endif
 
-
-#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L )
-#define IS_CPP_AT_LEAST_17 1
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || __cplusplus >= 202002L )
+#define IS_CPP_AT_LEAST_20 1
+#else
+#define IS_CPP_AT_LEAST_20 0
 #endif
 
 #if NDEBUG

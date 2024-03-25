@@ -12,6 +12,23 @@ Task* t = new Task([](Task *self) {
 sched.Post(t);
 ```
 
+It can also be used with C++20 coroutines:
+```C++
+Task* t = new Task();
+t->SetCallback([](Task *self) -> mg::box::Coro {
+	printf("Executed in scheduler!\n");
+	self->SetDeadline(someDeadline);
+	bool ok = co_await self->AsyncReceiveSignal();
+	if (ok)
+		printf("Received a signal");
+	else
+		printf("No signal");
+	co_await self->AsyncExitDelete();
+	co_return;
+}(t));
+sched.Post(t);
+```
+
 #### Use cases
 Not limited by these, but most typical:
 - Single shot mildly heavy tasks;
@@ -19,6 +36,11 @@ Not limited by these, but most typical:
 - Fair load of heavy multi-step tasks (aka coroutines);
 
 To use the task as coroutines the scheduler offers features like task sleeping, wakeup deadlines, explicit wakeups, signal delivery to individual tasks.
+
+The usage as coroutines can be done in a few ways:
+- With real C++20 coroutines. Each yield is equivalent to making a Post of the task.
+- A task has a single non-coroutine callback and is re-executed every time while tracking its current state in some sort of context.
+- A task for each step of its execution has an own callback set before the task enters the next step.
 
 #### Fairness
 The task execution is fair. It means they are not pinned to threads. That in turn gives even CPU load on all workers. It will not happen that some tasks appear to be too heavy and occupy one thread's CPU 100% while other threads do nothing.
@@ -54,7 +76,7 @@ sched.Post(new Task([](Task* aTask) {
 ```
 </details>
 
-**Multi-step task, coroutine**<br>
+**Multi-step task, coroutine on callbacks**<br>
 Task can be used as a coroutine which starts some async work on each step, gets a result on wakeup, makes next step, and repeats that until it ends and deletes self. Its context could be stored in a class or a struct. Or bound via lambda capturing. The example shows how a coroutine could send several HTTP requests one by one.
 <details><summary>(click to reveal)</summary>
 
@@ -105,6 +127,57 @@ private:
 	{
 		assert(aTask == &myTask);
 		delete this;
+	}
+
+	HTTPClient myClient;
+	Task myTask;
+};
+
+new MyCoroutine();
+```
+</details>
+
+**Multi-step task, C++20 coroutine**<br>
+Task can be literally a C++20 coroutine where yields result in it being posted back into the scheduler until a wakeup. Similar to the previous example in all other aspects.
+<details><summary>(click to reveal)</summary>
+
+```C++
+TaskScheduler sched(name, threadCount, subQueueSize);
+
+class MyCoroutine
+{
+public:
+	MyCoroutine()
+		: myTask(PrivRun())
+	{
+		sched.Post(&myTask);
+	}
+
+private:
+	mg::box::Coro
+	PrivRun()
+	{
+		// Start some async operation, potentially in another thread.
+		myClient.Get(firstUrl, []() {
+			myTask.PostSignal();
+		});
+		// Wait for its completion. In a loop to protect from spurious wakeups.
+		do {
+			myTask.SetWait();
+		} while (!co_await myTask.AsyncReceiveSignal());
+
+		// Make a next operation.
+		myClient.Head(secondUrl, [&sched, aTask]() {
+			sched.PostSignal();
+		});
+		// Wait for its completion.
+		do {
+			myTask.SetWait();
+		} while (!co_await myTask.AsyncReceiveSignal());
+
+		// Delete self.
+		co_await myTask.AsyncExitExec([this](Task*) { delete this; });
+		co_return;
 	}
 
 	HTTPClient myClient;

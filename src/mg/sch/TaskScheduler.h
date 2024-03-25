@@ -103,6 +103,8 @@ namespace sch {
 		TaskSchedulerThread*const* GetThreads(
 			uint32_t& aOutCount) const;
 
+		static TaskScheduler& This();
+
 	private:
 		void PrivPost(
 			Task* aTask);
@@ -161,6 +163,8 @@ namespace sch {
 		// called 'sched-thread' throughout the code.
 		mg::box::AtomicBool myIsSchedulerWorking;
 		mg::box::AtomicBool myIsStopped;
+
+		static thread_local TaskScheduler* ourCurrent;
 
 		friend class Task;
 		friend class TaskSchedulerThread;
@@ -232,6 +236,13 @@ namespace sch {
 	{
 		aOutCount = (uint32_t)myThreads.size();
 		return myThreads.data();
+	}
+
+	inline TaskScheduler&
+	TaskScheduler::This()
+	{
+		MG_DEV_ASSERT(ourCurrent != nullptr);
+		return *ourCurrent;
 	}
 
 	inline uint64_t

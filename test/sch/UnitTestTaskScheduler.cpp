@@ -9,6 +9,23 @@ namespace mg {
 namespace unittests {
 namespace sch {
 
+	struct TestScopeGuard
+	{
+		template<typename Func>
+		TestScopeGuard(
+			Func&& aFunc)
+			: myFunc(std::forward<Func>(aFunc))
+		{
+		}
+
+		~TestScopeGuard()
+		{
+			myFunc();
+		}
+
+		std::function<void()> myFunc;
+	};
+
 	static void
 	UnitTestTaskSchedulerBasic()
 	{
@@ -569,6 +586,415 @@ namespace sch {
 		TEST_CHECK(progress.LoadRelaxed() == 5);
 	}
 
+	static void
+	UnitTestTaskSchedulerCoroutineBasic()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine basic");
+		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::box::Signal s;
+		mg::sch::Task t;
+		//
+		// Async yield.
+		//
+		t.SetCallback([](mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+			s.Send();
+			t.SetWait();
+			co_await t.AsyncYield();
+
+			s.Send();
+			t.SetWait();
+			co_await t.AsyncYield();
+
+			s.Send();
+			co_return;
+		}(t, s));
+		sched.Post(&t);
+		for (int i = 0; i < 2; ++i)
+		{
+			s.ReceiveBlocking();
+			t.PostWakeup();
+		}
+		s.ReceiveBlocking();
+		//
+		// Async wait with a deadline.
+		//
+		t.SetCallback([](mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+			t.SetDelay(10);
+			co_await t.AsyncYield();
+			TEST_CHECK(t.IsExpired());
+
+			t.SetDelay(10);
+			TEST_CHECK(!co_await t.AsyncReceiveSignal());
+			TEST_CHECK(t.IsExpired());
+
+			s.Send();
+			t.SetWait();
+			TEST_CHECK(co_await t.AsyncReceiveSignal());
+
+			s.Send();
+			co_return;
+		}(t, s));
+		sched.Post(&t);
+		s.ReceiveBlocking();
+		t.PostSignal();
+		s.ReceiveBlocking();
+#endif
+	}
+
+	static void
+	UnitTestTaskSchedulerCoroutineAsyncReceiveSignal()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine AsyncReceiveSignal()");
+		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::box::Signal s;
+		mg::sch::Task t;
+		t.SetCallback([](mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+			for (int i = 0; i < 2; ++i)
+			{
+				s.Send();
+				do {
+					t.SetWait();
+				} while (!co_await t.AsyncReceiveSignal());
+			}
+			TestScopeGuard guard([&]() { s.Send(); });
+			co_return;
+		}(t, s));
+		sched.Post(&t);
+		for (int i = 0; i < 2; ++i)
+		{
+			s.ReceiveBlocking();
+			t.PostWakeup();
+			t.PostWakeup();
+			mg::box::Sleep(10);
+			t.PostSignal();
+		}
+		s.ReceiveBlocking();
+		//
+		// The signal already available.
+		//
+		t.PostSignal();
+		t.SetCallback([](mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+			t.SetWait();
+			TEST_CHECK(co_await t.AsyncReceiveSignal());
+			s.Send();
+			co_return;
+		}(t, s));
+		sched.Post(&t);
+		s.ReceiveBlocking();
+		//
+		// Connect 2 tasks with a signal.
+		//
+		mg::sch::Task t2;
+		t.SetCallback([](mg::sch::Task& t, mg::sch::Task& t2) -> mg::box::Coro {
+			t.SetWait();
+			TEST_CHECK(co_await t.AsyncReceiveSignal());
+			t2.PostSignal();
+			co_return;
+		}(t, t2));
+		sched.Post(&t);
+
+		t2.SetCallback([](mg::sch::Task& t, mg::sch::Task& t2, mg::box::Signal& s) -> mg::box::Coro {
+			t.PostSignal();
+			t2.SetWait();
+			TEST_CHECK(co_await t2.AsyncReceiveSignal());
+			s.Send();
+			co_return;
+		}(t, t2, s));
+		sched.Post(&t2);
+
+		s.ReceiveBlocking();
+#endif
+	}
+
+	static void
+	UnitTestTaskSchedulerCoroutineAsyncExitDelete()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine AsyncExitDelete()");
+		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::box::Signal s;
+		mg::sch::Task* t = new mg::sch::Task();
+
+		t->SetCallback([](mg::sch::Task* t, mg::box::Signal& s) -> mg::box::Coro {
+			s.Send();
+			t->SetWait();
+			co_await t->AsyncYield();
+
+			TestScopeGuard guard([&]() { s.Send(); });
+			co_await t->AsyncExitDelete();
+
+			TEST_CHECK(!"Unreachable");
+			co_return;
+		}(t, s));
+		sched.Post(t);
+		s.ReceiveBlocking();
+		t->PostWakeup();
+		s.ReceiveBlocking();
+#endif
+	}
+
+	static void
+	UnitTestTaskSchedulerCoroutineAsyncExitExec()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine AsyncExitExec()");
+		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::box::Signal s;
+		mg::sch::Task t;
+		t.SetCallback([](
+			mg::sch::Task& t,
+			mg::box::Signal& s,
+			mg::sch::TaskScheduler& sched) -> mg::box::Coro {
+
+			s.Send();
+			t.SetWait();
+			co_await t.AsyncYield();
+			TestScopeGuard guard([&]() { s.Send(); });
+
+			co_await t.AsyncExitExec([&s, &sched](mg::sch::Task* t) {
+				// Save it on stack, because the '&sched' is destroyed when the new
+				// callback is set below.
+				mg::sch::TaskScheduler& tmp = sched;
+				t->SetCallback([&s](mg::sch::Task*) {
+					s.Send();
+				});
+				tmp.PostWait(t);
+				return;
+			});
+			TEST_CHECK(!"Unreachable");
+			co_return;
+		}(t, s, sched));
+		sched.Post(&t);
+		s.ReceiveBlocking();
+		t.PostWakeup();
+		s.ReceiveBlocking();
+		t.PostWakeup();
+		s.ReceiveBlocking();
+		//
+		// Delete self inside exec.
+		//
+		mg::sch::Task* th = new mg::sch::Task();
+		th->SetCallback([](mg::sch::Task* t, mg::box::Signal& s) -> mg::box::Coro {
+			s.Send();
+			t->SetWait();
+			co_await t->AsyncYield();
+			co_await t->AsyncExitExec([&s](mg::sch::Task* t) {
+				mg::box::Signal& tmp = s;
+				delete t;
+				tmp.Send();
+				return;
+			});
+			TEST_CHECK(!"Unreachable");
+			co_return;
+		}(th, s));
+		sched.Post(th);
+		s.ReceiveBlocking();
+		th->PostWakeup();
+		s.ReceiveBlocking();
+#endif
+	}
+
+	static void
+	UnitTestTaskSchedulerCoroutineNested()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine nested");
+		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::box::Signal s;
+		mg::sch::Task t;
+		t.SetCallback([](
+			mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+
+			co_await mg::box::CoroCall([](
+				mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+
+				co_await mg::box::CoroCall([](
+					mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+
+					co_await mg::box::CoroCall([](
+						mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+
+						co_await mg::box::CoroCall([](
+							mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+
+							s.Send();
+							t.SetWait();
+							co_await t.AsyncYield();
+						}(t, s));
+
+						s.Send();
+						t.SetWait();
+						co_await t.AsyncYield();
+					}(t, s));
+
+					s.Send();
+					t.SetWait();
+					co_await t.AsyncYield();
+				}(t, s));
+
+				s.Send();
+				t.SetWait();
+				co_await t.AsyncYield();
+			}(t, s));
+
+			s.Send();
+			t.SetWait();
+			co_await t.AsyncYield();
+			s.Send();
+			co_return;
+		}(t, s));
+
+		sched.Post(&t);
+		for (int i = 0; i < 5; ++i)
+		{
+			s.ReceiveBlocking();
+			t.PostWakeup();
+		}
+		s.ReceiveBlocking();
+		//
+		// Exit-delete inside nested coroutine stack.
+		//
+		mg::sch::Task* th = new mg::sch::Task();
+		mg::box::AtomicU32 value(0);
+		th->SetCallback([](
+			mg::sch::Task* t,
+			mg::box::Signal& s,
+			mg::box::AtomicU32& value) -> mg::box::Coro {
+
+			TestScopeGuard scope([&value, &s]() {
+				TEST_CHECK(value.ExchangeRelaxed(3) == 2);
+				s.Send();
+			});
+			co_await mg::box::CoroCall([](
+				mg::sch::Task* t,
+				mg::box::AtomicU32& value) -> mg::box::Coro {
+
+				TestScopeGuard scope([&value]() {
+					TEST_CHECK(value.ExchangeRelaxed(2) == 1);
+				});
+				co_await mg::box::CoroCall([](
+					mg::sch::Task* t,
+					mg::box::AtomicU32& value) -> mg::box::Coro {
+
+					TestScopeGuard scope([&value]() {
+						TEST_CHECK(value.ExchangeRelaxed(1) == 0);
+					});
+					co_await t->AsyncExitDelete();
+					TEST_CHECK(!"Unreachable");
+				}(t, value));
+				TEST_CHECK(!"Unreachable");
+			}(t, value));
+			TEST_CHECK(!"Unreachable");
+			co_return;
+		}(th, s, value));
+		sched.Post(th);
+		s.ReceiveBlocking();
+		TEST_CHECK(value.LoadRelaxed() == 3);
+#endif
+	}
+
+	static void
+	UnitTestTaskSchedulerCoroutineDifferentSchedulers()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine different schedulers");
+		mg::sch::TaskScheduler sched1("tst1", 1, 100);
+		mg::sch::TaskScheduler sched2("tst2", 1, 100);
+		mg::box::Signal s;
+		mg::sch::Task t;
+		t.SetCallback([](
+			mg::sch::Task& t,
+			mg::box::Signal& s,
+			mg::sch::TaskScheduler& sched1,
+			mg::sch::TaskScheduler& sched2) -> mg::box::Coro {
+
+			s.Send();
+			t.SetWait();
+			co_await t.AsyncYield(sched1);
+			mg::box::ThreadId tid1 = mg::box::GetCurrentThreadId();
+
+			s.Send();
+			t.SetWait();
+			co_await t.AsyncYield(sched2);
+			mg::box::ThreadId tid2 = mg::box::GetCurrentThreadId();
+
+			TEST_CHECK(tid1 != tid2);
+
+			s.Send();
+			t.SetWait();
+			TEST_CHECK(co_await t.AsyncReceiveSignal(sched1));
+			TEST_CHECK(mg::box::GetCurrentThreadId() == tid1);
+
+			s.Send();
+			t.SetWait();
+			TEST_CHECK(co_await t.AsyncReceiveSignal(sched2));
+			TEST_CHECK(mg::box::GetCurrentThreadId() == tid2);
+
+			s.Send();
+			co_return;
+		}(t, s, sched1, sched2));
+		sched1.Post(&t);
+		for (int i = 0; i < 2; ++i)
+		{
+			s.ReceiveBlocking();
+			t.PostWakeup();
+		}
+		for (int i = 0; i < 2; ++i)
+		{
+			s.ReceiveBlocking();
+			t.PostSignal();
+		}
+		s.ReceiveBlocking();
+#endif
+	}
+
+	static void
+	UnitTestTaskSchedulerCoroutineStress()
+	{
+#if MG_CORO_IS_ENABLED
+		TestCaseGuard guard("Coroutine stress");
+		mg::sch::TaskScheduler sched("tst", 5, 100);
+		mg::box::Signal s;
+		const uint32_t taskCount = 1000;
+		const uint32_t signalCount = 10;
+		struct Context
+		{
+			mg::sch::Task myTask;
+			mg::box::Signal mySignal;
+		};
+		std::vector<std::unique_ptr<Context>> ctxs;
+		ctxs.resize(taskCount);
+		for (std::unique_ptr<Context>& ctx : ctxs)
+			ctx = std::unique_ptr<Context>(new Context());
+		for (uint32_t i = 0; i < taskCount; ++i)
+		{
+			Context& ctx = *ctxs[i];
+			Context& nextCtx = *ctxs[(i + 1) % taskCount];
+			ctx.myTask.SetCallback([](
+				Context& aCtx,
+				Context& aNextCtx,
+				uint32_t aSigCount) -> mg::box::Coro {
+
+				for (uint32_t i = 0; i < aSigCount; ++i)
+				{
+					do {
+						aCtx.myTask.SetWait();
+					} while (!co_await aCtx.myTask.AsyncReceiveSignal());
+					aNextCtx.myTask.PostSignal();
+				}
+				aCtx.mySignal.Send();
+			}(ctx, nextCtx, signalCount));
+
+			sched.Post(&ctx.myTask);
+		}
+		ctxs.front()->myTask.PostSignal();
+		for (std::unique_ptr<Context>& ctx : ctxs)
+			ctx->mySignal.ReceiveBlocking();
+#endif
+	}
+
 	struct UTTSchedulerTask;
 
 	struct UTTSchedulerTaskCtx
@@ -1068,6 +1494,13 @@ namespace sch {
 		UnitTestTaskSchedulerExpiration();
 		UnitTestTaskSchedulerReschedule();
 		UnitTestTaskSchedulerSignal();
+		UnitTestTaskSchedulerCoroutineBasic();
+		UnitTestTaskSchedulerCoroutineAsyncReceiveSignal();
+		UnitTestTaskSchedulerCoroutineAsyncExitDelete();
+		UnitTestTaskSchedulerCoroutineAsyncExitExec();
+		UnitTestTaskSchedulerCoroutineNested();
+		UnitTestTaskSchedulerCoroutineDifferentSchedulers();
+		UnitTestTaskSchedulerCoroutineStress();
 		UnitTestTaskSchedulerMicro(5, 10000000);
 		UnitTestTaskSchedulerMicroNew(5, 10000000);
 		UnitTestTaskSchedulerMicroOneShot(5, 10000000);

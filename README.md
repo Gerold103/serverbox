@@ -26,7 +26,26 @@ Task* t = new Task([](Task *self) {
 });
 sched.Post(t);
 ```
-The `Task` object is a context which can be just deleted right after single callback invocation, or can be attached to your own data and re-used across multiple steps of your pipeline, and can be used for deadlines, wakeups, signaling, etc. See more in `src/mg/sch/README.md`.
+The `Task` object is a context which can be just deleted right after single callback invocation, or can be attached to your own data and re-used across multiple steps of your pipeline, and can be used for deadlines, wakeups, signaling, etc.
+
+It can also be used with C++20 coroutines:
+```C++
+Task* t = new Task();
+t->SetCallback([](Task *self) -> mg::box::Coro {
+	printf("Executed in scheduler!\n");
+	self->SetDeadline(someDeadline);
+	bool ok = co_await self->AsyncReceiveSignal();
+	if (ok)
+		printf("Received a signal");
+	else
+		printf("No signal");
+	co_await self->AsyncExitDelete();
+	co_return;
+}(t));
+sched.Post(t);
+```
+
+See more in `src/mg/sch/README.md`.
 
 ## `IOCore`
 
@@ -104,7 +123,8 @@ private:
 	- Windows 10;
 	- WSLv1;
 	- Debian 4.19;
-	- MacOS Catalina 11.7.10
+	- MacOS Catalina 11.7.10;
+	- Ubuntu 22.04.4 LTS;
 * Supports only architecture x86-64. On ARM it might work, but wasn't compiled nor tested (yet);
 * CMake. Compatible with `cmake` CLI and with VisualStudio CMake.
 
@@ -140,6 +160,8 @@ Useful tips (for clean project, from the `build` folder created above):
 	  `cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../`;
 	- Debug, no optimization at all:<br/>
 	  `cmake -DCMAKE_BUILD_TYPE=Debug ../`;
+* Change C++ standard:
+	`cmake -DCMAKE_CXX_STANDARD=11/14/17/20/...`;
 
 ### Installation
 
