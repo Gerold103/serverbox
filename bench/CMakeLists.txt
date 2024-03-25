@@ -6,6 +6,7 @@ add_library(bench
 )
 target_link_libraries(bench
 	mgbox
+	mgboxstub
 	mgtest
 )
 target_include_directories(bench PUBLIC
