@@ -2,11 +2,8 @@ cmake_minimum_required (VERSION 3.8)
 
 set(mgsio_src
 	Socket.cpp
-	Socket.h
 	TCPServer.cpp
-	TCPServer.h
 	TCPSocket.cpp
-	TCPSocket.h
 )
 
 if(WIN32)

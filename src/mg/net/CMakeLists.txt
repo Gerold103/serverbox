@@ -2,15 +2,10 @@ cmake_minimum_required (VERSION 3.8)
 
 set(mgnet_src
 	Buffer.cpp
-	Buffer.h
 	DomainToIP.cpp
-	DomainToIP.h
 	Host.cpp
-	Host.h
 	Socket.cpp
-	Socket.h
 	URL.cpp
-	URL.h
 )
 
 if(WIN32)

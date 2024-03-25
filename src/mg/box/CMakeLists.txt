@@ -2,39 +2,15 @@ cmake_minimum_required (VERSION 3.8)
 
 set(mgbox_src
 	Assert.cpp
-	Assert.h
-	Atomic.h
-	BinaryHeap.h
 	ConditionVariable.cpp
-	ConditionVariable.h
-	Definitions.h
-	DoublyList.h
 	Error.cpp
-	Error.h
-	ForwardList.h
 	IOVec.cpp
-	IOVec.h
 	Log.cpp
-	Log.h
-	MultiConsumerQueue.h
 	MultiConsumerQueueBase.cpp
-	MultiConsumerQueueBase.h
-	MultiProducerQueueIntrusive.h
 	Mutex.cpp
-	Mutex.h
-	RefCount.h
-	SharedPtr.h
 	Signal.cpp
-	Signal.h
 	StringFunctions.cpp
-	StringFunctions.h
-	Sysinfo.h
 	Thread.cpp
-	Thread.h
-	ThreadFunc.h
-	ThreadLocalPool.h
-	Time.h
-	TypeTraits.h
 )
 
 if(WIN32)

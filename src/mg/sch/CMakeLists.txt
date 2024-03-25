@@ -2,9 +2,7 @@ cmake_minimum_required (VERSION 3.8)
 
 add_library(mgsch
 	Task.cpp
-	Task.h
 	TaskScheduler.cpp
-	TaskScheduler.h
 )
 
 target_include_directories(mgsch PUBLIC

@@ -2,19 +2,12 @@ cmake_minimum_required (VERSION 3.8)
 
 set(mgaio_src
 	IOCore.cpp
-	IOCore.h
 	IOTask.cpp
-	IOTask.h
 	TCPServer.cpp
-	TCPServer.h
 	TCPSocket.cpp
-	TCPSocket.h
 	TCPSocketCtl.cpp
-	TCPSocketCtl.h
 	TCPSocketIFace.cpp
-	TCPSocketIFace.h
 	TCPSocketSubscription.cpp
-	TCPSocketSubscription.h
 )
 
 if(WIN32)

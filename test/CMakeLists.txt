@@ -3,7 +3,6 @@ cmake_minimum_required (VERSION 3.8)
 add_executable(test
 	main.cpp
 	UnitTest.cpp
-	UnitTest.h
 	aio/UnitTestTCPServer.cpp
 	aio/UnitTestTCPSocketIFace.cpp
 	box/UnitTestAtomic.cpp
