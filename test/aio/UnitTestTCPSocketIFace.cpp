@@ -10,6 +10,8 @@
 
 #include "UnitTest.h"
 
+#include <functional>
+
 #define TEST_RECV_SIZE 8092
 #define TEST_YIELD_PERIOD 5
 

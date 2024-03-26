@@ -7,6 +7,8 @@
 #include "mg/test/MetricMovingAverage.h"
 #include "mg/test/MetricSpeed.h"
 
+#include <algorithm>
+
 #if MG_BENCH_IO_HAS_BOOST
 #include <boost/asio.hpp>
 
