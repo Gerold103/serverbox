@@ -158,7 +158,7 @@ private:
 	PrivRun()
 	{
 		// Start some async operation, potentially in another thread.
-		myClient.Get(firstUrl, []() {
+		myClient.Get(firstUrl, [this]() {
 			myTask.PostSignal();
 		});
 		// Wait for its completion. In a loop to protect from spurious wakeups.
@@ -167,8 +167,8 @@ private:
 		} while (!co_await myTask.AsyncReceiveSignal());
 
 		// Make a next operation.
-		myClient.Head(secondUrl, [&sched, aTask]() {
-			sched.PostSignal();
+		myClient.Head(secondUrl, [this]() {
+			myTask.PostSignal();
 		});
 		// Wait for its completion.
 		do {
