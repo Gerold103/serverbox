@@ -216,13 +216,13 @@ namespace net {
 		case ADDR_FAMILY_IPV4:
 		{
 			char ipStr[theHostIPV4Len + 1];
-			InetNtoP(ADDR_FAMILY_IPV4, &myAddrIn.sin_addr, ipStr, theHostIPV4Len);
+			MG_BOX_ASSERT(InetNtoP(ADDR_FAMILY_IPV4, &myAddrIn.sin_addr, ipStr, theHostIPV4Len) != nullptr);
 			return mg::box::StringFormat("%s:%u", ipStr, NtoHs(myAddrIn.sin_port));
 		}
 		case ADDR_FAMILY_IPV6:
 		{
 			char ipStr[theHostIPV6Len + 1];
-			InetNtoP(ADDR_FAMILY_IPV6, &myAddrIn6.sin6_addr, ipStr, theHostIPV6Len);
+			MG_BOX_ASSERT(InetNtoP(ADDR_FAMILY_IPV6, &myAddrIn6.sin6_addr, ipStr, theHostIPV6Len) != nullptr);
 			return mg::box::StringFormat("[%s]:%u", ipStr, NtoHs(myAddrIn6.sin6_port));
 		}
 		default:
@@ -245,13 +245,13 @@ namespace net {
 		case ADDR_FAMILY_IPV4:
 		{
 			char ipStr[theHostIPV4Len + 1];
-			InetNtoP(ADDR_FAMILY_IPV4, &myAddrIn.sin_addr, ipStr, theHostIPV4Len);
+			MG_BOX_ASSERT(InetNtoP(ADDR_FAMILY_IPV4, &myAddrIn.sin_addr, ipStr, theHostIPV4Len) != nullptr);
 			return std::string(ipStr);
 		}
 		case ADDR_FAMILY_IPV6:
 		{
 			char ipStr[theHostIPV6Len + 1];
-			InetNtoP(ADDR_FAMILY_IPV6, &myAddrIn6.sin6_addr, ipStr, theHostIPV6Len);
+			MG_BOX_ASSERT(InetNtoP(ADDR_FAMILY_IPV6, &myAddrIn6.sin6_addr, ipStr, theHostIPV6Len) != nullptr);
 			return std::string(ipStr);
 		}
 		default:

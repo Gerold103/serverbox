@@ -1,0 +1,79 @@
+name: test
+
+on:
+  push:
+    branches: [ "master", "develop" ]
+  pull_request:
+    branches: [ "master", "develop" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Release, Debug]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+          - os: macos-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
+          - os: macos-latest
+            c_compiler: cl
+          - os: macos-latest
+            c_compiler: gcc
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          echo "test-dir=${{ github.workspace }}/build/test/${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
+          echo "test-exe=test.exe" >> "$GITHUB_OUTPUT"
+        else
+          echo "test-dir=${{ github.workspace }}/build/test" >> "$GITHUB_OUTPUT"
+          echo "test-exe=test" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Configure CMake
+      shell: bash
+      run: |
+        export CC=${{ matrix.c_compiler }}
+        export CXX=${{ matrix.cpp_compiler }}
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          export CC=$(brew --prefix llvm@15)/bin/$CC
+          export CXX=$(brew --prefix llvm@15)/bin/$CXX
+        fi
+
+        cmake -B "${{ steps.strings.outputs.build-output-dir }}" \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -S "${{ github.workspace }}"
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.test-dir }}
+      run: ./${{ steps.strings.outputs.test-exe }}

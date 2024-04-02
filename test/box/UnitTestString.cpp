@@ -83,7 +83,7 @@ namespace box {
 		if (max < UINT64_MAX)
 			maxStr = mg::box::StringFormat("%llu", (unsigned long long)max + 1);
 		else
-			maxStr = mg::box::StringFormat("%llu0", UINT64_MAX);
+			maxStr = mg::box::StringFormat("%llu0", (unsigned long long)UINT64_MAX);
 		num = 0;
 		TEST_CHECK(!mg::box::StringToNumber(maxStr.c_str(), num));
 	}

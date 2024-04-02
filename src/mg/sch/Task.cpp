@@ -53,9 +53,13 @@ namespace sch {
 	TaskCoroOpExitExec::await_suspend(
 		mg::box::CoroHandle) noexcept
 	{
-		myTask->PrivTouch();
-		myTask->SetCallback(std::move(myNewCallback));
-		myTask->myCallback(myTask);
+		// Save the members on stack. Because before setting of the new callback the old
+		// one gets destroyed. Which in turn will destroy this operation object.
+		Task* t = myTask;
+		TaskCallback cb(std::move(myNewCallback));
+		t->PrivTouch();
+		t->SetCallback(std::move(cb));
+		t->myCallback(t);
 		return true;
 	}
 
