@@ -63,12 +63,6 @@ namespace box {
 	void StringTrim(
 		std::string& aStr);
 
-	MG_STRFORMAT_PRINTF(2, 0)
-	uint32_t Vsprintf(
-		char* aBuffer,
-		const char* aFmtString,
-		va_list aArgList);
-
 	MG_STRFORMAT_PRINTF(3, 0)
 	uint32_t Vsnprintf(
 		char* aBuffer,

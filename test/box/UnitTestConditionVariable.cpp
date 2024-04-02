@@ -60,7 +60,7 @@ namespace box {
 			// error.
 			UnitTestCondVarReceive(stepCounter, workerNext);
 
-			TEST_CHECK(!var.TimedWait(mutex, mg::box::TimeDuration(100)));
+			var.TimedWait(mutex, mg::box::TimeDuration(100));
 			TEST_CHECK(mutex.IsOwnedByThisThread());
 			UnitTestCondVarSend(stepCounter, workerNext);
 

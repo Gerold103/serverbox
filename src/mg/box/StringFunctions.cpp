@@ -58,17 +58,6 @@ namespace box {
 	}
 
 	uint32_t
-	Vsprintf(
-		char* aBuffer,
-		const char* aFmtString,
-		va_list aArgList)
-	{
-		int rc = vsprintf(aBuffer, aFmtString, aArgList);
-		MG_DEV_ASSERT(rc >= 0);
-		return (uint32_t)rc;
-	}
-
-	uint32_t
 	Vsnprintf(
 		char* aBuffer,
 		uint32_t aBufferSize,
