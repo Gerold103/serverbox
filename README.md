@@ -1,5 +1,7 @@
 # Serverbox
 
+![test](https://github.com/Gerold103/serverbox/actions/workflows/test.yml/badge.svg)
+
 **Serverbox** is a framework for networking in C++. The purpose is similar to `boost::asio`. The focus is on these key points:
 
 - **Simplicity** - the API is hard to misuse and is easy to understand.
