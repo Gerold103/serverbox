@@ -38,7 +38,7 @@ namespace io {
 
 	static constexpr int theSampleInterval = 100;
 	static constexpr int theSampleDuration = 2000;
-	static constexpr int theMomentInterval = 1000;
+	static constexpr int theMomentInterval = 100;
 	static constexpr int theBucketCount = theSampleDuration / theSampleInterval;
 	static constexpr int theMagicNumber = 0xdeadbeef;
 
@@ -199,7 +199,7 @@ namespace io {
 			double latency = myLatencyAvg.Get();
 			myLatencyAvg.GoToNextBucket();
 
-			uint64_t speed = mySpeed.Get() * 1000 / theMomentInterval;
+			uint64_t speed = mySpeed.Get() * 1000 / theSampleDuration;
 			mySpeed.GoToNextBucket();
 
 			if (myMode == REPORT_MODE_ONLINE)
