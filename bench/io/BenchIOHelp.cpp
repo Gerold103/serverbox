@@ -107,6 +107,9 @@ R"--(A command line utility to benchmark network code performance.
         beginning, waits one response, sends next message, waits next response, sends
         message, etc. So each connection always has 10 messages in fly. Default is 1.
 
+    -message_target_count - How many messages to send in total before the client is
+        gracefully terminated. Default = infinity, run forever.
+
     -target_host - Host where the server listens. Default is localhost.
 
     -disconnect_period - Disconnect a client each 'disconnect_period' messages. That
