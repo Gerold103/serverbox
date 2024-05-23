@@ -1,0 +1,54 @@
+{
+	"os": "Operating system name and version",
+	"cpu": "Processor details",
+	"comment-server": "Server: -thread_count 5 -mode server",
+	"versions": {
+		"aio": {
+			"name": "mg::aio network",
+			"short_name": "mg::aio",
+			"exe": "bench_io",
+			"cmd": "-backend mg_aio -report summary -mode client"
+		},
+		"boost": {
+			"name": "boost::asio network",
+			"short_name": "boost::asio",
+			"exe": "bench_io",
+			"cmd": "-backend boost_asio -report summary -mode client",
+			"cond": "-test 1 -backend boost_asio"
+		}
+	},
+	"main_version": "aio",
+	"metric_key": "Message/sec(med)",
+	"metric_name": "messages per second",
+	"precision": 0.01,
+	"scenarios": [
+		{
+			"name": "Basic",
+			"cmd": "-thread_count 5 -connect_count_per_port 100 -message_payload_size 128 -message_int_count 5 -message_target_count 5000000",
+			"count": 5
+		},
+		{
+			"name": "Single thread",
+			"cmd": "-thread_count 1 -connect_count_per_port 100 -message_payload_size 128 -message_int_count 5 -message_target_count 2000000",
+			"count": 5
+		},
+		{
+			"name": "5 threads 100kb messages",
+			"cmd": "-thread_count 5 -connect_count_per_port 200 -message_payload_size 102400",
+			"count": 5,
+			"versions": {
+				"aio": {
+					"cmd": "-message_target_count 800000"
+				},
+				"boost": {
+					"cmd": "-message_target_count 500000"
+				}
+			}
+		},
+		{
+			"name": "Parallel messages",
+			"cmd": "-thread_count 5 -connect_count_per_port 100 -message_payload_size 128 -message_parallel_count 5 -message_target_count 20000000",
+			"count": 5
+		}
+	]
+}
