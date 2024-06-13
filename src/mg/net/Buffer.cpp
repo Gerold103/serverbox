@@ -91,6 +91,15 @@ namespace net {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
+	BufferStream::BufferStream()
+		: myRSize(0)
+		, myREnd(nullptr)
+		, myWPos(nullptr)
+		, myWSize(0)
+		, myTail(nullptr)
+	{
+	}
+
 	void
 	BufferStream::EnsureWriteSize(
 		uint64_t aSize)
@@ -99,11 +108,10 @@ namespace net {
 			return;
 		if (myWPos == nullptr)
 		{
+			MG_DEV_ASSERT(myWSize == 0);
 			if (!myHead.IsSet())
 			{
 				MG_DEV_ASSERT(myRSize == 0);
-				MG_DEV_ASSERT(myWPos == nullptr);
-				MG_DEV_ASSERT(myWSize == 0);
 				MG_DEV_ASSERT(myTail == nullptr);
 				myTail = (myHead = BufferCopy::NewShared()).GetPointer();
 			}
@@ -122,6 +130,166 @@ namespace net {
 			myWSize += theBufferCopySize;
 		} while (myWSize < aSize);
 		MG_DEV_ASSERT(myWPos->myPos < myWPos->myCapacity);
+	}
+
+	void
+	BufferStream::PropagateWritePos(
+		uint64_t aSize)
+	{
+		MG_DEV_ASSERT(myWSize >= aSize);
+		myWPos = BuffersPropagateOnWrite(myWPos, aSize);
+		myWSize -= aSize;
+		myRSize += aSize;
+		myREnd = myWPos;
+		if (myWSize == 0)
+		{
+			MG_DEV_ASSERT(myWPos == nullptr || myWPos->myPos == myWPos->myCapacity);
+			myWPos = nullptr;
+		} else if (myWPos->myPos == myWPos->myCapacity) {
+			myWPos = myWPos->myNext.GetPointer();
+			MG_DEV_ASSERT(myWPos->myPos < myWPos->myCapacity);
+		}
+	}
+
+	void
+	BufferStream::WriteCopy(
+		const void* aData,
+		uint64_t aSize)
+	{
+		if (aSize == 0)
+			return;
+		if (myWPos == nullptr)
+		{
+			MG_DEV_ASSERT(myWSize == 0);
+			if (!myHead.IsSet())
+			{
+				MG_DEV_ASSERT(myRSize == 0);
+				MG_DEV_ASSERT(myREnd == nullptr);
+				MG_DEV_ASSERT(myTail == nullptr);
+				myTail = (myHead = BufferCopy::NewShared()).GetPointer();
+			}
+			else
+			{
+				MG_DEV_ASSERT(myTail->myPos == myTail->myCapacity);
+				myTail = (myTail->myNext = BufferCopy::NewShared()).GetPointer();
+			}
+			myWPos = myTail;
+			myWSize = theBufferCopySize;
+		}
+		myRSize += aSize;
+		while (true)
+		{
+			MG_DEV_ASSERT(myWPos->myPos < myWPos->myCapacity);
+			uint32_t cap = myWPos->myCapacity - myWPos->myPos;
+			if (cap > aSize)
+			{
+				memcpy(myWPos->myWData + myWPos->myPos, aData, aSize);
+				myWPos->myPos += (uint32_t)aSize;
+				myREnd = myWPos;
+				myWSize -= aSize;
+				return;
+			}
+			memcpy(myWPos->myWData + myWPos->myPos, aData, cap);
+			myWPos->myPos = myWPos->myCapacity;
+			if (cap == aSize)
+			{
+				myREnd = myWPos;
+				myWPos = nullptr;
+				myWSize = 0;
+				return;
+			}
+			aData = (const uint8_t*)aData + cap;
+			aSize -= cap;
+			MG_DEV_ASSERT(myHead.IsSet());
+			MG_DEV_ASSERT(myTail->myPos == myTail->myCapacity);
+			myTail = (myTail->myNext = BufferCopy::NewShared()).GetPointer();
+			myWPos = myTail;
+			myWSize = theBufferCopySize;
+		}
+	}
+
+	void
+	BufferStream::WriteRef(
+		Buffer::Ptr&& aHead)
+	{
+		if (!aHead.IsSet())
+			return;
+		uint64_t size = 0;
+		Buffer* end = aHead.GetPointer();
+		size += end->myPos;
+		while (end->myNext.IsSet())
+		{
+			end = end->myNext.GetPointer();
+			size += end->myPos;
+		}
+		if (myWPos == nullptr)
+		{
+			MG_DEV_ASSERT(myWSize == 0);
+			if (!myHead.IsSet())
+			{
+				MG_DEV_ASSERT(myRSize == 0);
+				MG_DEV_ASSERT(myREnd == nullptr);
+				MG_DEV_ASSERT(myTail == nullptr);
+				myHead = std::move(aHead);
+			}
+			else
+			{
+				MG_DEV_ASSERT(myTail->myPos == myTail->myCapacity);
+				myTail->myNext = std::move(aHead);
+			}
+			myTail = end;
+			myREnd = end;
+			myRSize += size;
+			myWSize = myTail->myCapacity - myTail->myPos;
+			if (myWSize > 0)
+				myWPos = myTail;
+			return;
+		}
+		MG_DEV_ASSERT(myWSize > 0);
+		MG_DEV_ASSERT(myWPos->myPos < myWPos->myCapacity);
+		if (myREnd == nullptr)
+		{
+			// There are empty buffers, no data to read. Happens after reservation on an
+			// empty stream and after popping all data from a stream having at least one
+			// empty buffer reserved in the end.
+			MG_DEV_ASSERT(myRSize == 0);
+			MG_DEV_ASSERT(myWPos == myHead.GetPointer());
+			Buffer::Ptr oldHead = std::move(myHead);
+			myHead = std::move(aHead);
+			myREnd = end;
+			myRSize += size;
+			myWSize += end->myCapacity - end->myPos;
+			if (end->myCapacity > end->myPos)
+				myWPos = end;
+			end->myNext = std::move(oldHead);
+			return;
+		}
+		MG_DEV_ASSERT(myREnd == myWPos || myREnd->myNext == myWPos);
+		if (myWPos->myPos > 0)
+		{
+			// Last writable buffer has data. Need to place the new data after it, to keep
+			// the order correct.
+			end->myNext = std::move(myWPos->myNext);
+			myWPos->myNext = std::move(aHead);
+		}
+		else
+		{
+			// Last writable buffer has no data. Place the new data before it. This way
+			// the full writable buffer remains in place for next writes and doesn't
+			// become a hole in the stream between the old and new data.
+			end->myNext = std::move(myREnd->myNext);
+			myREnd->myNext = std::move(aHead);
+		}
+		myREnd = end;
+		myRSize += size;
+
+		myWSize -= myWPos->myCapacity - myWPos->myPos;
+		myWPos = end;
+		myWSize += myWPos->myCapacity - myWPos->myPos;
+		if (myWPos->myPos == myWPos->myCapacity)
+		{
+			myWPos = myWPos->myNext.GetPointer();
+		}
 	}
 
 	void
@@ -190,6 +358,41 @@ namespace net {
 			aData = (uint8_t*)aData + toRead;
 			pos = pos->myNext.GetPointer();
 		}
+	}
+
+	Buffer::Ptr
+	BufferStream::PopData()
+	{
+		if (myREnd == nullptr)
+		{
+			MG_DEV_ASSERT(myRSize == 0);
+			return {};
+		}
+		MG_DEV_ASSERT(myRSize > 0);
+		MG_DEV_ASSERT(myREnd->myPos > 0);
+		Buffer::Ptr res = std::move(myHead);
+		myHead = std::move(myREnd->myNext);
+		if (!myHead.IsSet())
+		{
+			Clear();
+			return res;
+		}
+		myWSize -= myREnd->myCapacity - myREnd->myPos;
+		myRSize = 0;
+		myREnd = nullptr;
+		myWPos = myHead.GetPointer();
+		return res;
+	}
+
+	void
+	BufferStream::Clear()
+	{
+		myHead.Clear();
+		myRSize = 0;
+		myREnd = nullptr;
+		myWPos = nullptr;
+		myWSize = 0;
+		myTail = nullptr;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -304,6 +507,8 @@ namespace net {
 				return aHead;
 			}
 			aHead->myPos = aHead->myCapacity;
+			if (cap == aSize)
+				return aHead;
 			aHead = aHead->myNext.GetPointer();
 			aSize -= cap;
 		}
