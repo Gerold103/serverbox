@@ -712,6 +712,21 @@ namespace buffer {
 			mg::net::theBufferCopySize / 2);
 		TEST_CHECK(stream.GetReadPos()->myNext == stream.GetWritePos());
 		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize / 2);
+
+		// What happens when the first buffer is full and there is next non-full buffer,
+		// and more write-space is requested.
+		stream.Clear();
+		stream.EnsureWriteSize(mg::net::theBufferCopySize + 1);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetWritePos()->myPos == 0);
+		stream.PropagateWritePos(mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetReadPos()->myNext == stream.GetWritePos());
+		stream.EnsureWriteSize(mg::net::theBufferCopySize + 1);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetWritePos()->myPos == 0);
+		TEST_CHECK(stream.GetReadPos()->myNext == stream.GetWritePos());
+		TEST_CHECK(stream.GetWritePos()->myNext->myPos == 0);
 	}
 
 	static void
@@ -762,6 +777,333 @@ namespace buffer {
 		stream.EnsureWriteSize(1);
 		TEST_CHECK(stream.GetWritePos() == head->myNext);
 		TEST_CHECK(stream.GetWritePos()->myPos == 0);
+	}
+
+	static void
+	UnitTestBufferStreamWriteCopy()
+	{
+		TestCaseGuard guard("BufferStream::WriteCopy()");
+
+		mg::net::BufferStream stream;
+		stream.WriteCopy(nullptr, 0);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		//
+		// Write new, completely empty, +1 buffer.
+		//
+		stream.WriteCopy("a", 1);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize - 1);
+		TEST_CHECK(stream.GetReadSize() == 1);
+		const mg::net::Buffer* head = stream.GetReadPos();
+		TEST_CHECK(head->myPos == 1);
+		TEST_CHECK(memcmp(head->myRData, "a", 1) == 0);
+		//
+		// Fill a few buffers in a non-empty stream.
+		//
+		float factor = 5.3;
+		uint64_t size = mg::net::theBufferCopySize * factor;
+		uint8_t* data = new uint8_t[size];
+		BufferFill(1, data, 0, size);
+		stream.WriteCopy(data, size);
+		TEST_CHECK(stream.GetReadSize() == 1 + size);
+		head = stream.GetReadPos();
+		TEST_CHECK(head->myPos == mg::net::theBufferCopySize);
+		BufferCheck(1, head->myRData + 1, 0, head->myPos - 1);
+		//
+		// Read all data. Some tail is left for writing.
+		//
+		stream.SkipData(1);
+		stream.ReadData(data, size);
+		Report("ceil = %f", ceilf(factor));
+		Report("fraction = %f", ceilf(factor) - factor);
+		Report("size = %f", (ceilf(factor) - factor) * mg::net::theBufferCopySize);
+		Report("real size = %llu", (long long)stream.GetWriteSize());
+		TEST_CHECK(stream.GetWriteSize() == (uint64_t)((ceilf(factor) - factor) * mg::net::theBufferCopySize));
+		TEST_CHECK(stream.GetReadSize() == 0);
+		BufferCheck(1, data, 0, size);
+		//
+		// Write exactly one buffer into an empty stream.
+		//
+		stream.Clear();
+		BufferFill(1, data, 0, mg::net::theBufferCopySize);
+		stream.WriteCopy(data, mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		//
+		// Next writing starts from a new buffer.
+		//
+		stream.WriteCopy("abc", 3);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize - 3);
+		TEST_CHECK(stream.GetReadSize() == mg::net::theBufferCopySize + 3);
+		head = stream.GetReadPos();
+		TEST_CHECK(head->myPos == head->myCapacity);
+		TEST_CHECK(head->myCapacity == mg::net::theBufferCopySize);
+		BufferCheck(1, head->myRData, 0, head->myPos);
+		head = head->myNext.GetPointer();
+		TEST_CHECK(head->myPos == 3);
+		TEST_CHECK(memcmp(head->myRData, "abc", 3) == 0);
+		//
+		// Write exactly one buffer into an empty stream.
+		//
+		stream.Clear();
+		stream.WriteCopy(data, mg::net::theBufferCopySize);
+		BufferFill(2, data, 0, mg::net::theBufferCopySize);
+		//
+		// And second exact buffer.
+		//
+		stream.WriteCopy(data, mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		TEST_CHECK(stream.GetReadSize() == mg::net::theBufferCopySize * 2);
+
+		head = stream.GetReadPos();
+		TEST_CHECK(head->myPos == head->myCapacity);
+		TEST_CHECK(head->myCapacity == mg::net::theBufferCopySize);
+		BufferCheck(1, head->myRData, 0, head->myPos);
+
+		head = head->myNext.GetPointer();
+		TEST_CHECK(head->myPos == head->myCapacity);
+		TEST_CHECK(head->myCapacity == mg::net::theBufferCopySize);
+		BufferCheck(2, head->myRData, 0, head->myPos);
+	}
+
+	static void
+	UnitTestBufferStreamWriteRef()
+	{
+		TestCaseGuard guard("BufferStream::WriteRef()");
+
+		mg::net::BufferStream stream;
+		stream.WriteRef({});
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		//
+		// Write a couple of full buffers.
+		//
+		mg::net::Buffer::Ptr head = mg::net::BufferRaw::NewShared("abc", 3);
+		head->myNext = mg::net::BufferRaw::NewShared("defg", 4);
+
+		mg::net::Buffer::Ptr b1 = head;
+		mg::net::Buffer::Ptr b2 = head->myNext;
+
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 7);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		//
+		// Write a couple of buffers having free space in them.
+		//
+		stream.Clear();
+		head = mg::net::BuffersCopy("abc", 3);
+		TEST_CHECK(!head->myNext.IsSet());
+		head->myNext = mg::net::BuffersCopy("defg", 4);
+		TEST_CHECK(!head->myNext->myNext.IsSet());
+		b1 = head;
+		b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 7);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize - 4);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		TEST_CHECK(stream.GetWritePos() == b2);
+		TEST_CHECK(b2->myPos == 4);
+		//
+		// Write to non-empty stream with no write space.
+		//
+		stream.Clear();
+		stream.WriteRef(mg::net::BuffersRef("abc", 3));
+		stream.WriteRef(mg::net::BuffersRef("defg", 4));
+		TEST_CHECK(stream.GetReadSize() == 7);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		head = mg::net::BufferRaw::NewShared("12345", 5);
+		head->myNext = mg::net::BufferRaw::NewShared("67", 2);
+		b1 = head;
+		b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 14);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		const mg::net::Buffer* pos = stream.GetReadPos();
+		TEST_CHECK(pos->myPos == 3);
+		TEST_CHECK(memcmp(pos->myRData, "abc", 3) == 0);
+		pos = pos->myNext.GetPointer();
+		TEST_CHECK(pos->myPos == 4);
+		TEST_CHECK(memcmp(pos->myRData, "defg", 4) == 0);
+		pos = pos->myNext.GetPointer();
+		TEST_CHECK(pos == b1);
+		TEST_CHECK(pos->myPos == 5);
+		TEST_CHECK(memcmp(pos->myRData, "12345", 5) == 0);
+		pos = pos->myNext.GetPointer();
+		TEST_CHECK(pos == b2);
+		TEST_CHECK(pos->myPos == 2);
+		TEST_CHECK(memcmp(pos->myRData, "67", 2) == 0);
+		TEST_CHECK(!pos->myNext.IsSet());
+		//
+		// Write to non-empty stream with write-space, but no read-space. The tail of
+		// new buffers is full.
+		//
+		// Prepare: b1 -> b2.
+		//         wpos
+		//         rpos
+		stream.Clear();
+		stream.EnsureWriteSize(mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetReadSize() == 0);
+		TEST_CHECK(stream.GetReadPos() == stream.GetWritePos());
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2);
+		b1.Set(stream.GetWritePos());
+		b2 = b1->myNext;
+		TEST_CHECK(b2.IsSet());
+		TEST_CHECK(!b2->myNext.IsSet());
+		// Do the write: b3 -> b4 -> b1 -> b2
+		//              rpos        wpos
+		head = mg::net::BuffersRef("abc", 3);
+		head->myNext = mg::net::BuffersRef("defg", 4);
+		mg::net::Buffer::Ptr b3 = head;
+		mg::net::Buffer::Ptr b4 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 7);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetReadPos() == b3);
+		TEST_CHECK(b3->myPos == 3);
+		TEST_CHECK(memcmp(b3->myRData, "abc", 3) == 0);
+		TEST_CHECK(b3->myNext == b4);
+		TEST_CHECK(b4->myPos == 4);
+		TEST_CHECK(memcmp(b4->myRData, "defg", 3) == 0);
+		TEST_CHECK(b4->myNext == b1);
+		TEST_CHECK(b1->myPos == 0);
+		TEST_CHECK(b1->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(b1->myNext == b2);
+		TEST_CHECK(b2->myPos == 0);
+		TEST_CHECK(b2->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(!b2->myNext.IsSet());
+		TEST_CHECK(stream.GetWritePos() == b1);
+		//
+		// Same, but the tail of new buffers has capacity.
+		//
+		// Prepare: b1 -> b2.
+		//         wpos
+		//         rpos
+		stream.Clear();
+		stream.EnsureWriteSize(mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetReadSize() == 0);
+		TEST_CHECK(stream.GetReadPos() == stream.GetWritePos());
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2);
+		b1.Set(stream.GetWritePos());
+		b2 = b1->myNext;
+		TEST_CHECK(b2.IsSet());
+		TEST_CHECK(!b2->myNext.IsSet());
+		// Do the write: b3 -> b4 -> b1 -> b2
+		//              rpos  wpos
+		//                    rend
+		head = mg::net::BuffersRef("abc", 3);
+		head->myNext = mg::net::BuffersCopy("defg", 4);
+		b3 = head;
+		b4 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 7);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 3 - 4);
+		TEST_CHECK(stream.GetReadPos() == b3);
+		TEST_CHECK(b3->myPos == 3);
+		TEST_CHECK(memcmp(b3->myRData, "abc", 3) == 0);
+		TEST_CHECK(b3->myNext == b4);
+		TEST_CHECK(b4->myPos == 4);
+		TEST_CHECK(b4->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(memcmp(b4->myRData, "defg", 3) == 0);
+		TEST_CHECK(b4->myNext == b1);
+		TEST_CHECK(b1->myPos == 0);
+		TEST_CHECK(b1->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(b1->myNext == b2);
+		TEST_CHECK(b2->myPos == 0);
+		TEST_CHECK(b2->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(!b2->myNext.IsSet());
+		TEST_CHECK(stream.GetWritePos() == b4);
+		//
+		// Write to a non-empty stream with reading started and write position
+		// buffer already being used and last of new buffers being full.
+		//
+		// Prepare: b1 -> b2 -> b3
+		//         rpos  wpos
+		//               rend
+		stream.Clear();
+		head = mg::net::BuffersRef("abcdefg", 7);
+		head->myNext = mg::net::BuffersCopy("hikl", 4);
+		b1 = head;
+		b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		stream.EnsureWriteSize(mg::net::theBufferCopySize);
+		TEST_CHECK(b2->myNext.IsSet());
+		b3 = b2->myNext;
+		TEST_CHECK(!b3->myNext.IsSet());
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2 - 4);
+		//
+		// Do the write: b1 -> b2 -> b4 -> b5 -> b3
+		//              rpos              rend  wpos
+		head = mg::net::BuffersRef("1234", 4);
+		head->myNext = mg::net::BuffersRef("567891011", 9);
+		b4 = head;
+		mg::net::Buffer::Ptr b5 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetReadSize() == 24);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		TEST_CHECK(b1->myPos == 7);
+		TEST_CHECK(memcmp(b1->myRData, "abcdefg", 7) == 0);
+		TEST_CHECK(b1->myNext == b2);
+		TEST_CHECK(b2->myPos == 4);
+		TEST_CHECK(memcmp(b2->myRData, "hikl", 4) == 0);
+		TEST_CHECK(b2->myNext == b4);
+		TEST_CHECK(b4->myPos == 4);
+		TEST_CHECK(memcmp(b4->myRData, "1234", 4) == 0);
+		TEST_CHECK(b4->myNext == b5);
+		TEST_CHECK(b5->myPos == 9);
+		TEST_CHECK(memcmp(b5->myRData, "567891011", 9) == 0);
+		TEST_CHECK(b5->myNext == b3);
+		TEST_CHECK(b3->myPos == 0);
+		TEST_CHECK(b3->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetWritePos() == b3);
+		//
+		// Write to a non-empty stream with reading started and write position
+		// buffer already being used and last of new buffers being not full.
+		//
+		// Prepare: b1 -> b2 -> b3
+		//         rpos  wpos
+		//               rend
+		stream.Clear();
+		head = mg::net::BuffersRef("abcdefg", 7);
+		head->myNext = mg::net::BuffersCopy("hikl", 4);
+		b1 = head;
+		b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		stream.EnsureWriteSize(mg::net::theBufferCopySize);
+		TEST_CHECK(b2->myNext.IsSet());
+		b3 = b2->myNext;
+		TEST_CHECK(!b3->myNext.IsSet());
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2 - 4);
+		//
+		// Do the write: b1 -> b2 -> b4 -> b5 -> b3
+		//              rpos              wpos
+		//                                rend
+		head = mg::net::BuffersRef("1234", 4);
+		head->myNext = mg::net::BuffersCopy("567891011", 9);
+		b4 = head;
+		b5 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2 - 9);
+		TEST_CHECK(stream.GetReadSize() == 24);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		TEST_CHECK(b1->myPos == 7);
+		TEST_CHECK(memcmp(b1->myRData, "abcdefg", 7) == 0);
+		TEST_CHECK(b1->myNext == b2);
+		TEST_CHECK(b2->myPos == 4);
+		TEST_CHECK(memcmp(b2->myRData, "hikl", 4) == 0);
+		TEST_CHECK(b2->myNext == b4);
+		TEST_CHECK(b4->myPos == 4);
+		TEST_CHECK(memcmp(b4->myRData, "1234", 4) == 0);
+		TEST_CHECK(b4->myNext == b5);
+		TEST_CHECK(b5->myPos == 9);
+		TEST_CHECK(b5->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(memcmp(b5->myRData, "567891011", 9) == 0);
+		TEST_CHECK(b5->myNext == b3);
+		TEST_CHECK(b3->myPos == 0);
+		TEST_CHECK(b3->myCapacity == mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetWritePos() == b5);
 	}
 
 	static void
@@ -1023,6 +1365,108 @@ namespace buffer {
 		TEST_CHECK(stream.GetReadSize() == 0);
 
 		delete[] buf;
+	}
+
+	static void
+	UnitTestBufferStreamPopData()
+	{
+		TestCaseGuard guard("BufferStream::PopData()");
+
+		mg::net::BufferStream stream;
+		TEST_CHECK(!stream.PopData().IsSet());
+		//
+		// One buffer.
+		//
+		mg::net::Buffer::Ptr head = mg::net::BuffersRef("abc", 3);
+		mg::net::Buffer::Ptr b1 = head;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 3);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		head = stream.PopData();
+		TEST_CHECK(head == b1);
+		TEST_CHECK(!head->myNext.IsSet());
+		TEST_CHECK(head->myPos == 3);
+		TEST_CHECK(memcmp(head->myRData, "abc", 3) == 0);
+		TEST_CHECK(stream.GetReadSize() == 0);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		TEST_CHECK(stream.GetReadPos() == nullptr);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		TEST_CHECK(stream.IsEmpty());
+		//
+		// Two buffers.
+		//
+		head = mg::net::BuffersRef("abc", 3);
+		head->myNext = mg::net::BuffersRef("defg", 4);
+		b1 = head;
+		mg::net::Buffer::Ptr b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 7);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		head = stream.PopData();
+		TEST_CHECK(head == b1);
+		TEST_CHECK(head->myNext == b2);
+		TEST_CHECK(!b2->myNext.IsSet());
+		TEST_CHECK(b1->myPos == 3);
+		TEST_CHECK(memcmp(b1->myRData, "abc", 3) == 0);
+		TEST_CHECK(b2->myPos == 4);
+		TEST_CHECK(memcmp(b2->myRData, "defg", 4) == 0);
+		TEST_CHECK(stream.GetReadSize() == 0);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		TEST_CHECK(stream.GetReadPos() == nullptr);
+		TEST_CHECK(stream.GetWritePos() == nullptr);
+		TEST_CHECK(stream.IsEmpty());
+		//
+		// Pop after a partial read was done.
+		//
+		head = mg::net::BuffersRef("abcdefg", 7);
+		head->myNext = mg::net::BuffersRef("hikl", 4);
+		b1 = head;
+		b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetReadSize() == 11);
+		TEST_CHECK(stream.GetWriteSize() == 0);
+		stream.SkipData(2);
+		head = stream.PopData();
+		TEST_CHECK(head == b1);
+		TEST_CHECK(head->myNext == b2);
+		TEST_CHECK(!b2->myNext.IsSet());
+		TEST_CHECK(b1->myPos == 5);
+		TEST_CHECK(memcmp(b1->myRData, "cdefg", 5) == 0);
+		TEST_CHECK(b2->myPos == 4);
+		TEST_CHECK(memcmp(b2->myRData, "hikl", 4) == 0);
+		//
+		// Tail of empty buffers.
+		//
+		head = mg::net::BuffersRef("abcdefg", 7);
+		head->myNext = mg::net::BuffersCopy("hikl", 4);
+		b1 = head;
+		b2 = head->myNext;
+		stream.WriteRef(std::move(head));
+		stream.EnsureWriteSize(mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetReadSize() == 11);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 3 - 4);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		TEST_CHECK(stream.GetReadPos()->myNext == b2);
+		mg::net::Buffer::Ptr b3 = b2->myNext;
+		TEST_CHECK(stream.GetReadPos()->myNext->myNext == b3);
+		mg::net::Buffer::Ptr b4 = b3->myNext;
+		TEST_CHECK(stream.GetReadPos()->myNext->myNext->myNext == b4);
+		TEST_CHECK(!b4->myNext.IsSet());
+		TEST_CHECK(stream.GetWritePos() == b2);
+
+		head = stream.PopData();
+		TEST_CHECK(head == b1);
+		TEST_CHECK(head->myNext == b2);
+		TEST_CHECK(!b2->myNext.IsSet());
+		TEST_CHECK(b1->myPos == 7);
+		TEST_CHECK(memcmp(b1->myRData, "abcdefg", 7) == 0);
+		TEST_CHECK(b2->myPos == 4);
+		TEST_CHECK(memcmp(b2->myRData, "hikl", 4) == 0);
+		TEST_CHECK(stream.GetReadSize() == 0);
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize * 2);
+		TEST_CHECK(stream.GetWritePos() == b3);
+		TEST_CHECK(b3->myNext == b4);
+		TEST_CHECK(!b4->myNext.IsSet());
 	}
 
 	static void
@@ -1588,7 +2032,7 @@ namespace buffer {
 
 		// Finish the second buf.
 		res = mg::net::BuffersPropagateOnWrite(head.GetPointer(), 20);
-		TEST_CHECK(res == nullptr);
+		TEST_CHECK(res == head->myNext.GetPointer());
 		TEST_CHECK(head->myPos == 100);
 		TEST_CHECK(head->myCapacity == 100);
 		TEST_CHECK(head->myRData == data);
@@ -1901,9 +2345,12 @@ namespace buffer {
 
 		UnitTestBufferStreamPropagateWritePos();
 		UnitTestBufferStreamEnsureWriteSize();
+		UnitTestBufferStreamWriteCopy();
+		UnitTestBufferStreamWriteRef();
 		UnitTestBufferStreamSkipData();
 		UnitTestBufferStreamReadData();
 		UnitTestBufferStreamPeekData();
+		UnitTestBufferStreamPopData();
 		UnitTestBufferStreamMisc();
 
 		UnitTestBufferReadStreamSkipData();

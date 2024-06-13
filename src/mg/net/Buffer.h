@@ -201,6 +201,8 @@ namespace net {
 	{
 	public:
 		BufferStream();
+		BufferStream(
+			const BufferStream&) = delete;
 
 		Buffer* GetWritePos() { return myWPos; }
 		void PropagateWritePos(
@@ -212,6 +214,11 @@ namespace net {
 
 		void EnsureWriteSize(
 			uint64_t aSize);
+		void WriteCopy(
+			const void* aData,
+			uint64_t aSize);
+		void WriteRef(
+			Buffer::Ptr&& aHead);
 
 		void SkipData(
 			uint64_t aSize);
@@ -221,14 +228,23 @@ namespace net {
 		void PeekData(
 			void* aData,
 			uint64_t aSize) const;
+		Buffer::Ptr PopData();
 
 		void Clear();
 
 		bool IsEmpty() const { return !myHead.IsSet(); }
 
 	private:
+		// head -> rend -> wpos -> tail
+		// \__________/   \___________/
+		//    rsize           wsize
 		Buffer::Ptr myHead;
 		uint64_t myRSize;
+		// Last readable buffer. Having pos > 0. Remembering this position allows to pluck
+		// the readable prefix from the stream in O(1) by simply making rend->next the new
+		// head of the stream.
+		Buffer* myREnd;
+		// First writable buffer. Having pos < cap.
 		Buffer* myWPos;
 		uint64_t myWSize;
 		Buffer* myTail;
@@ -443,35 +459,6 @@ namespace net {
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
-
-	inline
-	BufferStream::BufferStream()
-		: myRSize(0)
-		, myWPos(nullptr)
-		, myWSize(0)
-		, myTail(nullptr)
-	{
-	}
-
-	inline void
-	BufferStream::PropagateWritePos(
-		uint64_t aSize)
-	{
-		MG_DEV_ASSERT(myWSize >= aSize);
-		myWPos = BuffersPropagateOnWrite(myWPos, aSize);
-		myWSize -= aSize;
-		myRSize += aSize;
-	}
-
-	inline void
-	BufferStream::Clear()
-	{
-		myHead.Clear();
-		myRSize = 0;
-		myWPos = nullptr;
-		myWSize = 0;
-		myTail = nullptr;
-	}
 
 }
 }
