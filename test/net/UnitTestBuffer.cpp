@@ -799,8 +799,8 @@ namespace buffer {
 		//
 		// Fill a few buffers in a non-empty stream.
 		//
-		float factor = 5.3;
-		uint64_t size = mg::net::theBufferCopySize * factor;
+		float factor = 5.3f;
+		uint64_t size = (uint64_t)(mg::net::theBufferCopySize * factor);
 		uint8_t* data = new uint8_t[size];
 		BufferFill(1, data, 0, size);
 		stream.WriteCopy(data, size);

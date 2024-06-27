@@ -1,5 +1,6 @@
 #include "mg/box/Assert.h"
 #include "mg/box/StringFunctions.h"
+#include "mg/net/SSLOpenSSL.h"
 #include "mg/test/CommandLine.h"
 
 #include "UnitTest.h"
@@ -57,6 +58,7 @@ namespace net {
 	void UnitTestBuffer();
 	void UnitTestDomainToIP();
 	void UnitTestHost();
+	void UnitTestSSL();
 	void UnitTestURL();
 }
 namespace sch {
@@ -90,6 +92,8 @@ main(
 	mg::tst::CommandLine cmd(aArgc, aArgv);
 	TestSettings settings = ParseSettings(cmd);
 
+	mg::net::OpenSSLInit();
+
 #define MG_RUN_TEST(nm, func) RunTest(settings, nm::func, #nm, #func)
 
 	MG_RUN_TEST(aio, UnitTestTCPServer);
@@ -115,10 +119,13 @@ main(
 	MG_RUN_TEST(net, UnitTestBuffer);
 	MG_RUN_TEST(net, UnitTestDomainToIP);
 	MG_RUN_TEST(net, UnitTestHost);
+	MG_RUN_TEST(net, UnitTestSSL);
 	MG_RUN_TEST(net, UnitTestURL);
 	MG_RUN_TEST(sch, UnitTestTaskScheduler);
 	MG_RUN_TEST(sio, UnitTestTCPServer);
 	MG_RUN_TEST(sio, UnitTestTCPSocket);
+
+	mg::net::OpenSSLDestroy();
 
 #if IS_PLATFORM_WIN
 	MG_BOX_ASSERT(WSACleanup() == 0);
