@@ -82,6 +82,9 @@ namespace box {
 		ERR_NET_PROTOCOL                    = _ERR_NET_BEGIN + 6,
 		ERR_NET_HOST_UNREACHABLE			= _ERR_NET_BEGIN + 7,
 					_ERR_NET_END,
+					_ERR_SSL_BEGIN			= 3000,
+		ERR_SSL								= _ERR_SSL_BEGIN + 0,
+					_ERR_SSL_END,
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////

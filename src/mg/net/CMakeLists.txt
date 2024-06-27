@@ -1,10 +1,19 @@
 cmake_minimum_required (VERSION 3.8)
 
+find_package(OpenSSL REQUIRED)
+
 set(mgnet_src
 	Buffer.cpp
 	DomainToIP.cpp
 	Host.cpp
 	Socket.cpp
+	SSL.cpp
+	SSLBioMem.cpp
+	SSLContext.cpp
+	SSLContextOpenSSL.cpp
+	SSLOpenSSL.cpp
+	SSLStream.cpp
+	SSLStreamOpenSSL.cpp
 	URL.cpp
 )
 
@@ -22,11 +31,16 @@ add_library(mgnet ${mgnet_src})
 
 target_include_directories(mgnet PUBLIC
 	${CMAKE_SOURCE_DIR}/src/
+	${OPENSSL_INCLUDE_DIR}
 )
 
-set(mgnet_libs mgbox)
+set(mgnet_libs
+	mgbox
+	${OPENSSL_SSL_LIBRARY}
+	${OPENSSL_CRYPTO_LIBRARY}
+)
 if(WIN32)
-	set(mgnet_libs ${mgnet_libs} ws2_32.lib)
+	set(mgnet_libs ${mgnet_libs} ws2_32.lib crypt32.lib)
 endif()
 
 target_link_libraries(mgnet

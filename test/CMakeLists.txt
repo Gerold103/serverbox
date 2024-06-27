@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.8)
 add_executable(test
 	main.cpp
 	UnitTest.cpp
+	UnitTestSSLCerts.cpp
 	aio/UnitTestTCPServer.cpp
 	aio/UnitTestTCPSocketIFace.cpp
 	box/UnitTestAtomic.cpp
@@ -26,6 +27,7 @@ add_executable(test
 	net/UnitTestBuffer.cpp
 	net/UnitTestDomainToIP.cpp
 	net/UnitTestHost.cpp
+	net/UnitTestSSL.cpp
 	net/UnitTestURL.cpp
 	sch/UnitTestTaskScheduler.cpp
 	sio/UnitTestTCPServer.cpp

@@ -142,9 +142,14 @@ namespace box {
 			ERROR_DEF_MAKE(
 				"error_net_host_unreach", "net host unreachable");
 		//////////////////////////////////////////////////////////////////////////////////
+		case ERR_SSL:
+			ERROR_DEF_MAKE(
+				"error_ssl", "ssl error");
+		//////////////////////////////////////////////////////////////////////////////////
 		case _ERR_BOX_END:
 		case _ERR_SYS_END:
 		case _ERR_NET_END:
+		case _ERR_SSL_END:
 		default:
 			MG_BOX_ASSERT(!"Unknown error code");
 			ERROR_DEF_MAKE(nullptr, nullptr);
@@ -403,6 +408,8 @@ namespace box {
 			return "sys";
 		if (IS_ERROR_TYPE(aCode, NET))
 			return "net";
+		if (IS_ERROR_TYPE(aCode, SSL))
+			return "ssl";
 		return "unknown";
 
 #if IS_COMPILER_MSVC
