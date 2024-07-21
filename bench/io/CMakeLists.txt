@@ -22,7 +22,7 @@ else()
 endif()
 add_executable(bench_io ${bench_io_src})
 target_compile_definitions(bench_io PRIVATE ${BOOST_MACRO})
-target_include_directories(bench_io PUBLIC ${bench_io_include_dirs})
+target_include_directories(bench_io SYSTEM PUBLIC ${bench_io_include_dirs})
 
 target_link_libraries(bench_io
 	mgaio
