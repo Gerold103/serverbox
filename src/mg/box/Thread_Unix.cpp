@@ -4,7 +4,6 @@
 
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <xmmintrin.h>
 
 namespace mg {
 namespace box {
