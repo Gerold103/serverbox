@@ -10,6 +10,15 @@ namespace net {
 
 	class SSLContextOpenSSL;
 
+	enum SSLStreamOpenSSLState
+	{
+		SSL_STREAM_OPENSSL_STATE_NEW,
+		SSL_STREAM_OPENSSL_STATE_CONNECTING,
+		SSL_STREAM_OPENSSL_STATE_CONNECTED,
+		SSL_STREAM_OPENSSL_STATE_CLOSING,
+		SSL_STREAM_OPENSSL_STATE_CLOSED,
+	};
+
 	class SSLStreamOpenSSL
 	{
 	public:
@@ -20,6 +29,7 @@ namespace net {
 
 		bool Update();
 		void Connect();
+		void Shutdown();
 		bool SetHostName(
 			const char* aName);
 
@@ -41,8 +51,10 @@ namespace net {
 			Buffer::Ptr& aOutHead);
 
 		bool HasError() const { return myError != 0; }
-		bool IsConnected() const { return myIsConnected; }
-		bool IsEnabled() const { return myIsEnabled; }
+		bool IsConnected() const { return myState == SSL_STREAM_OPENSSL_STATE_CONNECTED; }
+		bool IsClosed() const { return myState == SSL_STREAM_OPENSSL_STATE_CLOSED; }
+		bool IsClosingOrClosed() const {
+			return myState >= SSL_STREAM_OPENSSL_STATE_CLOSING; }
 
 		SSLVersion GetVersion() const;
 		SSLCipher GetCipher() const;
@@ -58,6 +70,8 @@ namespace net {
 			uint32_t aErr);
 		bool PrivCheckError(
 			int aRetCode);
+		void PrivSetState(
+			SSLStreamOpenSSLState aState);
 
 		mg::net::Buffer* PrivGetCachedBuf();
 
@@ -67,8 +81,7 @@ namespace net {
 		BufferStream myAppInput;
 		Buffer::Ptr myCachedBuf;
 		uint32_t myError;
-		bool myIsConnected;
-		bool myIsEnabled;
+		SSLStreamOpenSSLState myState;
 	};
 
 	inline uint64_t
