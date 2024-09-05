@@ -616,6 +616,35 @@ namespace ssl {
 	}
 
 	static void
+	UnitTestSSLFinalizeShutdown(
+		mg::net::SSLStream& aFilter1,
+		mg::net::SSLStream& aFilter2)
+	{
+		mg::net::Buffer::Ptr head;
+		uint64_t rc;
+		while (!aFilter1.IsClosed() || !aFilter2.IsClosed())
+		{
+			rc = aFilter1.PopNetOutput(head);
+			TEST_CHECK(!aFilter1.HasError());
+			aFilter2.AppendNetInputRef(std::move(head));
+			TEST_CHECK(!aFilter2.HasError());
+
+			rc = aFilter1.PopAppOutput(head);
+			TEST_CHECK(!aFilter1.HasError());
+			TEST_CHECK(rc == 0);
+
+			rc = aFilter2.PopAppOutput(head);
+			TEST_CHECK(!aFilter2.HasError());
+			TEST_CHECK(rc == 0);
+
+			rc = aFilter2.PopNetOutput(head);
+			TEST_CHECK(!aFilter2.HasError());
+			aFilter1.AppendNetInputRef(std::move(head));
+			TEST_CHECK(!aFilter1.HasError());
+		}
+	}
+
+	static void
 	UnitTestSSLInteract(
 		mg::net::SSLStream& aFilter1,
 		mg::net::SSLStream& aFilter2)
@@ -1332,6 +1361,101 @@ namespace ssl {
 		}
 	}
 
+	static void
+	UnitTestSSLShutdown()
+	{
+		mg::net::SSLContext::Ptr serverCtx = mg::net::SSLContext::NewShared(true);
+		serverCtx->SetTrust(mg::net::SSL_TRUST_BYPASS_VERIFICATION);
+		TEST_CHECK(serverCtx->AddLocalCert(
+			theUnitTestCert1, theUnitTestCert1Size,
+			theUnitTestKey1, theUnitTestKey1Size));
+		mg::net::SSLStream server(serverCtx);
+		server.Connect();
+
+		mg::net::SSLContext::Ptr clientCtx = mg::net::SSLContext::NewShared(false);
+		clientCtx->SetTrust(mg::net::SSL_TRUST_BYPASS_VERIFICATION);
+		mg::net::SSLStream client(clientCtx);
+		client.Connect();
+
+		// Normal shutdown.
+		{
+			mg::net::SSLStream filter1(serverCtx);
+			filter1.Connect();
+			mg::net::SSLStream filter2(clientCtx);
+			filter2.Connect();
+			UnitTestSSLInteract(filter1, filter2);
+
+			filter1.Shutdown();
+			UnitTestSSLFinalizeShutdown(filter1, filter2);
+
+			// After shutdown data sending won't work.
+			TEST_CHECK(!filter1.IsConnected());
+			TEST_CHECK(!filter2.IsConnected());
+			filter1.AppendAppInputCopy("123", 3);
+			mg::net::Buffer::Ptr head;
+			int64_t rc = filter1.PopNetOutput(head);
+			TEST_CHECK(!filter1.HasError());
+			TEST_CHECK(rc == 0);
+			TEST_CHECK(!head.IsSet());
+		}
+		// Break shutdown with invalid data.
+		{
+			mg::net::SSLStream filter1(serverCtx);
+			filter1.Connect();
+			mg::net::SSLStream filter2(clientCtx);
+			filter2.Connect();
+			UnitTestSSLInteract(filter1, filter2);
+
+			filter1.Shutdown();
+			filter1.AppendNetInputCopy("bad data", 8);
+			TEST_CHECK(!filter1.Update());
+			TEST_CHECK(filter1.HasError());
+		}
+		// Send unencrypted data during shutdown. It gets dropped when shutdown starts.
+		{
+			mg::net::SSLStream filter1(serverCtx);
+			filter1.Connect();
+			mg::net::SSLStream filter2(clientCtx);
+			filter2.Connect();
+			UnitTestSSLInteract(filter1, filter2);
+
+			filter1.Shutdown();
+			filter1.AppendAppInputCopy("data", 4);
+			UnitTestSSLFinalizeShutdown(filter1, filter2);
+			mg::net::Buffer::Ptr head;
+			TEST_CHECK(filter1.PopAppOutput(head) == 0);
+			TEST_CHECK(filter2.PopAppOutput(head) == 0);
+		}
+		// Shutdown a new stream. Data gets discarded then.
+		{
+			mg::net::SSLStream filter1(serverCtx);
+			filter1.AppendAppInputCopy("data", 4);
+			filter1.Shutdown();
+			TEST_CHECK(filter1.IsClosed());
+			mg::net::Buffer::Ptr head;
+			TEST_CHECK(filter1.PopNetOutput(head) == 0);
+		}
+		// Shutdown while being closed remotely.
+		{
+			mg::net::SSLStream filter1(serverCtx);
+			filter1.Connect();
+			mg::net::SSLStream filter2(clientCtx);
+			filter2.Connect();
+			UnitTestSSLInteract(filter1, filter2);
+
+			filter1.Shutdown();
+			mg::net::Buffer::Ptr head;
+			int64_t rc = filter1.PopNetOutput(head);
+			TEST_CHECK(rc > 0);
+			filter2.AppendNetInputRef(std::move(head));
+			TEST_CHECK(filter2.PopAppOutput(head) == 0);
+			TEST_CHECK(filter2.IsClosingOrClosed());
+			TEST_CHECK(!filter2.IsClosed());
+			filter2.Shutdown();
+			UnitTestSSLFinalizeShutdown(filter1, filter2);
+		}
+	}
+
 }
 
 	void
@@ -1350,6 +1474,7 @@ namespace ssl {
 		UnitTestSSLError();
 		UnitTestSSLExternal_SSL_CTX();
 		UnitTestSSLCipherAndVersionCheck();
+		UnitTestSSLShutdown();
 	}
 
 }

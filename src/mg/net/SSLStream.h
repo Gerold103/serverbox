@@ -25,6 +25,7 @@ namespace net {
 
 		bool Update() { return myImpl.Update(); }
 		void Connect() { myImpl.Connect(); }
+		void Shutdown() { myImpl.Shutdown(); }
 		bool SetHostName(
 			const char* aName) { return myImpl.SetHostName(aName); }
 
@@ -47,7 +48,8 @@ namespace net {
 
 		bool HasError() const { return myImpl.HasError(); }
 		bool IsConnected() const { return myImpl.IsConnected(); }
-		bool IsEnabled() const { return myImpl.IsEnabled(); }
+		bool IsClosed() const { return myImpl.IsClosed(); }
+		bool IsClosingOrClosed() const { return myImpl.IsClosingOrClosed(); }
 
 		SSLVersion GetVersion() const { return myImpl.GetVersion(); }
 		SSLCipher GetCipher() const { return myImpl.GetCipher(); }
