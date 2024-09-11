@@ -7,10 +7,10 @@
 			"short_name": "canon scheduler",
 			"exe": "bench_taskscheduler"
 		},
-		"trivial": {
-			"name": "Trivial task scheduler",
-			"short_name": "trivial scheduler",
-			"exe": "bench_taskscheduler_trivial"
+		"boost": {
+			"name": "Boost task scheduler",
+			"short_name": "boost scheduler",
+			"exe": "bench_taskscheduler_boost"
 		}
 	},
 	"main_version": "canon",
