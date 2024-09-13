@@ -235,6 +235,8 @@ namespace net {
 		bool IsEmpty() const { return !myHead.IsSet(); }
 
 	private:
+		void PrivCheck() const;
+
 		// head -> rend -> wpos -> tail
 		// \__________/   \___________/
 		//    rsize           wsize

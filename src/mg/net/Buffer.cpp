@@ -122,14 +122,17 @@ namespace net {
 			}
 			myWPos = myTail;
 			myWSize = theBufferCopySize;
-			if (myWSize >= aSize)
+			if (myWSize >= aSize) {
+				PrivCheck();
 				return;
+			}
 		}
 		do {
 			myTail = (myTail->myNext = BufferCopy::NewShared()).GetPointer();
 			myWSize += theBufferCopySize;
 		} while (myWSize < aSize);
 		MG_DEV_ASSERT(myWPos->myPos < myWPos->myCapacity);
+		PrivCheck();
 	}
 
 	void
@@ -149,6 +152,7 @@ namespace net {
 			myWPos = myWPos->myNext.GetPointer();
 			MG_DEV_ASSERT(myWPos->myPos < myWPos->myCapacity);
 		}
+		PrivCheck();
 	}
 
 	void
@@ -187,6 +191,7 @@ namespace net {
 				myWPos->myPos += (uint32_t)aSize;
 				myREnd = myWPos;
 				myWSize -= aSize;
+				PrivCheck();
 				return;
 			}
 			memcpy(myWPos->myWData + myWPos->myPos, aData, cap);
@@ -196,6 +201,7 @@ namespace net {
 				myREnd = myWPos;
 				myWPos = nullptr;
 				myWSize = 0;
+				PrivCheck();
 				return;
 			}
 			aData = (const uint8_t*)aData + cap;
@@ -206,6 +212,7 @@ namespace net {
 			myWPos = myTail;
 			myWSize = theBufferCopySize;
 		}
+		PrivCheck();
 	}
 
 	void
@@ -243,6 +250,7 @@ namespace net {
 			myWSize = myTail->myCapacity - myTail->myPos;
 			if (myWSize > 0)
 				myWPos = myTail;
+			PrivCheck();
 			return;
 		}
 		MG_DEV_ASSERT(myWSize > 0);
@@ -262,6 +270,7 @@ namespace net {
 			if (end->myCapacity > end->myPos)
 				myWPos = end;
 			end->myNext = std::move(oldHead);
+			PrivCheck();
 			return;
 		}
 		MG_DEV_ASSERT(myREnd == myWPos || myREnd->myNext == myWPos);
@@ -287,9 +296,8 @@ namespace net {
 		myWPos = end;
 		myWSize += myWPos->myCapacity - myWPos->myPos;
 		if (myWPos->myPos == myWPos->myCapacity)
-		{
 			myWPos = myWPos->myNext.GetPointer();
-		}
+		PrivCheck();
 	}
 
 	void
@@ -299,8 +307,12 @@ namespace net {
 		MG_DEV_ASSERT(myRSize >= aSize);
 		BuffersPropagateOnRead(myHead, aSize);
 		myRSize -= aSize;
-		if (!myHead.IsSet())
+		if (!myHead.IsSet()) {
 			Clear();
+		} else if (myRSize == 0) {
+			myREnd = nullptr;
+			PrivCheck();
+		}
 	}
 
 	void
@@ -312,6 +324,8 @@ namespace net {
 			return;
 		MG_DEV_ASSERT(myRSize >= aSize);
 		myRSize -= aSize;
+		if (myRSize == 0)
+			myREnd = nullptr;
 		while (true)
 		{
 			uint64_t cap = myHead->myPos;
@@ -331,11 +345,13 @@ namespace net {
 					}
 				}
 				MG_DEV_ASSERT(!myHead.IsSet() || myRSize > 0 || myWSize > 0);
+				PrivCheck();
 				return;
 			}
 			aData = (uint8_t*)aData + toRead;
 			myHead = std::move(myHead->myNext);
 		}
+		PrivCheck();
 	}
 
 	void
@@ -381,6 +397,7 @@ namespace net {
 		myRSize = 0;
 		myREnd = nullptr;
 		myWPos = myHead.GetPointer();
+		PrivCheck();
 		return res;
 	}
 
@@ -393,6 +410,61 @@ namespace net {
 		myWPos = nullptr;
 		myWSize = 0;
 		myTail = nullptr;
+		PrivCheck();
+	}
+
+	void
+	BufferStream::PrivCheck() const
+	{
+#if IS_BUILD_DEBUG
+		uint64_t rsize = 0;
+		uint64_t wsize = 0;
+		const Buffer* pos = myHead.GetPointer();
+		if (pos == nullptr) {
+			MG_DEV_ASSERT(myHead == nullptr);
+			MG_DEV_ASSERT(myRSize == 0);
+			MG_DEV_ASSERT(myREnd == nullptr);
+			MG_DEV_ASSERT(myWPos == nullptr);
+			MG_DEV_ASSERT(myWSize == 0);
+			MG_DEV_ASSERT(myTail == nullptr);
+			return;
+		}
+		const Buffer* prev = nullptr;
+		if (myRSize > 0 || myWSize > 0)
+			MG_DEV_ASSERT(pos != nullptr);
+		bool foundWPos = false;
+		bool foundREnd = false;
+		if (myRSize == 0) {
+			MG_DEV_ASSERT(myREnd == nullptr);
+			foundREnd = true;
+		}
+		while (pos != nullptr) {
+			rsize += pos->myPos;
+			if (pos->myPos == 0) {
+				if (!foundREnd) {
+					foundREnd = true;
+					MG_DEV_ASSERT(prev == myREnd);
+				}
+			}
+			if (pos->myCapacity - pos->myPos > 0 && (!pos->myNext.IsSet() ||
+				pos->myNext->myPos == 0)) {
+				if (!foundWPos) {
+					foundWPos = true;
+					MG_DEV_ASSERT(pos == myWPos);
+				}
+			}
+			if (foundWPos) {
+				wsize += pos->myCapacity - pos->myPos;
+				if (pos != myWPos)
+					MG_DEV_ASSERT(pos->myPos == 0);
+			}
+			prev = pos;
+			pos = pos->myNext.GetPointer();
+		}
+		MG_DEV_ASSERT(prev == myTail);
+		MG_DEV_ASSERT(rsize == myRSize);
+		MG_DEV_ASSERT(wsize == myWSize);
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
