@@ -147,6 +147,7 @@ namespace tcpserver {
 			}
 			if (areAllConnected && peerCount == clientCount)
 				break;
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 
 		for (uint32_t i = 0; i < clientCount; ++i)
@@ -160,6 +161,7 @@ namespace tcpserver {
 				uint8_t buf;
 				int64_t rc = cli.Recv(&buf, 1, err);
 				TEST_CHECK(rc <= 0 && !err.IsSet());
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 		server->PostClose();
