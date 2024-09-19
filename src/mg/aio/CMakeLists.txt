@@ -8,6 +8,7 @@ set(mgaio_src
 	TCPSocketCtl.cpp
 	TCPSocketIFace.cpp
 	TCPSocketSubscription.cpp
+	SSLSocket.cpp
 )
 
 if(WIN32)

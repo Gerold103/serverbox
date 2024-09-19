@@ -138,6 +138,7 @@ namespace aio {
 			mg::net::BufferReadStream stream(myRecvQueue);
 			ProtOnRecv(stream);
 		}
+		// !!!!!!!!!!!!!!!!! WHY?
 		if (myRecvSize == 0)
 			myRecvQueue.Clear();
 	}

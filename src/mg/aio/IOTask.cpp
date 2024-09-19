@@ -174,6 +174,19 @@ namespace aio {
 	}
 
 	bool
+	IOTask::Send(
+		const mg::net::Buffer* aHead,
+		uint32_t aByteOffset,
+		IOEvent& aEvent)
+	{
+		mg::box::IOVec bufs[mg::box::theIOVecMaxCount];
+		uint32_t count = mg::net::BuffersToIOVecsForWrite(
+			aHead, aByteOffset, bufs, mg::box::theIOVecMaxCount);
+		MG_BOX_ASSERT(count > 0);
+		return Send(bufs, count, aEvent);
+	}
+
+	bool
 	IOTask::Recv(
 		mg::net::Buffer* aHead,
 		IOEvent& aEvent)

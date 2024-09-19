@@ -4,11 +4,16 @@
 #include "mg/aio/TCPServer.h"
 #include "mg/aio/TCPSocket.h"
 #include "mg/aio/TCPSocketSubscription.h"
+#include "mg/aio/SSLSocket.h"
 #include "mg/box/DoublyList.h"
 #include "mg/box/IOVec.h"
+#include "mg/net/SSLContext.h"
+#include "mg/sio/TCPServer.h"
+#include "mg/sio/TCPSocket.h"
 #include "mg/test/Message.h"
 
 #include "UnitTest.h"
+#include "UnitTestSSLCerts.h"
 
 #include <functional>
 
@@ -31,12 +36,33 @@ namespace tcpsocketiface {
 	class TestContext
 	{
 	public:
-		TestContext() { myCore.Start(); }
+		TestContext();
 
-		void OpenSocket(
+		void OpenClientSocket(
 			mg::aio::TCPSocketIFace*& aSocket);
 
+		void OpenServerSocket(
+			mg::aio::TCPSocketIFace*& aSocket);
+
+		TestContext& Reset();
+		TestContext& CfgSSL();
+		TestContext& CfgBadSSL();
+		TestContext& CfgSSLHandshake(
+			bool aValue);
+
+		mg::net::SSLContext::Ptr ServerSSL() const;
+		std::string ToString() const;
+
+		void PrivOpenSocket(
+			mg::aio::TCPSocketIFace*& aSocket,
+			bool aIsServer);
+
 		mg::aio::IOCore myCore;
+
+		mutable std::mutex myMutex;
+		mg::net::SSLContext::Ptr myCfgClientSSL;
+		mg::net::SSLContext::Ptr myCfgServerSSL;
+		bool myCfgDoSSLHandshake;
 	};
 
 	static TestContext* theContext = nullptr;
@@ -272,6 +298,7 @@ namespace tcpsocketiface {
 			uint64_t aDeadline);
 		void Connect(
 			const mg::aio::TCPSocketConnectParams& aParams);
+		void Handshake();
 
 		void PostWakeup() { mySocket->PostWakeup(); }
 		void PostShutdown() { mySocket->PostShutdown(); }
@@ -428,9 +455,31 @@ namespace tcpsocketiface {
 			client.CloseBlocking();
 		}
 		{
+			// Many big send + many big receive.
+			TestClientSocket client;
+			client.PostConnectBlocking(aPort);
+			client.SetAutoRecv(100);
+			const uint32_t size = 1024 * 100;
+			for (int i = 0; i < 100; ++i)
+			{
+				TestMessage* msg = new TestMessage();
+				msg->myId = i;
+				msg->myPaddingSize = size;
+				client.Send(msg);
+			}
+			for (int i = 0; i < 100; ++i)
+			{
+				TestMessage* msg = client.PopBlocking();
+				TEST_CHECK(msg->myId == (uint64_t)i);
+				TEST_CHECK(msg->myPaddingSize == size);
+				delete msg;
+			}
+			client.CloseBlocking();
+		}
+		{
 			// Can delete a socket if it didn't start connecting.
 			mg::aio::TCPSocketIFace* sock = nullptr;
-			theContext->OpenSocket(sock);
+			theContext->OpenClientSocket(sock);
 			sock->Delete();
 		}
 		{
@@ -1326,6 +1375,312 @@ namespace tcpsocketiface {
 		}
 	}
 
+	static mg::net::Socket
+	AcceptBlocking(mg::sio::TCPServer& server)
+	{
+		mg::box::Error::Ptr err;
+		mg::net::Socket peerSock = mg::net::theInvalidSocket;
+		mg::net::Host host;
+		while ((peerSock = server.Accept(host, err)) == mg::net::theInvalidSocket)
+		{
+			TEST_CHECK(!err.IsSet());
+			mg::box::Sleep(1);
+		}
+		return peerSock;
+	}
+
+	static TestMessage
+	ReadBlocking(mg::sio::TCPSocket& sock, uint64_t size)
+	{
+		mg::box::Error::Ptr err;
+		mg::tst::WriteMessage wmsg;
+		mg::net::BufferStream stream;
+		stream.EnsureWriteSize(size);
+		while (stream.GetReadSize() < size)
+		{
+			mg::net::Buffer* buf = stream.GetWritePos();
+			TEST_CHECK(sock.Update(err));
+			uint64_t needed = size - stream.GetReadSize();
+			int64_t rc = sock.Recv(buf->myWData + buf->myPos, needed, err);
+			TEST_CHECK(!err.IsSet());
+			if (rc < 0)
+			{
+				mg::box::Sleep(1);
+				continue;
+			}
+			TEST_CHECK(rc != 0);
+			stream.PropagateWritePos(rc);
+		}
+		TEST_CHECK(stream.GetReadSize() == size);
+		TestMessage msg;
+		mg::net::BufferReadStream rstream(stream);
+		mg::tst::ReadMessage rmsg(rstream);
+		msg.FromStream(rmsg);
+		return msg;
+	}
+
+	static TestMessage
+	ReadBlocking(mg::sio::TCPSocket& sock, mg::net::SSLStream& ssl, uint64_t size)
+	{
+		mg::box::Error::Ptr err;
+		mg::net::BufferStream stream;
+		while (stream.GetReadSize() < size)
+		{
+			TEST_CHECK(!ssl.IsClosingOrClosed());
+			constexpr uint64_t bufSize = 128;
+			uint8_t buf[bufSize];
+			TEST_CHECK(sock.Update(err));
+			int64_t rc = sock.Recv(buf, bufSize, err);
+			TEST_CHECK(!err.IsSet());
+			if (rc < 0)
+			{
+				mg::box::Sleep(1);
+				continue;
+			}
+			ssl.AppendNetInputCopy(buf, rc);
+			mg::net::Buffer::Ptr bufOut;
+			ssl.PopAppOutput(bufOut);
+			stream.WriteRef(std::move(bufOut));
+		}
+		TEST_CHECK(stream.GetReadSize() == size);
+		TestMessage msg;
+		mg::net::BufferReadStream rstream(stream);
+		mg::tst::ReadMessage rmsg(rstream);
+		msg.FromStream(rmsg);
+		return msg;
+	}
+
+	static void
+	HandshakeBlocking(mg::sio::TCPSocket& sock, mg::net::SSLStream& ssl)
+	{
+		mg::box::Error::Ptr err;
+		while (!ssl.IsConnected())
+		{
+			TEST_CHECK(!ssl.IsClosingOrClosed());
+			constexpr uint64_t bufSize = 128;
+			uint8_t buf[bufSize];
+			TEST_CHECK(sock.Update(err));
+			int64_t rc = sock.Recv(buf, bufSize, err);
+			TEST_CHECK(!err.IsSet());
+			if (rc < 0)
+			{
+				mg::box::Sleep(1);
+				continue;
+			}
+			TEST_CHECK(rc != 0);
+			ssl.AppendNetInputCopy(buf, rc);
+			mg::net::Buffer::Ptr bufOut;
+			ssl.PopNetOutput(bufOut);
+			sock.SendRef(std::move(bufOut));
+		}
+	}
+
+	static void
+	UnitTestSSLSocketHandshakeError()
+	{
+		TestCaseGuard guard("Handshake error");
+		theContext->Reset().CfgSSL();
+
+		mg::sio::TCPServer server;
+		mg::box::Error::Ptr err;
+		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
+		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+
+		TestClientSocket sock;
+		sock.PostConnect(server.GetPort());
+		sock.SetAutoRecv();
+
+		mg::box::Signal gotError;
+		uint64_t id = sock.SubscribeOnError([&](mg::box::Error *) {
+			gotError.Send();
+		});
+
+		mg::net::Socket peerSock = AcceptBlocking(server);
+		mg::sio::TCPSocket peer;
+		peer.Wrap(peerSock);
+		peer.SendCopy("trash", 5);
+		while (!peer.IsClosed())
+		{
+			constexpr uint64_t bufSize = 128;
+			uint8_t buf[bufSize];
+			peer.Recv(buf, bufSize, err);
+			peer.Update(err);
+			mg::box::Sleep(1);
+		}
+		gotError.ReceiveBlocking();
+		sock.Unsubscribe(id);
+		// Could fail during receive when tried to feed the trash to SSL stream,
+		// or later when calling handshake explicitly.
+		TEST_CHECK(
+			sock.GetErrorConnect() != mg::box::ERR_BOX_NONE ||
+			sock.GetErrorRecv() != mg::box::ERR_BOX_NONE);
+	}
+
+	static void
+	UnitTestSSLSocketHandshakeAfterData()
+	{
+		TestCaseGuard guard("Handshake after data");
+		theContext->Reset().CfgSSL().CfgSSLHandshake(false);
+
+		mg::sio::TCPServer server;
+		mg::box::Error::Ptr err;
+		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
+		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+
+		TestClientSocket sock;
+		sock.PostConnect(server.GetPort());
+		sock.SetAutoRecv();
+
+		mg::net::Socket peerSock = AcceptBlocking(server);
+		mg::sio::TCPSocket peer;
+		peer.Wrap(peerSock);
+		sock.WaitConnect();
+
+		mg::tst::WriteMessage wmsg;
+		TestMessage msg1;
+		msg1.ToStream(wmsg);
+		uint64_t size = wmsg.GetTotalSize();
+		sock.PostSendRef(wmsg.TakeData());
+
+		TestMessage msg2 = ReadBlocking(peer, size);
+		TEST_CHECK(
+			msg1.myId == msg2.myId && msg1.myKey == msg2.myKey &&
+			msg1.myValue == msg2.myValue);
+
+		mg::box::AtomicBool isHandshakeSent(false);
+		uint64_t id = sock.SubscribeOnEvent([&sock, &isHandshakeSent]() {
+			if (isHandshakeSent.LoadRelaxed())
+				return;
+			isHandshakeSent.StoreRelaxed(true);
+			sock.Handshake();
+		});
+		sock.PostWakeup();
+		while (!isHandshakeSent.LoadRelaxed())
+			mg::box::Sleep(1);
+		sock.Unsubscribe(id);
+
+		mg::net::SSLStream ssl(theContext->ServerSSL().GetPointer());
+		ssl.Connect();
+		HandshakeBlocking(peer, ssl);
+	}
+
+	static void
+	UnitTestSSLSocketHandshakeAfterDataWithDataPending()
+	{
+		TestCaseGuard guard("Handshake after data with data pending");
+		theContext->Reset().CfgSSL().CfgSSLHandshake(false);
+
+		mg::sio::TCPServer server;
+		mg::box::Error::Ptr err;
+		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
+		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+
+		TestClientSocket sock;
+		sock.PostConnect(server.GetPort());
+		sock.SetAutoRecv();
+
+		mg::net::Socket peerSock = AcceptBlocking(server);
+		mg::sio::TCPSocket peer;
+		peer.Wrap(peerSock);
+		sock.WaitConnect();
+
+		mg::tst::WriteMessage wmsg;
+		TestMessage msg1;
+		msg1.ToStream(wmsg);
+		uint64_t size = wmsg.GetTotalSize();
+		sock.PostSendRef(wmsg.TakeData());
+
+		TestMessage msg2 = ReadBlocking(peer, size);
+		TEST_CHECK(
+			msg1.myId == msg2.myId && msg1.myKey == msg2.myKey &&
+			msg1.myValue == msg2.myValue);
+
+		mg::box::AtomicBool isHandshakeSent(false);
+		uint64_t id = sock.SubscribeOnEvent([&sock, &isHandshakeSent, &msg1, &size]() {
+			if (isHandshakeSent.LoadRelaxed())
+				return;
+			++msg1.myId;
+			mg::tst::WriteMessage wmsg;
+			msg1.ToStream(wmsg);
+			size = wmsg.GetTotalSize();
+			sock.SendRef(wmsg.TakeData());
+			sock.Handshake();
+			isHandshakeSent.StoreRelaxed(true);
+		});
+		sock.PostWakeup();
+		while (!isHandshakeSent.LoadRelaxed())
+			mg::box::Sleep(1);
+		sock.Unsubscribe(id);
+
+		// The message before the handshake comes non-encrypted.
+		msg2 = ReadBlocking(peer, size);
+		TEST_CHECK(
+			msg1.myId == msg2.myId && msg1.myKey == msg2.myKey &&
+			msg1.myValue == msg2.myValue);
+
+		// The rest is the handshake.
+		mg::net::SSLStream ssl(theContext->ServerSSL().GetPointer());
+		ssl.Connect();
+		HandshakeBlocking(peer, ssl);
+
+		// Ensure it works afterwards too.
+		++msg1.myId;
+		msg1.ToStream(wmsg);
+		size = wmsg.GetTotalSize();
+		sock.PostSendRef(wmsg.TakeData());
+
+		msg2 = ReadBlocking(peer, ssl, size);
+		TEST_CHECK(
+			msg1.myId == msg2.myId && msg1.myKey == msg2.myKey &&
+			msg1.myValue == msg2.myValue);
+	}
+
+	static void
+	UnitTestSSLSocketOnConnectAfterHandshake()
+	{
+		TestCaseGuard guard("OnConnect() after handshake");
+		theContext->Reset().CfgSSL();
+
+		mg::sio::TCPServer server;
+		mg::box::Error::Ptr err;
+		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
+		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+
+		TestClientSocket sock;
+		sock.PostConnect(server.GetPort());
+		mg::box::AtomicBool isConnected(false);
+		uint64_t id = sock.SubscribeOnConnectOk([&]() {
+			isConnected.StoreRelaxed(true);
+		});
+		sock.SetAutoRecv();
+
+		mg::net::Socket peerSock = AcceptBlocking(server);
+		mg::sio::TCPSocket peer;
+		peer.Wrap(peerSock);
+		// The socket won't report as connected until the SSL handshake is done.
+		mg::box::Sleep(10);
+		TEST_CHECK(!isConnected.LoadRelaxed());
+
+		mg::net::SSLStream ssl(theContext->ServerSSL().GetPointer());
+		ssl.Connect();
+		HandshakeBlocking(peer, ssl);
+		sock.WaitConnect();
+		TEST_CHECK(isConnected.LoadRelaxed());
+		sock.Unsubscribe(id);
+
+		// Now check that it actually works.
+		mg::tst::WriteMessage wmsg;
+		TestMessage msg1;
+		msg1.ToStream(wmsg);
+		uint64_t size = wmsg.GetTotalSize();
+		sock.PostSendRef(wmsg.TakeData());
+
+		TestMessage msg2 = ReadBlocking(peer, ssl, size);
+		TEST_CHECK(
+			msg1.myId == msg2.myId && msg1.myKey == msg2.myKey &&
+			msg1.myValue == msg2.myValue);
+	}
+
 	// Common tests which should work regardless of socket type.
 	static void
 	UnitTestTCPSocketIFaceSuite(
@@ -1355,7 +1710,37 @@ namespace tcpsocketiface {
 	UnitTestTCPSocketSuite(
 		uint16_t aPort)
 	{
+		theContext->Reset();
+		TestSuiteGuard suite(mg::box::StringFormat(
+			"TCPSocketIFace - TCPSocket, %s",
+			theContext->ToString().c_str()).c_str());
 		UnitTestTCPSocketIFaceSuite(aPort);
+	}
+
+	// SSL-specific tests.
+	static void
+	UnitTestSSLSocketSuite(
+		uint16_t aPort)
+	{
+		{
+			theContext->Reset().CfgSSL();
+			TestSuiteGuard suite(mg::box::StringFormat(
+				"TCPSocketIFace - SSLSocket, %s",
+				theContext->ToString().c_str()).c_str());
+			UnitTestTCPSocketIFaceSuite(aPort);
+		}
+		{
+			theContext->Reset().CfgSSL().CfgSSLHandshake(false);
+			TestSuiteGuard suite(mg::box::StringFormat(
+				"TCPSocketIFace - SSLSocket, %s",
+				theContext->ToString().c_str()).c_str());
+			UnitTestTCPSocketIFaceSuite(aPort);
+		}
+		TestSuiteGuard suite("TCPSocketIFace - SSLSocket, special tests");
+		UnitTestSSLSocketHandshakeError();
+		UnitTestSSLSocketHandshakeAfterData();
+		UnitTestSSLSocketHandshakeAfterDataWithDataPending();
+		UnitTestSSLSocketOnConnectAfterHandshake();
 	}
 }
 
@@ -1376,6 +1761,7 @@ namespace tcpsocketiface {
 		uint16_t port = server->GetPort();
 		TEST_CHECK(server->Listen(mg::net::theMaxBacklog, sub, err));
 
+		UnitTestSSLSocketSuite(port);
 		UnitTestTCPSocketSuite(port);
 
 		server->PostClose();
@@ -1417,10 +1803,147 @@ namespace tcpsocketiface {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
+	TestContext::TestContext()
+		: myCfgDoSSLHandshake(false)
+	{
+		myCore.Start();
+	}
+
 	void
-	TestContext::OpenSocket(
+	TestContext::OpenClientSocket(
 		mg::aio::TCPSocketIFace*& aSocket)
 	{
+		return PrivOpenSocket(aSocket, false);
+	}
+
+	void
+	TestContext::OpenServerSocket(
+		mg::aio::TCPSocketIFace*& aSocket)
+	{
+		return PrivOpenSocket(aSocket, true);
+	}
+
+	TestContext&
+	TestContext::Reset()
+	{
+		std::unique_lock lock(myMutex);
+		myCfgServerSSL.Clear();
+		myCfgClientSSL.Clear();
+		return *this;
+	}
+
+	TestContext&
+	TestContext::CfgSSL()
+	{
+		std::unique_lock lock(myMutex);
+
+		myCfgServerSSL = mg::net::SSLContext::NewShared(true);
+		TEST_CHECK(myCfgServerSSL->SetTrust(mg::net::SSL_TRUST_BYPASS_VERIFICATION));
+		TEST_CHECK(myCfgServerSSL->AddLocalCert(
+			theUnitTestCert31, theUnitTestCert31Size,
+			theUnitTestKey3, theUnitTestKey3Size));
+
+		myCfgClientSSL = mg::net::SSLContext::NewShared(false);
+		TEST_CHECK(myCfgClientSSL->SetTrust(mg::net::SSL_TRUST_STRICT));
+		TEST_CHECK(myCfgClientSSL->AddRemoteCert(
+			theUnitTestCACert3, theUnitTestCACert3Size));
+
+		myCfgDoSSLHandshake = true;
+		return *this;
+	}
+
+	TestContext&
+	TestContext::CfgBadSSL()
+	{
+		std::unique_lock lock(myMutex);
+
+		myCfgServerSSL = mg::net::SSLContext::NewShared(true);
+		TEST_CHECK(myCfgServerSSL->SetTrust(mg::net::SSL_TRUST_BYPASS_VERIFICATION));
+		TEST_CHECK(myCfgServerSSL->AddLocalCert(
+			theUnitTestCert31, theUnitTestCert31Size,
+			theUnitTestKey3, theUnitTestKey3Size));
+
+		myCfgClientSSL = mg::net::SSLContext::NewShared(false);
+		TEST_CHECK(myCfgClientSSL->SetTrust(mg::net::SSL_TRUST_STRICT));
+		TEST_CHECK(myCfgClientSSL->AddRemoteCert(
+			theUnitTestCert1, theUnitTestCert1Size));
+
+		myCfgDoSSLHandshake = true;
+		return *this;
+	}
+
+	TestContext&
+	TestContext::CfgSSLHandshake(
+		bool aValue)
+	{
+		std::unique_lock lock(myMutex);
+		myCfgDoSSLHandshake = aValue;
+		return *this;
+	}
+
+	mg::net::SSLContext::Ptr
+	TestContext::ServerSSL() const
+	{
+		std::unique_lock lock(myMutex);
+		return myCfgServerSSL;
+	}
+
+	std::string
+	TestContext::ToString() const
+	{
+		std::string res = "[";
+		std::string delimiter = "";
+		{
+			std::unique_lock lock(myMutex);
+			if (myCfgClientSSL.IsSet())
+			{
+				res += delimiter + "client_ssl";
+				delimiter = ", ";
+			}
+			if (myCfgServerSSL.IsSet())
+			{
+				res += delimiter + "server_ssl";
+				delimiter = ", ";
+			}
+			if (myCfgClientSSL.IsSet() || myCfgServerSSL.IsSet())
+			{
+				if (myCfgDoSSLHandshake)
+					res += delimiter + "encrypted";
+				else
+					res += delimiter + "non_encrypted";
+				delimiter = ", ";
+			}
+		}
+		if (delimiter.empty())
+		{
+			res += "default_tcp";
+		}
+		res += "]";
+		return res;
+	}
+
+	void
+	TestContext::PrivOpenSocket(
+		mg::aio::TCPSocketIFace*& aSocket,
+		bool aIsServer)
+	{
+		mg::net::SSLContext::Ptr ssl;
+		bool doHandshake;
+		{
+			std::unique_lock lock(myMutex);
+			ssl = aIsServer ? myCfgServerSSL : myCfgClientSSL;
+			doHandshake = myCfgDoSSLHandshake;
+		}
+		if (ssl.IsSet())
+		{
+			mg::aio::SSLSocketParams sockParams;
+			sockParams.mySSL = ssl.GetPointer();
+			sockParams.myDoHandshake = doHandshake;
+			if (aSocket == nullptr)
+				aSocket = new mg::aio::SSLSocket(myCore);
+			((mg::aio::SSLSocket*)aSocket)->Open(sockParams);
+			return;
+		}
 		mg::aio::TCPSocketParams sockParams;
 		if (aSocket == nullptr)
 			aSocket = new mg::aio::TCPSocket(myCore);
@@ -1481,7 +2004,7 @@ namespace tcpsocketiface {
 		mg::net::Socket aSocket)
 		: mySocket(nullptr)
 	{
-		theContext->OpenSocket(mySocket);
+		theContext->OpenServerSocket(mySocket);
 		mySocket->PostRecv(TEST_RECV_SIZE);
 		mySocket->PostWrap(aSocket, this);
 	}
@@ -1581,7 +2104,7 @@ namespace tcpsocketiface {
 		myErrorSend = mg::box::ERR_BOX_NONE;
 		myStateMutex.Unlock();
 
-		theContext->OpenSocket(mySocket);
+		theContext->OpenClientSocket(mySocket);
 		mySocket->PostConnect(aParams, this);
 	}
 
@@ -1614,7 +2137,7 @@ namespace tcpsocketiface {
 		myErrorSend = mg::box::ERR_BOX_NONE;
 		myStateMutex.Unlock();
 
-		theContext->OpenSocket(mySocket);
+		theContext->OpenClientSocket(mySocket);
 		mySocket->PostTask(this);
 	}
 
@@ -1794,6 +2317,12 @@ namespace tcpsocketiface {
 		myStateMutex.Unlock();
 
 		mySocket->Connect(aParams);
+	}
+
+	void
+	TestClientSocket::Handshake()
+	{
+		((mg::aio::SSLSocket*)mySocket)->Handshake();
 	}
 
 	void
