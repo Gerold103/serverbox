@@ -350,6 +350,11 @@ namespace aio {
 			uint32_t aByteOffset,
 			IOEvent& aEvent);
 
+		bool Send(
+			const mg::net::Buffer* aHead,
+			uint32_t aByteOffset,
+			IOEvent& aEvent);
+
 		bool Recv(
 			mg::box::IOVec* aBuffers,
 			uint32_t aBufferCount,
