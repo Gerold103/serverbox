@@ -8,6 +8,7 @@ set(mgaio_src
 	TCPSocketCtl.cpp
 	TCPSocketIFace.cpp
 	TCPSocketSubscription.cpp
+	SSLSocket.cpp
 )
 
 if(WIN32)
@@ -42,6 +43,7 @@ target_link_libraries(mgaio
 set(install_headers
 	IOCore.h
 	IOTask.h
+	SSLSocket.h
 	TCPServer.h
 	TCPSocket.h
 	TCPSocketIFace.h
