@@ -445,9 +445,44 @@ namespace tcpsocketiface {
 				client.Send(msg);
 				mg::box::Sleep(10);
 				TEST_CHECK(client.Pop() == nullptr);
-				client.PostRecv(1);
-
-				msg = client.PopBlocking();
+				mg::box::Signal onRecv;
+				uint64_t sid = client.SubscribeOnRecvOk([&onRecv]() {
+					onRecv.Send();
+				});
+				while ((msg = client.Pop()) == nullptr)
+				{
+					client.PostRecv(1);
+					onRecv.ReceiveBlocking();
+				}
+				client.Unsubscribe(sid);
+				TEST_CHECK(msg->myPaddingSize == size);
+				delete msg;
+			}
+			client.CloseBlocking();
+		}
+		{
+			// Manual receive of large messages. To ensure the receive-queue
+			// stays valid between on-recv calls.
+			TestClientSocket client;
+			client.PostConnectBlocking(aPort);
+			const uint32_t size = 100000;
+			for (int i = 0; i < 10; ++i)
+			{
+				TestMessage* msg = new TestMessage();
+				msg->myPaddingSize = size;
+				client.Send(msg);
+				mg::box::Sleep(10);
+				TEST_CHECK(client.Pop() == nullptr);
+				mg::box::Signal onRecv;
+				uint64_t sid = client.SubscribeOnRecvOk([&onRecv]() {
+					onRecv.Send();
+				});
+				while ((msg = client.Pop()) == nullptr)
+				{
+					client.PostRecv(1);
+					onRecv.ReceiveBlocking();
+				}
+				client.Unsubscribe(sid);
 				TEST_CHECK(msg->myPaddingSize == size);
 				delete msg;
 			}

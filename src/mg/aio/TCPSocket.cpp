@@ -100,10 +100,7 @@ namespace aio {
 		if (!PrivRecvEventConsume())
 			return;
 		if (myRecvSize == 0)
-		{
-			MG_BOX_ASSERT(myRecvQueue.IsEmpty());
 			return;
-		}
 		myRecvQueue.EnsureWriteSize(myRecvSize);
 		myTask.Recv(myRecvQueue.GetWritePos(), myRecvEvent);
 		if (!PrivRecvEventConsume())
@@ -134,12 +131,8 @@ namespace aio {
 		}
 		myRecvQueue.PropagateWritePos(aByteCount);
 		myRecvSize = 0;
-		{
-			mg::net::BufferReadStream stream(myRecvQueue);
-			ProtOnRecv(stream);
-		}
-		if (myRecvSize == 0)
-			myRecvQueue.Clear();
+		mg::net::BufferReadStream stream(myRecvQueue);
+		ProtOnRecv(stream);
 	}
 
 	bool
