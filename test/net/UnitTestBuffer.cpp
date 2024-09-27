@@ -1104,6 +1104,29 @@ namespace buffer {
 		TEST_CHECK(b3->myPos == 0);
 		TEST_CHECK(b3->myCapacity == mg::net::theBufferCopySize);
 		TEST_CHECK(stream.GetWritePos() == b5);
+		//
+		// Write to a non-empty stream with wpos having an empty last buffer and the new
+		// ones being completely full.
+		//
+		stream.Clear();
+		b1 = mg::net::BuffersRef("abcd", 4);
+		head = b1;
+		stream.WriteRef(std::move(head));
+		stream.EnsureWriteSize(1);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		b2.Set(stream.GetWritePos());
+		TEST_CHECK(b1->myNext == b2);
+		TEST_CHECK(!b2->myNext.IsSet());
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize);
+		b3 = mg::net::BuffersRef("efg", 3);
+		head = b3;
+		stream.WriteRef(std::move(head));
+		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize);
+		TEST_CHECK(stream.GetReadPos() == b1);
+		TEST_CHECK(b1->myNext == b3);
+		TEST_CHECK(stream.GetWritePos() == b2);
+		TEST_CHECK(b3->myNext == b2);
+		TEST_CHECK(!b2->myNext.IsSet());
 	}
 
 	static void
@@ -1169,6 +1192,24 @@ namespace buffer {
 		TEST_CHECK(stream.GetReadPos() == nullptr);
 		TEST_CHECK(stream.GetWriteSize() == 0);
 		TEST_CHECK(stream.GetReadSize() == 0);
+		//
+		// Skip exactly the first buffer when it still has capacity, but is not the wpos
+		// already.
+		//
+		stream.Clear();
+		stream.WriteRef(mg::net::BuffersCopy("abc", 3));
+		stream.WriteRef(mg::net::BuffersCopy("defg", 4));
+		stream.WriteRef(mg::net::BuffersCopy("h", 1));
+		stream.SkipData(3);
+		rpos = stream.GetReadPos();
+		TEST_CHECK(rpos->myPos == 4);
+		TEST_CHECK(memcmp(rpos->myRData, "defg", 4) == 0);
+		rpos = rpos->myNext.GetPointer();
+		TEST_CHECK(rpos->myPos == 1);
+		TEST_CHECK(memcmp(rpos->myRData, "h", 1) == 0);
+		TEST_CHECK(stream.GetReadSize() == 5);
+		TEST_CHECK(stream.GetWritePos() == rpos);
+		TEST_CHECK(stream.GetWriteSize() == rpos->myCapacity - rpos->myPos);
 	}
 
 	static void
@@ -1257,6 +1298,16 @@ namespace buffer {
 		TEST_CHECK(stream.GetReadPos() == stream.GetWritePos());
 		TEST_CHECK(stream.GetWriteSize() == mg::net::theBufferCopySize - 100);
 		TEST_CHECK(stream.GetReadSize() == 0);
+		//
+		// Read exactly the first buffer when it still has capacity, but is not the wpos
+		// already.
+		//
+		stream.Clear();
+		stream.WriteRef(mg::net::BuffersCopy("abc", 3));
+		stream.WriteRef(mg::net::BuffersCopy("defg", 4));
+		stream.WriteRef(mg::net::BuffersCopy("h", 1));
+		stream.ReadData(buf, 3);
+		TEST_CHECK(memcmp(buf, "abc", 3) == 0);
 
 		delete[] buf;
 	}

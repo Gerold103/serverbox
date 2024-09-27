@@ -279,7 +279,20 @@ namespace net {
 			// Last writable buffer has data. Need to place the new data after it, to keep
 			// the order correct.
 			end->myNext = std::move(myWPos->myNext);
+			myWSize -= myWPos->myCapacity - myWPos->myPos;
 			myWPos->myNext = std::move(aHead);
+			if (myWPos == myTail)
+				myTail = end;
+			if (end->myPos < end->myCapacity)
+			{
+				// The last added buffer had some free space. Lets utilize it.
+				myWPos = end;
+				myWSize += end->myCapacity - end->myPos;
+			}
+			else
+			{
+				myWPos = end->myNext.GetPointer();
+			}
 		}
 		else
 		{
@@ -288,15 +301,16 @@ namespace net {
 			// become a hole in the stream between the old and new data.
 			end->myNext = std::move(myREnd->myNext);
 			myREnd->myNext = std::move(aHead);
+			if (end->myPos < end->myCapacity)
+			{
+				// The last added buffer had some free space. Lets utilize it.
+				MG_DEV_ASSERT(end->myNext == myWPos);
+				myWPos = end;
+				myWSize += myWPos->myCapacity - myWPos->myPos;
+			}
 		}
 		myREnd = end;
 		myRSize += size;
-
-		myWSize -= myWPos->myCapacity - myWPos->myPos;
-		myWPos = end;
-		myWSize += myWPos->myCapacity - myWPos->myPos;
-		if (myWPos->myPos == myWPos->myCapacity)
-			myWPos = myWPos->myNext.GetPointer();
 		PrivCheck();
 	}
 
@@ -311,8 +325,19 @@ namespace net {
 			Clear();
 		} else if (myRSize == 0) {
 			myREnd = nullptr;
-			PrivCheck();
+		} else if (myHead->myPos == 0 && myHead != myWPos) {
+			// The head buffer has no data, has some free space, but is not the
+			// write-buffer. It means that it was added in the past via WriteRef() and
+			// then more was added also via WriteRef(). WPos can't move backwards, so this
+			// buffer needs to go, even if having free space.
+			myHead = std::move(myHead->myNext);
+			if (!myHead.IsSet())
+			{
+				MG_DEV_ASSERT(myWSize == 0);
+				Clear();
+			}
 		}
+		PrivCheck();
 	}
 
 	void
@@ -335,8 +360,12 @@ namespace net {
 			if (aSize == 0)
 			{
 				myHead->Propagate((uint32_t)toRead);
-				if (myHead->myPos == 0 && myHead->myCapacity == 0)
+				if (myHead->myPos == 0 && myHead != myWPos)
 				{
+					// The head buffer has no data, has some free space, but is not the
+					// write-buffer. It means that it was added in the past via WriteRef()
+					// and then more was added also via WriteRef(). WPos can't move
+					// backwards, so this buffer needs to go, even if having free space.
 					myHead = std::move(myHead->myNext);
 					if (!myHead.IsSet())
 					{
@@ -411,6 +440,27 @@ namespace net {
 		myWSize = 0;
 		myTail = nullptr;
 		PrivCheck();
+	}
+
+	std::string
+	BufferStream::ToString() const
+	{
+		std::string res = "buf:\n";
+		res += "\tRSize: " + std::to_string(myRSize) + "\n";
+		res += "\tWSize: " + std::to_string(myWSize) + "\n";
+		const Buffer* buf = myHead.GetPointer();
+		while (buf != nullptr)
+		{
+			res += "\t\t[" + std::to_string(buf->myPos);
+			res += " / " + std::to_string(buf->myCapacity) + "]";
+			if (buf == myREnd)
+				res += "<--- rend";
+			if (buf == myWPos)
+				res += "<--- wpos";
+			buf = buf->myNext.GetPointer();
+			res += "\n";
+		}
+		return res;
 	}
 
 	void
