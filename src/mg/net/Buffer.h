@@ -4,6 +4,8 @@
 #include "mg/box/SharedPtr.h"
 #include "mg/box/ThreadLocalPool.h"
 
+#include <string>
+
 F_DECLARE_STRUCT(mg, box, IOVec)
 
 namespace mg {
@@ -233,6 +235,7 @@ namespace net {
 		void Clear();
 
 		bool IsEmpty() const { return !myHead.IsSet(); }
+		std::string ToString() const;
 
 	private:
 		void PrivCheck() const;
