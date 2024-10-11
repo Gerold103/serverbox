@@ -12,6 +12,12 @@
 #pragma clang diagnostic ignored "-Wself-move"
 #endif
 
+#if IS_COMPILER_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
+
 namespace mg {
 namespace unittests {
 namespace box {
@@ -849,6 +855,10 @@ public:
 }
 }
 }
+
+#if IS_COMPILER_GCC
+#pragma GCC diagnostic pop
+#endif
 
 #if IS_COMPILER_CLANG
 #pragma clang diagnostic pop
