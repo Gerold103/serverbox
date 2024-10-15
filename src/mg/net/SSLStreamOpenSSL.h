@@ -32,6 +32,7 @@ namespace net {
 		void Shutdown();
 		bool SetHostName(
 			const char* aName);
+		std::string GetHostName() const;
 
 		void AppendNetInputCopy(
 			const void* aData,
