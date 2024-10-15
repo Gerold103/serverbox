@@ -28,6 +28,7 @@ namespace net {
 		void Shutdown() { myImpl.Shutdown(); }
 		bool SetHostName(
 			const char* aName) { return myImpl.SetHostName(aName); }
+		std::string GetHostName() const { return myImpl.GetHostName(); }
 
 		void AppendNetInputCopy(
 			const void* aData,
