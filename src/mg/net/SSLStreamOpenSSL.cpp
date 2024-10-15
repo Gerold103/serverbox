@@ -93,6 +93,15 @@ namespace net {
 		return SSL_set_tlsext_host_name(mySSL, aName) == 1;
 	}
 
+	std::string
+	SSLStreamOpenSSL::GetHostName() const
+	{
+		const char* name = SSL_get_servername(mySSL, TLSEXT_NAMETYPE_host_name);
+		if (name == NULL)
+			return {};
+		return name;
+	}
+
 	void
 	SSLStreamOpenSSL::AppendAppInputCopy(
 		const void* aData,

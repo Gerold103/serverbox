@@ -1362,6 +1362,67 @@ namespace ssl {
 	}
 
 	static void
+	UnitTestSSLHostName()
+	{
+		mg::net::SSLVersion versions[] = {
+			mg::net::SSL_VERSION_TLSv1,
+			mg::net::SSL_VERSION_TLSv1_1,
+			mg::net::SSL_VERSION_TLSv1_2,
+			mg::net::SSL_VERSION_TLSv1_3,
+			mg::net::SSL_VERSION_ANY,
+		};
+		size_t count = sizeof(versions) / sizeof(versions[0]);
+		for (size_t verInt = 0; verInt < count; ++verInt)
+		{
+			if (verInt == mg::net::SSL_VERSION_NONE)
+				continue;
+			mg::net::SSLVersion ver = (mg::net::SSLVersion)verInt;
+			mg::net::SSLContext::Ptr serverCtx =  mg::net::SSLContext::NewShared(true);
+			serverCtx->SetTrust(mg::net::SSL_TRUST_BYPASS_VERIFICATION);
+			TEST_CHECK(serverCtx->AddLocalCert(
+				theUnitTestCert31, theUnitTestCert31Size,
+				theUnitTestKey3, theUnitTestKey3Size));
+			serverCtx->SetMinVersion(ver);
+
+			mg::net::SSLContext::Ptr clientCtx = mg::net::SSLContext::NewShared(false);
+			clientCtx->SetTrust(mg::net::SSL_TRUST_STRICT);
+			clientCtx->AddRemoteCert(theUnitTestCACert3Pem, theUnitTestCACert3PemSize);
+			clientCtx->SetMinVersion(ver);
+
+			mg::net::SSLStream server(serverCtx);
+			TEST_CHECK(server.GetHostName().empty());
+			server.Connect();
+			mg::net::SSLStream client(clientCtx);
+			client.SetHostName("testserver");
+			TEST_CHECK(client.GetHostName() == "testserver");
+			client.Connect();
+
+			auto checkNameWhenConnected = [&]() {
+				if (server.IsConnected())
+					TEST_CHECK(server.GetHostName() == "testserver");
+			};
+			while (!server.IsConnected() && !client.IsConnected())
+			{
+				mg::net::Buffer::Ptr head;
+				server.PopNetOutput(head);
+				checkNameWhenConnected();
+				client.AppendNetInputRef(std::move(head));
+				client.Update();
+
+				client.PopNetOutput(head);
+				server.AppendNetInputRef(std::move(head));
+				checkNameWhenConnected();
+				server.Update();
+				checkNameWhenConnected();
+
+				TEST_CHECK(!server.HasError() && !client.HasError());
+			}
+			checkNameWhenConnected();
+			UnitTestSSLInteract(server, client);
+		}
+	}
+
+	static void
 	UnitTestSSLShutdown()
 	{
 		mg::net::SSLContext::Ptr serverCtx = mg::net::SSLContext::NewShared(true);
@@ -1474,6 +1535,7 @@ namespace ssl {
 		UnitTestSSLError();
 		UnitTestSSLExternal_SSL_CTX();
 		UnitTestSSLCipherAndVersionCheck();
+		UnitTestSSLHostName();
 		UnitTestSSLShutdown();
 	}
 
