@@ -51,6 +51,7 @@ namespace net {
 		bool IsConnected() const { return myImpl.IsConnected(); }
 		bool IsClosed() const { return myImpl.IsClosed(); }
 		bool IsClosingOrClosed() const { return myImpl.IsClosingOrClosed(); }
+		bool IsEncrypted() const { return myImpl.IsEncrypted(); }
 
 		SSLVersion GetVersion() const { return myImpl.GetVersion(); }
 		SSLCipher GetCipher() const { return myImpl.GetCipher(); }
