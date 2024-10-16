@@ -56,6 +56,7 @@ namespace net {
 		bool IsClosed() const { return myState == SSL_STREAM_OPENSSL_STATE_CLOSED; }
 		bool IsClosingOrClosed() const {
 			return myState >= SSL_STREAM_OPENSSL_STATE_CLOSING; }
+		bool IsEncrypted() const { return myState > SSL_STREAM_OPENSSL_STATE_NEW; }
 
 		SSLVersion GetVersion() const;
 		SSLCipher GetCipher() const;

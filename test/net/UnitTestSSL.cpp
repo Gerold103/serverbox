@@ -928,10 +928,14 @@ namespace ssl {
 		{
 			mg::net::SSLStream server(serverCtx);
 			mg::net::SSLStream client(clientCtx);
-
 			UnitTestSSLInteract(serverCtx.GetPointer(), clientCtx.GetPointer());
+			TEST_CHECK(!server.IsEncrypted());
+			TEST_CHECK(!client.IsEncrypted());
+
 			server.Connect();
+			TEST_CHECK(server.IsEncrypted());
 			client.Connect();
+			TEST_CHECK(client.IsEncrypted());
 			UnitTestSSLInteract(serverCtx.GetPointer(), clientCtx.GetPointer());
 		}
 		// Disabled filter is able to return app-data right after it gets net-data.
@@ -1447,6 +1451,9 @@ namespace ssl {
 			UnitTestSSLInteract(filter1, filter2);
 
 			filter1.Shutdown();
+			// Stays marked encrypted even after shutdown. Once encrypted - always
+			// stays so.
+			TEST_CHECK(filter1.IsEncrypted());
 			UnitTestSSLFinalizeShutdown(filter1, filter2);
 
 			// After shutdown data sending won't work.
@@ -1458,6 +1465,7 @@ namespace ssl {
 			TEST_CHECK(!filter1.HasError());
 			TEST_CHECK(rc == 0);
 			TEST_CHECK(!head.IsSet());
+			TEST_CHECK(filter1.IsEncrypted());
 		}
 		// Break shutdown with invalid data.
 		{
