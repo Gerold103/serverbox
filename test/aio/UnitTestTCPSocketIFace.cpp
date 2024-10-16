@@ -1227,7 +1227,15 @@ namespace tcpsocketiface {
 
 		// Stress test to check how wakeups and closures live together when done multiple
 		// times and at the same time.
+#if IS_PLATFORM_APPLE
+		// It works exceptionally slow on Mac. Might even think it hangs, until it
+		// suddenly continues working after a minute. MacOS in general seems to be
+		// having problems with too frequent socket accept + close, not just in this
+		// code.
+		constexpr int iterCount = 100;
+#else
 		constexpr int iterCount = 1000;
+#endif
 		constexpr int count = 5;
 		constexpr int retryCount = 5;
 
@@ -1283,7 +1291,15 @@ namespace tcpsocketiface {
 
 		// Stress test to check any kinds of close + reconnect + wakeup + normal messages
 		// together.
+#if IS_PLATFORM_APPLE
+		// It works exceptionally slow on Mac. Might even think it hangs, until it
+		// suddenly continues working after a minute. MacOS in general seems to be
+		// having problems with too frequent socket accept + close, not just in this
+		// code.
+		constexpr int iterCount = 100;
+#else
 		constexpr int iterCount = 1000;
+#endif
 		constexpr int count = 10;
 		constexpr int retryCount = 100;
 
