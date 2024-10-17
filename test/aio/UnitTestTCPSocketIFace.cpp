@@ -407,6 +407,12 @@ namespace tcpsocketiface {
 			client.SetAutoRecv();
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
+
+			// No waking up when no data.
+			uint64_t count1 = client.GetWakeupCount();
+			mg::box::Sleep(10);
+			TEST_CHECK(count1 + 2 >= client.GetWakeupCount());
+
 			client.CloseBlocking();
 		}
 		{
@@ -430,6 +436,28 @@ namespace tcpsocketiface {
 				msg->myPaddingSize = size;
 				client.Send(msg);
 				msg = client.PopBlocking();
+				TEST_CHECK(msg->myPaddingSize == size);
+				delete msg;
+			}
+			client.CloseBlocking();
+		}
+		{
+			// Many big send + many big receive.
+			TestClientSocket client;
+			client.PostConnectBlocking(aPort);
+			client.SetAutoRecv(100);
+			const uint32_t size = 1024 * 100;
+			for (int i = 0; i < 100; ++i)
+			{
+				TestMessage* msg = new TestMessage();
+				msg->myId = i;
+				msg->myPaddingSize = size;
+				client.Send(msg);
+			}
+			for (int i = 0; i < 100; ++i)
+			{
+				TestMessage* msg = client.PopBlocking();
+				TEST_CHECK(msg->myId == (uint64_t)i);
 				TEST_CHECK(msg->myPaddingSize == size);
 				delete msg;
 			}
@@ -741,6 +769,36 @@ namespace tcpsocketiface {
 
 			client.PostSendCopy(nullptr, 0);
 			interact();
+		}
+		// A long empty send hidden between non-empty buffers.
+		{
+			TestMessage msg1;
+			msg1.myId = 1;
+			mg::tst::WriteMessage wm;
+			msg1.ToStream(wm);
+
+			mg::net::BufferLink* head = new mg::net::BufferLink(wm.TakeData());
+			mg::net::BufferLink* tail = head;
+			for (int i = 0; i < 300; ++i)
+			{
+				tail->myNext = new mg::net::BufferLink(mg::net::BufferCopy::NewShared());
+				tail = tail->myNext;
+			}
+
+			TestMessage msg2;
+			msg2.myId = 2;
+			msg2.ToStream(wm);
+			tail->myNext = new mg::net::BufferLink(wm.TakeData());
+			client.PostSendMove(head);
+			head = nullptr;
+
+			TestMessage* msg = client.PopBlocking();
+			TEST_CHECK(msg->myId == msg1.myId);
+			delete msg;
+
+			msg = client.PopBlocking();
+			TEST_CHECK(msg->myId == msg2.myId);
+			delete msg;
 		}
 		// Empty buffer in the middle of a buffer list.
 		{
