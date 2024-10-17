@@ -111,6 +111,14 @@ namespace sio {
 
 	void
 	TCPSocket::SendRef(
+		mg::net::Buffer::Ptr&& aHead)
+	{
+		if (myState != TCP_SOCKET_STATE_CLOSED)
+			myOutput.AppendRef(std::move(aHead));
+	}
+
+	void
+	TCPSocket::SendRef(
 		const void* aData,
 		uint64_t aSize)
 	{
