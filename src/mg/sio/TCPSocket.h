@@ -37,6 +37,8 @@ namespace sio {
 		void SendRef(
 			const mg::net::Buffer* aHead);
 		void SendRef(
+			mg::net::Buffer::Ptr&& aHead);
+		void SendRef(
 			const void* aData,
 			uint64_t aSize);
 		void SendCopy(
