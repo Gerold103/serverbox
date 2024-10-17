@@ -43,15 +43,22 @@ namespace tcpsocketiface {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
+	enum TestMessageType
+	{
+		TEST_MESSAGE_ECHO,
+		TEST_MESSAGE_CLOSE_AND_ECHO,
+	};
+
 	struct TestMessage
 	{
-		TestMessage();
+		TestMessage(
+			TestMessageType aType = TEST_MESSAGE_ECHO);
 
+		TestMessageType myType;
 		uint64_t myId;
 		uint64_t myKey;
 		uint64_t myValue;
 		uint32_t myPaddingSize;
-		bool myDoClose;
 		TestMessage* myNext;
 
 		void ToStream(
@@ -82,7 +89,8 @@ namespace tcpsocketiface {
 		void OnClose() override;
 
 		void PrivOnMessage(
-			const TestMessage& aMsg);
+			TestMessage& aMsg,
+			mg::tst::WriteMessage& aOut);
 
 		mg::aio::TCPSocketIFace* mySocket;
 	};
@@ -619,12 +627,8 @@ namespace tcpsocketiface {
 		TestClientSubWasConnected::Ptr watch = client.SetWatchOnConnected();
 		client.PostConnect(aPort);
 		client.SetAutoRecv();
-		TestMessage* msg = new TestMessage();
-		client.Send(msg);
-
-		msg = new TestMessage();
-		msg->myDoClose = true;
-		client.Send(msg);
+		client.Send(new TestMessage());
+		client.Send(new TestMessage(TEST_MESSAGE_CLOSE_AND_ECHO));
 
 		client.WaitClose();
 		TEST_CHECK(watch->myWasConnected.LoadRelaxed());
@@ -1187,9 +1191,8 @@ namespace tcpsocketiface {
 			});
 			client.PostConnect(aPort);
 			client.SetAutoRecv();
-			TestMessage msgClose;
+			TestMessage msgClose(TEST_MESSAGE_CLOSE_AND_ECHO);
 			msgClose.myId = 1;
-			msgClose.myDoClose = true;
 
 			TestMessage msgCheck;
 			msgCheck.myId = 2;
@@ -1303,8 +1306,7 @@ namespace tcpsocketiface {
 		constexpr int count = 10;
 		constexpr int retryCount = 100;
 
-		TestMessage msgClose;
-		msgClose.myDoClose = true;
+		TestMessage msgClose(TEST_MESSAGE_CLOSE_AND_ECHO);
 		mg::box::AtomicBool doReconnect(true);
 
 		std::vector<TestClientSocket*> clients;
@@ -1480,12 +1482,13 @@ namespace tcpsocketiface {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	TestMessage::TestMessage()
-		: myId(1)
+	TestMessage::TestMessage(
+		TestMessageType aType)
+		: myType(aType)
+		, myId(1)
 		, myKey(2)
 		, myValue(3)
 		, myPaddingSize(4)
-		, myDoClose(false)
 		, myNext((TestMessage*)0x1234)
 	{
 	}
@@ -1495,10 +1498,10 @@ namespace tcpsocketiface {
 		mg::tst::WriteMessage& aMessage)
 	{
 		aMessage.Open();
+		aMessage.WriteUInt8((uint8_t)myType);
 		aMessage.WriteUInt64(myId);
 		aMessage.WriteUInt64(myKey);
 		aMessage.WriteUInt64(myValue);
-		aMessage.WriteBool(myDoClose);
 		aMessage.WriteUInt32(myPaddingSize);
 		const uint32_t padPartSize = 1024;
 		char padPart[padPartSize];
@@ -1517,10 +1520,12 @@ namespace tcpsocketiface {
 		mg::tst::ReadMessage& aMessage)
 	{
 		aMessage.Open();
+		uint8_t valU8;
+		aMessage.ReadUInt8(valU8);
+		myType = (TestMessageType)valU8;
 		aMessage.ReadUInt64(myId);
 		aMessage.ReadUInt64(myKey);
 		aMessage.ReadUInt64(myValue);
-		aMessage.ReadBool(myDoClose);
 		aMessage.ReadUInt32(myPaddingSize);
 		aMessage.SkipBytes(myPaddingSize);
 		aMessage.Close();
@@ -1547,8 +1552,7 @@ namespace tcpsocketiface {
 		while (rmsg.IsComplete())
 		{
 			msg.FromStream(rmsg);
-			msg.ToStream(wmsg);
-			PrivOnMessage(msg);
+			PrivOnMessage(msg, wmsg);
 		}
 		if (wmsg.GetTotalSize() > 0)
 			mySocket->SendRef(wmsg.TakeData());
@@ -1564,10 +1568,20 @@ namespace tcpsocketiface {
 
 	void
 	TestServerSocket::PrivOnMessage(
-		const TestMessage& aMsg)
+		TestMessage& aMsg,
+		mg::tst::WriteMessage& aOut)
 	{
-		if (aMsg.myDoClose)
+		switch(aMsg.myType)
+		{
+		case TEST_MESSAGE_ECHO:
+			aMsg.ToStream(aOut);
+			return;
+		case TEST_MESSAGE_CLOSE_AND_ECHO:
+			aMsg.ToStream(aOut);
 			mySocket->PostClose();
+			return;
+		}
+		TEST_CHECK(!"Uknown message type");
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
