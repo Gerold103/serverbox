@@ -100,9 +100,9 @@ namespace tcpsocket {
 	}
 
 	static void
-	UnitTestTCPSocketSendRefBuffers()
+	UnitTestTCPSocketSendRefBuffersRawPtr()
 	{
-		TestCaseGuard guard("SendRef(Buffer)");
+		TestCaseGuard guard("SendRef(Buffer*)");
 
 		mg::box::Error::Ptr err;
 		mg::net::Host host;
@@ -121,6 +121,31 @@ namespace tcpsocket {
 		head->myNext = mg::net::BuffersCopy("45678", 5);
 		client.SendRef(head.GetPointer());
 		head.Clear();
+		TCPSocketRecv(client, peer, "12345678", 8);
+	}
+
+	static void
+	UnitTestTCPSocketSendRefBuffersSharedPtr()
+	{
+		TestCaseGuard guard("SendRef(Buffer::Ptr&&)");
+
+		mg::box::Error::Ptr err;
+		mg::net::Host host;
+		mg::sio::TCPServer server;
+		host = mg::net::HostMakeLocalIPV4(0);
+		TEST_CHECK(server.Bind(host, err));
+		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		host.SetPort(server.GetPort());
+
+		mg::sio::TCPSocket client;
+		mg::net::Socket peerSock = TCPSocketConnect(client, host, server);
+		mg::sio::TCPSocket peer;
+		peer.Wrap(peerSock);
+
+		mg::net::Buffer::Ptr head = mg::net::BufferRaw::NewShared("123", 3);
+		head->myNext = mg::net::BuffersCopy("45678", 5);
+		client.SendRef(std::move(head));
+		TEST_CHECK(!head.IsSet());
 		TCPSocketRecv(client, peer, "12345678", 8);
 	}
 
@@ -281,7 +306,8 @@ namespace tcpsocket {
 		UnitTestTCPSocketDestructor();
 		UnitTestTCPSocketConnect();
 		UnitTestTCPSocketWrap();
-		UnitTestTCPSocketSendRefBuffers();
+		UnitTestTCPSocketSendRefBuffersRawPtr();
+		UnitTestTCPSocketSendRefBuffersSharedPtr();
 		UnitTestTCPSocketSendRefVoidPtr();
 		UnitTestTCPSocketSendCopyVoidPtr();
 		UnitTestTCPSocketRecvBuffer();
