@@ -7,6 +7,8 @@
 
 #include <deque>
 
+#define TEST_YIELD_PERIOD 5
+
 namespace mg {
 namespace unittests {
 namespace aio {
@@ -78,7 +80,7 @@ namespace tcpserver {
 		server2->PostClose();
 		while (!server->IsClosed() || !server2->IsClosed() ||
 			!sub.IsClosed() || !sub2.IsClosed())
-			mg::box::Sleep(1);
+			mg::box::Sleep(TEST_YIELD_PERIOD);
 	}
 
 	static void
@@ -97,7 +99,7 @@ namespace tcpserver {
 		TEST_CHECK(!sub.IsClosed());
 		server->PostClose();
 		while (!server->IsClosed() || !sub.IsClosed())
-			mg::box::Sleep(1);
+			mg::box::Sleep(TEST_YIELD_PERIOD);
 	}
 
 	static void
@@ -147,7 +149,7 @@ namespace tcpserver {
 			}
 			if (areAllConnected && peerCount == clientCount)
 				break;
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			mg::box::Sleep(TEST_YIELD_PERIOD);
 		}
 
 		for (uint32_t i = 0; i < clientCount; ++i)
@@ -161,7 +163,7 @@ namespace tcpserver {
 				uint8_t buf;
 				int64_t rc = cli.Recv(&buf, 1, err);
 				TEST_CHECK(rc <= 0 && !err.IsSet());
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				mg::box::Sleep(TEST_YIELD_PERIOD);
 			}
 		}
 		server->PostClose();
