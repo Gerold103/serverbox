@@ -77,3 +77,4 @@ jobs:
     - name: Test
       working-directory: ${{ steps.strings.outputs.test-dir }}
       run: ./${{ steps.strings.outputs.test-exe }}
+      timeout-minutes: 30
