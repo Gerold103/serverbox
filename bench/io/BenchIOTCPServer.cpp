@@ -123,7 +123,7 @@ namespace aiotcpsrv {
 			mg::box::Error::Ptr err;
 			mg::aio::TCPServer::Ptr server = mg::aio::TCPServer::NewShared(myCore);
 			MG_BOX_ASSERT(server->Bind(mg::net::HostMakeAllIPV4(port), err));
-			MG_BOX_ASSERT(server->Listen(mg::net::theMaxBacklog, sub, err));
+			MG_BOX_ASSERT(server->Listen(mg::net::SocketMaxBacklog(), sub, err));
 			server.Unwrap();
 		}
 	}

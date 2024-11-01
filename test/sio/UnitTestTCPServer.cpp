@@ -24,7 +24,7 @@ namespace tcpserver {
 		// Any IPv4.
 		host = mg::net::HostMakeAllIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 
 		// Fail when busy.
 		mg::sio::TCPServer server2;
@@ -34,7 +34,7 @@ namespace tcpserver {
 
 		host.SetPort(0);
 		TEST_CHECK(server2.Bind(host, err));
-		TEST_CHECK(server2.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server2.Listen(mg::net::SocketMaxBacklog(), err));
 	}
 
 	static void
@@ -46,7 +46,7 @@ namespace tcpserver {
 		mg::net::Host host = mg::net::HostMakeLocalIPV4(0);
 		mg::sio::TCPServer server;
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		server.Close();
 	}
 
@@ -59,7 +59,7 @@ namespace tcpserver {
 		mg::net::Host host = mg::net::HostMakeLocalIPV4(0);
 		mg::sio::TCPServer server;
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		// No clients yet.
 		mg::net::Socket sock = mg::net::theInvalidSocket;
 		for (int i = 0; i < 3; ++i)
@@ -112,7 +112,7 @@ namespace tcpserver {
 
 		// Close a listening server.
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		server.Close();
 	}
 }

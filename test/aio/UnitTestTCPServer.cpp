@@ -3,6 +3,7 @@
 #include "UnitTest.h"
 
 #include "mg/aio/IOCore.h"
+#include "mg/box/Algorithm.h"
 #include "mg/sio/TCPSocket.h"
 
 #include <deque>
@@ -60,7 +61,7 @@ namespace tcpserver {
 		TEST_CHECK(server->Bind(host, err));
 		uint16_t port = server->GetPort();
 		TestTCPServerSubscription sub;
-		TEST_CHECK(server->Listen(mg::net::theMaxBacklog, &sub, err));
+		TEST_CHECK(server->Listen(mg::net::SocketMaxBacklog(), &sub, err));
 		TEST_CHECK(!server->IsClosed());
 
 		// Fail when busy.
@@ -74,7 +75,7 @@ namespace tcpserver {
 		TEST_CHECK(server2->Bind(host, err));
 		TEST_CHECK(!server2->IsClosed());
 		TestTCPServerSubscription sub2;
-		TEST_CHECK(server2->Listen(mg::net::theMaxBacklog, &sub2, err));
+		TEST_CHECK(server2->Listen(mg::net::SocketMaxBacklog(), &sub2, err));
 
 		server->PostClose();
 		server2->PostClose();
@@ -95,7 +96,7 @@ namespace tcpserver {
 		mg::aio::TCPServer::Ptr server = mg::aio::TCPServer::NewShared(core);
 		TEST_CHECK(server->Bind(host, err));
 		TestTCPServerSubscription sub;
-		TEST_CHECK(server->Listen(mg::net::theMaxBacklog, &sub, err));
+		TEST_CHECK(server->Listen(mg::net::SocketMaxBacklog(), &sub, err));
 		TEST_CHECK(!sub.IsClosed());
 		server->PostClose();
 		while (!server->IsClosed() || !sub.IsClosed())
@@ -115,9 +116,13 @@ namespace tcpserver {
 		mg::aio::TCPServer::Ptr server = mg::aio::TCPServer::NewShared(core);
 		TEST_CHECK(server->Bind(host, err));
 		host.SetPort(server->GetPort());
-		TEST_CHECK(server->Listen(mg::net::theMaxBacklog, &sub, err));
+		uint32_t backlog = mg::net::SocketMaxBacklog();
+		uint32_t clientCount = 200;
+#if IS_PLATFORM_APPLE
+		clientCount = mg::box::Min(clientCount, backlog);
+#endif
+		TEST_CHECK(server->Listen(backlog, &sub, err));
 
-		const uint32_t clientCount = 200;
 		std::vector<std::unique_ptr<mg::sio::TCPSocket>> clients;
 		clients.resize(clientCount);
 		std::vector<std::unique_ptr<mg::sio::TCPSocket>> peers;

@@ -1,5 +1,6 @@
 #include "Socket.h"
 
+#include "mg/box/Log.h"
 #include "mg/box/Sysinfo.h"
 
 #include <arpa/inet.h>
@@ -7,8 +8,41 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 
+#if IS_PLATFORM_APPLE
+#include <sys/sysctl.h>
+#endif
+
 namespace mg {
 namespace net {
+
+	uint32_t
+	SocketMaxBacklog()
+	{
+#if !IS_PLATFORM_APPLE
+		return SOMAXCONN;
+#else
+		int somaxconn = 0;
+		size_t size = sizeof(somaxconn);
+		const char *name = "kern.ipc.somaxconn";
+		int rc = sysctlbyname(name, &somaxconn, &size, NULL, 0);
+		if (rc == 0) {
+			// From tests it appears that values > INT16_MAX work strangely. For example,
+			// 32768 behaves worse than 32767. Like if nothing was changed. The suspicion
+			// is that listen() on Apple internally uses int16_t or 'short' for storing
+			// the queue size and it simply gets reset to default on bigger values.
+			if (somaxconn > INT16_MAX)
+			{
+				MG_LOG_WARN("socket_max_backlog.01",
+					"%s is too high (%d), truncated to %d",
+					name, somaxconn, (int)INT16_MAX);
+				somaxconn = INT16_MAX;
+			}
+			return somaxconn;
+		}
+		MG_LOG_ERROR("socket_max_backlog.02", "couldn't get system's %s setting", name);
+		return SOMAXCONN;
+#endif
+	}
 
 	bool
 	SocketBind(

@@ -5,6 +5,12 @@
 namespace mg {
 namespace net {
 
+	uint32_t
+	SocketMaxBacklog()
+	{
+		return SOMAXCONN;
+	}
+
 	bool
 	SocketBind(
 		Socket aSock,
