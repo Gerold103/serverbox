@@ -18,13 +18,15 @@ namespace net {
 	static constexpr Socket theInvalidSocket = -1;
 #endif
 
-	static constexpr uint32_t theMaxBacklog = SOMAXCONN;
-
 	enum TransportProtocol
 	{
 		TRANSPORT_PROT_DEFAULT,
 		TRANSPORT_PROT_TCP,
 	};
+
+	// On some systems (like Apple) the maximal backlog size is a runtime value, not a
+	// constant liek SOMAXCONN.
+	uint32_t SocketMaxBacklog();
 
 	bool SocketBind(
 		Socket aSock,

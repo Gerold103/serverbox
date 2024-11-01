@@ -5,6 +5,7 @@
 #include "mg/aio/TCPServer.h"
 #include "mg/aio/TCPSocket.h"
 #include "mg/aio/TCPSocketSubscription.h"
+#include "mg/box/Algorithm.h"
 #include "mg/box/DoublyList.h"
 #include "mg/box/IOVec.h"
 #include "mg/net/SSLStream.h"
@@ -1344,9 +1345,9 @@ namespace tcpsocketiface {
 		// suddenly continues working after a minute. MacOS in general seems to be
 		// having problems with too frequent socket accept + close, not just in this
 		// code.
-		constexpr int iterCount = 100;
+		int iterCount = mg::box::Min(100U, mg::net::SocketMaxBacklog());
 #else
-		constexpr int iterCount = 1000;
+		int iterCount = 1000;
 #endif
 		constexpr int count = 5;
 		constexpr int retryCount = 5;
@@ -1408,9 +1409,9 @@ namespace tcpsocketiface {
 		// suddenly continues working after a minute. MacOS in general seems to be
 		// having problems with too frequent socket accept + close, not just in this
 		// code.
-		constexpr int iterCount = 100;
+		int iterCount = mg::box::Min(100U, mg::net::SocketMaxBacklog());
 #else
-		constexpr int iterCount = 1000;
+		int iterCount = 1000;
 #endif
 		constexpr int count = 10;
 		constexpr int retryCount = 100;
@@ -1497,7 +1498,7 @@ namespace tcpsocketiface {
 		mg::sio::TCPServer server;
 		mg::box::Error::Ptr err;
 		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 
 		TestClientSocket sock;
 		sock.PostConnect(server.GetPort());
@@ -1539,7 +1540,7 @@ namespace tcpsocketiface {
 		mg::sio::TCPServer server;
 		mg::box::Error::Ptr err;
 		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 
 		TestClientSocket sock;
 		sock.PostConnect(server.GetPort());
@@ -1595,7 +1596,7 @@ namespace tcpsocketiface {
 		mg::sio::TCPServer server;
 		mg::box::Error::Ptr err;
 		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 
 		TestClientSocket sock;
 		sock.PostConnect(server.GetPort());
@@ -1680,7 +1681,7 @@ namespace tcpsocketiface {
 		mg::sio::TCPServer server;
 		mg::box::Error::Ptr err;
 		TEST_CHECK(server.Bind(mg::net::HostMakeAllIPV4(0), err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 
 		TestClientSocket sock;
 		sock.PostConnect(server.GetPort());
@@ -1816,7 +1817,7 @@ namespace tcpsocketiface {
 		mg::box::Error::Ptr err;
 		TEST_CHECK(server->Bind(host, err));
 		uint16_t port = server->GetPort();
-		TEST_CHECK(server->Listen(mg::net::theMaxBacklog, sub, err));
+		TEST_CHECK(server->Listen(mg::net::SocketMaxBacklog(), sub, err));
 
 		UnitTestTCPSocketSuite(port);
 		UnitTestSSLSocketSuite(port);

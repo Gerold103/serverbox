@@ -43,7 +43,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -68,7 +68,7 @@ namespace tcpsocket {
 		// To IPv4.
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -88,7 +88,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -109,7 +109,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -134,7 +134,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -159,7 +159,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -181,7 +181,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -207,7 +207,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
@@ -264,7 +264,7 @@ namespace tcpsocket {
 		mg::sio::TCPServer server;
 		host = mg::net::HostMakeLocalIPV4(0);
 		TEST_CHECK(server.Bind(host, err));
-		TEST_CHECK(server.Listen(mg::net::theMaxBacklog, err));
+		TEST_CHECK(server.Listen(mg::net::SocketMaxBacklog(), err));
 		host.SetPort(server.GetPort());
 
 		mg::sio::TCPSocket client;
