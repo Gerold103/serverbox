@@ -27,6 +27,7 @@ namespace unittests {
 	{
 		vprintf(aFormat, aArg);
 		printf("\n");
+		fflush(stdout);
 	}
 
 	TestSuiteGuard::TestSuiteGuard(

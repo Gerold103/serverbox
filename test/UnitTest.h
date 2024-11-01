@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mg/box/Assert.h"
+#include "mg/box/Thread.h"
 
 #include <cstdarg>
 
@@ -15,6 +16,8 @@
 #endif
 
 #define TEST_CHECK MG_BOX_ASSERT
+#define TEST_YIELD_PERIOD 5
+#define TEST_TIMEOUT 300000 // 5 mins
 
 namespace mg {
 namespace unittests {
@@ -52,6 +55,19 @@ namespace unittests {
 	private:
 		double myStartMs;
 	};
+
+	template <typename T>
+	static inline void
+	Wait(T&& aCondition, uint32_t aPeriodMs = TEST_YIELD_PERIOD, uint32_t aTimeout = TEST_TIMEOUT)
+	{
+		uint64_t deadline = mg::box::GetMilliseconds() + aTimeout;
+		while (!aCondition())
+		{
+			TEST_CHECK(mg::box::GetMilliseconds() < deadline);
+			if (aPeriodMs != 0)
+				mg::box::Sleep(aPeriodMs);
+		}
+	}
 
 }
 }
