@@ -6,6 +6,7 @@ add_executable(test
 	UnitTestSSLCerts.cpp
 	aio/UnitTestTCPServer.cpp
 	aio/UnitTestTCPSocketIFace.cpp
+	box/UnitTestAlgorithm.cpp
 	box/UnitTestAtomic.cpp
 	box/UnitTestBinaryHeap.cpp
 	box/UnitTestConditionVariable.cpp
