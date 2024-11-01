@@ -1419,18 +1419,17 @@ namespace tcpsocketiface {
 		constexpr int retryCount = 100;
 
 		TestMessage msgClose(TEST_MESSAGE_CLOSE_AND_ECHO);
-		mg::box::AtomicBool doReconnect(true);
 
 		std::vector<TestClientSocket*> clients;
+		std::vector<uint64_t> subs;
 		clients.resize(count);
+		subs.resize(count);
 		for (int i = 0; i < count; ++i)
 		{
 			TestClientSocket*& cl = clients[i];
 			cl = new TestClientSocket();
 			uint64_t reconnDelay = i % 3;
-			cl->SubscribeOnClose([cl, reconnDelay, aPort, &doReconnect]() {
-				if (!doReconnect.LoadRelaxed())
-					return;
+			subs[i] = cl->SubscribeOnClose([cl, reconnDelay, aPort]() {
 				mg::aio::TCPSocketConnectParams params;
 				params.myDelay = mg::box::TimeDuration(reconnDelay);
 				params.myEndpoint = mg::net::HostMakeLocalIPV4(aPort).ToString();
@@ -1482,10 +1481,10 @@ namespace tcpsocketiface {
 					delete msg;
 			}
 		}
-		doReconnect.StoreRelaxed(false);
 		for (int i = 0; i < count; ++i)
 		{
 			TestClientSocket*& cl = clients[i];
+			cl->Unsubscribe(subs[i]);
 			cl->CloseBlocking();
 			delete cl;
 		}
