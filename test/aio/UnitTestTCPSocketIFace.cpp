@@ -19,7 +19,6 @@
 #include <functional>
 
 #define TEST_RECV_SIZE 8092
-#define TEST_YIELD_PERIOD 5
 
 namespace mg {
 namespace unittests {
@@ -537,11 +536,13 @@ namespace tcpsocketiface {
 				uint64_t sid = client.SubscribeOnRecvOk([&onRecv]() {
 					onRecv.Send();
 				});
-				while ((msg = client.Pop()) == nullptr)
-				{
+				Wait([&]() {
+					if ((msg = client.Pop()) != nullptr)
+						return true;
 					client.PostRecv(1);
 					onRecv.ReceiveBlocking();
-				}
+					return false;
+				}, 0);
 				client.Unsubscribe(sid);
 				TEST_CHECK(msg->myPaddingSize == size);
 				delete msg;
@@ -565,11 +566,13 @@ namespace tcpsocketiface {
 				uint64_t sid = client.SubscribeOnRecvOk([&onRecv]() {
 					onRecv.Send();
 				});
-				while ((msg = client.Pop()) == nullptr)
-				{
+				Wait([&]() {
+					if ((msg = client.Pop()) != nullptr)
+						return true;
 					client.PostRecv(1);
 					onRecv.ReceiveBlocking();
-				}
+					return false;
+				}, 0);
 				client.Unsubscribe(sid);
 				TEST_CHECK(msg->myPaddingSize == size);
 				delete msg;
@@ -773,8 +776,7 @@ namespace tcpsocketiface {
 		// worker.
 		{
 			TestClientSubWorkerBlock::Ptr sub = client.SetWorkerBlock();
-			while (!sub->myIsBlocked.LoadRelaxed())
-				mg::box::Sleep(1);
+			Wait([&]() { return sub->myIsBlocked.LoadRelaxed(); });
 
 			for (int i = 0; i < 3; ++i)
 				client.PostSend(new TestMessage());
@@ -1036,8 +1038,7 @@ namespace tcpsocketiface {
 			delete client.PopBlocking();
 
 			TestClientSubWorkerBlock::Ptr sub = client.SetWorkerBlock();
-			while (!sub->myIsBlocked.LoadRelaxed())
-				mg::box::Sleep(1);
+			Wait([&]() { return sub->myIsBlocked.LoadRelaxed(); });
 
 			client.PostSend(new TestMessage());
 			client.PostShutdown();
@@ -1151,11 +1152,13 @@ namespace tcpsocketiface {
 			// Try to catch the moment when resolve is started but not finished. Close
 			// must cancel it.
 			uint64_t yield = 0;
-			while (client.GetWakeupCount() == wakeupCount)
-			{
+			Wait([&]() {
+				if (client.GetWakeupCount() != wakeupCount)
+					return true;
 				if (++yield % 10000 == 0)
 					mg::box::Sleep(1);
-			}
+				return false;
+			}, 0);
 			client.CloseBlocking();
 		}
 		for (int i = 0; i < 5; ++i)
@@ -1236,8 +1239,7 @@ namespace tcpsocketiface {
 			mg::box::Sleep(10);
 			TEST_CHECK(client.GetWakeupCount() == 0);
 			client.PostWakeup();
-			while (client.GetWakeupCount() != 1)
-				mg::box::Sleep(1);
+			Wait([&]() { return client.GetWakeupCount() == 1; });
 
 			client.SetAutoRecv();
 			client.PostSend(new TestMessage());
@@ -1514,14 +1516,15 @@ namespace tcpsocketiface {
 		peer.Wrap(peerSock);
 		peer.SendCopy("trash", 5);
 		// Once the client receives "trash", it should close the socket. Just wait for it.
-		while (!peer.IsClosed())
-		{
+		Wait([&]() {
+			if (peer.IsClosed())
+				return true;
 			constexpr uint64_t bufSize = 128;
 			uint8_t buf[bufSize];
 			peer.Recv(buf, bufSize, err);
 			peer.Update(err);
-			mg::box::Sleep(TEST_YIELD_PERIOD);
-		}
+			return false;
+		});
 		gotError.ReceiveBlocking();
 		sock.Unsubscribe(id);
 		// Could fail during receive when tried to feed the trash to SSL stream, or later
@@ -2443,16 +2446,24 @@ namespace tcpsocketiface {
 	TestClientSocket::WaitClose()
 	{
 		mg::box::MutexLock lock(myStateMutex);
-		while (myState != mg::aio::TCP_SOCKET_STATE_CLOSED)
+		Wait([&]() {
+			if (myState == mg::aio::TCP_SOCKET_STATE_CLOSED)
+				return true;
 			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+			return false;
+		}, 0);
 	}
 
 	void
 	TestClientSocket::WaitConnect()
 	{
 		mg::box::MutexLock lock(myStateMutex);
-		while (myState != mg::aio::TCP_SOCKET_STATE_CONNECTED)
+		Wait([&]() {
+			if (myState == mg::aio::TCP_SOCKET_STATE_CONNECTED)
+				return true;
 			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+			return false;
+		}, 0);
 	}
 
 	void
@@ -2472,8 +2483,12 @@ namespace tcpsocketiface {
 	{
 		mg::box::MutexLock lock(myStateMutex);
 		uint64_t target = myWakeupCount + aCount;
-		while (target > myWakeupCount)
+		Wait([&]() {
+			if (target <= myWakeupCount)
+				return true;
 			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+			return false;
+		}, 0);
 	}
 
 	void
@@ -2481,16 +2496,24 @@ namespace tcpsocketiface {
 		uint64_t aCount)
 	{
 		mg::box::MutexLock lock(myStateMutex);
-		while (myCloseCount < aCount)
+		Wait([&]() {
+			if (myCloseCount >= aCount)
+				return true;
 			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+			return false;
+		}, 0);
 	}
 
 	TestMessage*
 	TestClientSocket::PopBlocking()
 	{
 		mg::box::MutexLock lock(myStateMutex);
-		while (myInMessages.IsEmpty())
+		Wait([&]() {
+			if (!myInMessages.IsEmpty())
+				return true;
 			myCond.TimedWait(myStateMutex, mg::box::TimeDuration(TEST_YIELD_PERIOD));
+			return false;
+		}, 0);
 		return myInMessages.PopFirst();
 	}
 
@@ -2626,10 +2649,12 @@ namespace tcpsocketiface {
 		sub->myDoBlock.StoreRelaxed(true);
 		sub->myIsBlocked.StoreRelaxed(false);
 		sub->myID = SubscribeOnEvent([sub]() mutable {
-			while (sub->myDoBlock.LoadRelaxed()) {
+			Wait([&]() {
+				if (!sub->myDoBlock.LoadRelaxed())
+					return true;
 				sub->myIsBlocked.StoreRelaxed(true);
-				mg::box::Sleep(1);
-			}
+				return false;
+			});
 			sub->myIsBlocked.StoreRelaxed(false);
 		});
 		PostWakeup();
@@ -2855,11 +2880,12 @@ namespace tcpsocketiface {
 		mg::box::Error::Ptr err;
 		mg::net::Socket peerSock = mg::net::theInvalidSocket;
 		mg::net::Host host;
-		while ((peerSock = aServer.Accept(host, err)) == mg::net::theInvalidSocket)
-		{
+		Wait([&]() {
+			if ((peerSock = aServer.Accept(host, err)) != mg::net::theInvalidSocket)
+				return true;
 			TEST_CHECK(!err.IsSet());
-			mg::box::Sleep(TEST_YIELD_PERIOD);
-		}
+			return false;
+		});
 		return peerSock;
 	}
 
@@ -2872,8 +2898,9 @@ namespace tcpsocketiface {
 		mg::tst::WriteMessage wmsg;
 		mg::net::BufferStream stream;
 		stream.EnsureWriteSize(aSize);
-		while (stream.GetReadSize() < aSize)
-		{
+		Wait([&]() {
+			if (stream.GetReadSize() >= aSize)
+				return true;
 			mg::net::Buffer* buf = stream.GetWritePos();
 			TEST_CHECK(aSock.Update(err));
 			uint64_t needed = aSize - stream.GetReadSize();
@@ -2882,13 +2909,11 @@ namespace tcpsocketiface {
 				needed < cap ? needed : cap, err);
 			TEST_CHECK(!err.IsSet());
 			if (rc < 0)
-			{
-				mg::box::Sleep(TEST_YIELD_PERIOD);
-				continue;
-			}
+				return false;
 			TEST_CHECK(rc != 0);
 			stream.PropagateWritePos(rc);
-		}
+			return false;
+		});
 		TEST_CHECK(stream.GetReadSize() == aSize);
 		TestMessage msg;
 		mg::net::BufferReadStream rstream(stream);
@@ -2905,8 +2930,9 @@ namespace tcpsocketiface {
 	{
 		mg::box::Error::Ptr err;
 		mg::net::BufferStream stream;
-		while (stream.GetReadSize() < aSize)
-		{
+		Wait([&]() {
+			if (stream.GetReadSize() >= aSize)
+				return true;
 			TEST_CHECK(!aSSL.IsClosingOrClosed());
 			constexpr uint64_t bufSize = 128;
 			uint8_t buf[bufSize];
@@ -2914,15 +2940,13 @@ namespace tcpsocketiface {
 			int64_t rc = aSock.Recv(buf, bufSize, err);
 			TEST_CHECK(!err.IsSet());
 			if (rc < 0)
-			{
-				mg::box::Sleep(TEST_YIELD_PERIOD);
-				continue;
-			}
+				return false;
 			aSSL.AppendNetInputCopy(buf, rc);
 			mg::net::Buffer::Ptr bufOut;
 			aSSL.PopAppOutput(bufOut);
 			stream.WriteRef(std::move(bufOut));
-		}
+			return false;
+		});
 		TEST_CHECK(stream.GetReadSize() == aSize);
 		TestMessage msg;
 		mg::net::BufferReadStream rstream(stream);
@@ -2935,8 +2959,9 @@ namespace tcpsocketiface {
 	HandshakeBlocking(mg::sio::TCPSocket& aSock, mg::net::SSLStream& aSSL)
 	{
 		mg::box::Error::Ptr err;
-		while (!aSSL.IsConnected())
-		{
+		Wait([&]() {
+			if (aSSL.IsConnected())
+				return true;
 			TEST_CHECK(!aSSL.IsClosingOrClosed());
 			constexpr uint64_t bufSize = 128;
 			uint8_t buf[bufSize];
@@ -2944,16 +2969,14 @@ namespace tcpsocketiface {
 			int64_t rc = aSock.Recv(buf, bufSize, err);
 			TEST_CHECK(!err.IsSet());
 			if (rc < 0)
-			{
-				mg::box::Sleep(TEST_YIELD_PERIOD);
-				continue;
-			}
+				return false;
 			TEST_CHECK(rc != 0);
 			aSSL.AppendNetInputCopy(buf, rc);
 			mg::net::Buffer::Ptr bufOut;
 			aSSL.PopNetOutput(bufOut);
 			aSock.SendRef(std::move(bufOut));
-		}
+			return false;
+		});
 	}
 
 }

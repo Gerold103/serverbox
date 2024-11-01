@@ -8,8 +8,6 @@
 
 #include <deque>
 
-#define TEST_YIELD_PERIOD 5
-
 namespace mg {
 namespace unittests {
 namespace aio {
@@ -79,9 +77,10 @@ namespace tcpserver {
 
 		server->PostClose();
 		server2->PostClose();
-		while (!server->IsClosed() || !server2->IsClosed() ||
-			!sub.IsClosed() || !sub2.IsClosed())
-			mg::box::Sleep(TEST_YIELD_PERIOD);
+		Wait([&]() {
+			return server->IsClosed() && server2->IsClosed() &&
+				sub.IsClosed() && sub2.IsClosed();
+		});
 	}
 
 	static void
@@ -99,8 +98,7 @@ namespace tcpserver {
 		TEST_CHECK(server->Listen(mg::net::SocketMaxBacklog(), &sub, err));
 		TEST_CHECK(!sub.IsClosed());
 		server->PostClose();
-		while (!server->IsClosed() || !sub.IsClosed())
-			mg::box::Sleep(TEST_YIELD_PERIOD);
+		Wait([&]() { return server->IsClosed() && sub.IsClosed(); });
 	}
 
 	static void
@@ -134,8 +132,7 @@ namespace tcpserver {
 			peers[i].reset(new mg::sio::TCPSocket());
 			TEST_CHECK(clients[i]->Connect(host, err));
 		}
-		while (true)
-		{
+		Wait([&]() {
 			bool areAllConnected = true;
 			for (uint32_t i = 0; i < clientCount; ++i)
 			{
@@ -152,24 +149,23 @@ namespace tcpserver {
 				TEST_CHECK(peerCount < clientCount);
 				peers[peerCount++]->Wrap(peerSock);
 			}
-			if (areAllConnected && peerCount == clientCount)
-				break;
-			mg::box::Sleep(TEST_YIELD_PERIOD);
-		}
+			return areAllConnected && peerCount == clientCount;
+		});
 
 		for (uint32_t i = 0; i < clientCount; ++i)
 			peers[i]->Close();
 		for (uint32_t i = 0; i < clientCount; ++i)
 		{
 			mg::sio::TCPSocket& cli = *clients[i];
-			while (!cli.IsClosed())
-			{
+			Wait([&]() {
+				if (cli.IsClosed())
+					return true;
 				cli.Update(err);
 				uint8_t buf;
 				int64_t rc = cli.Recv(&buf, 1, err);
 				TEST_CHECK(rc <= 0 && !err.IsSet());
-				mg::box::Sleep(TEST_YIELD_PERIOD);
-			}
+				return false;
+			});
 		}
 		server->PostClose();
 	}
