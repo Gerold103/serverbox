@@ -76,6 +76,13 @@ namespace aio {
 	// sched-thread.
 	using IOCorePendingQueue = IOTaskForwardList;
 
+	enum IOCoreState
+	{
+		IOCORE_STATE_RUNNING,
+		IOCORE_STATE_STOPPING,
+		IOCORE_STATE_STOPPED,
+	};
+
 	class IOCore
 	{
 	public:
@@ -158,7 +165,7 @@ namespace aio {
 		mg::box::AtomicU32 myDescriptorCount;
 
 		mg::box::Mutex myMutex;
-		bool myIsRunning;
+		mg::box::Atomic<IOCoreState> myState;
 		std::vector<IOCoreWorker*> myWorkers;
 
 		friend IOCoreWorker;

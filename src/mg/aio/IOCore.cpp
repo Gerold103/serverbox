@@ -38,7 +38,7 @@ namespace aio {
 		, mySchedBatchSize(0)
 		, myIsSchedulerWorking(false)
 		, myDescriptorCount(0)
-		, myIsRunning(false)
+		, myState(IOCORE_STATE_STOPPED)
 	{
 		PrivPlatformCreate();
 	}
@@ -65,12 +65,12 @@ namespace aio {
 		myWorkers.reserve(aThreadCount);
 
 		mg::box::MutexLock lock(myMutex);
-		if (myIsRunning)
+		if (myState.LoadRelaxed() != IOCORE_STATE_STOPPED)
 			return;
 		mySchedBatchSize = myExecBatchSize * aThreadCount;
 		for (uint32_t i = 0; i < aThreadCount; ++i)
 			myWorkers.push_back(new IOCoreWorker(*this));
-		myIsRunning = true;
+		myState.StoreRelaxed(IOCORE_STATE_RUNNING);
 	}
 
 	uint32_t
@@ -95,8 +95,9 @@ namespace aio {
 	IOCore::Stop()
 	{
 		mg::box::MutexLock lock(myMutex);
-		if (!myIsRunning)
+		if (myState.LoadRelaxed() != IOCORE_STATE_RUNNING)
 			return;
+		myState.StoreRelaxed(IOCORE_STATE_STOPPING);
 		for (IOCoreWorker* w : myWorkers)
 			w->Stop();
 		PrivPlatformSignal();
@@ -106,7 +107,7 @@ namespace aio {
 
 		myWorkers.resize(0);
 		mySchedBatchSize = 0;
-		myIsRunning = false;
+		myState.StoreRelaxed(IOCORE_STATE_STOPPED);
 	}
 
 	bool
