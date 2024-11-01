@@ -357,6 +357,13 @@ namespace aio {
 				duration = INT_MAX;
 			pollTimeout = (int)duration;
 		}
+		else if (myState.LoadRelaxed() != IOCORE_STATE_RUNNING)
+		{
+			// The scheduler might be woken up by the special event for shutting down.
+			// Need to exit instead of going into the infinite sleep.
+			return false;
+		}
+
 		poll(&pfd, 1, pollTimeout);
 		return false;
 	}

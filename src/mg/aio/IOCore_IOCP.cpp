@@ -337,6 +337,12 @@ namespace aio {
 				duration = INFINITE - 1;
 			timeout = (DWORD)duration;
 		}
+		else if (myState.LoadRelaxed() != IOCORE_STATE_RUNNING)
+		{
+			// The scheduler might be woken up by the special event for shutting down.
+			// Need to exit instead of going into the infinite sleep.
+			return false;
+		}
 		else
 		{
 			timeout = INFINITE;
