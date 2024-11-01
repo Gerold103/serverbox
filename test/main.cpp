@@ -35,6 +35,7 @@ namespace aio {
 	void UnitTestTCPSocketIFace();
 }
 namespace box {
+	void UnitTestAlgorithm();
 	void UnitTestAtomic();
 	void UnitTestBinaryHeap();
 	void UnitTestConditionVariable();
@@ -98,6 +99,7 @@ main(
 
 	MG_RUN_TEST(aio, UnitTestTCPServer);
 	MG_RUN_TEST(aio, UnitTestTCPSocketIFace);
+	MG_RUN_TEST(box, UnitTestAlgorithm);
 	MG_RUN_TEST(box, UnitTestAtomic);
 	MG_RUN_TEST(box, UnitTestBinaryHeap);
 	MG_RUN_TEST(box, UnitTestConditionVariable);
