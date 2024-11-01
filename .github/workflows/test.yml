@@ -74,6 +74,13 @@ jobs:
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+    - name: Prepare the runtime
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          sudo sysctl -w kern.ipc.somaxconn=30000
+        fi
+
     - name: Test
       working-directory: ${{ steps.strings.outputs.test-dir }}
       run: ./${{ steps.strings.outputs.test-exe }}
