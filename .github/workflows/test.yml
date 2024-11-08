@@ -15,31 +15,37 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         build_type: [Release, Debug]
-        c_compiler: [gcc, clang, cl]
-        include:
-          - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-          - os: ubuntu-latest
-            c_compiler: clang
-            cpp_compiler: clang++
-          - os: macos-latest
-            c_compiler: clang
-            cpp_compiler: clang++
+        copiler_suite: [msvc, llvm, gnu]
+        backend: [epoll, kqueue, iocp, iouring]
         exclude:
           - os: windows-latest
-            c_compiler: gcc
+            copiler_suite: gnu
           - os: windows-latest
-            c_compiler: clang
+            copiler_suite: llvm
+          - os: windows-latest
+            backend: epoll
+          - os: windows-latest
+            backend: kqueue
+          - os: windows-latest
+            backend: iouring
+
           - os: ubuntu-latest
-            c_compiler: cl
+            copiler_suite: msvc
+          - os: ubuntu-latest
+            backend: kqueue
+          - os: ubuntu-latest
+            backend: iocp
+
           - os: macos-latest
-            c_compiler: cl
+            copiler_suite: msvc
           - os: macos-latest
-            c_compiler: gcc
+            copiler_suite: gnu
+          - os: macos-latest
+            backend: epoll
+          - os: macos-latest
+            backend: iocp
+          - os: macos-latest
+            backend: iouring
 
     steps:
     - uses: actions/checkout@v3
@@ -49,6 +55,7 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
         if [ "$RUNNER_OS" == "Windows" ]; then
           echo "test-dir=${{ github.workspace }}/build/test/${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
           echo "test-exe=test.exe" >> "$GITHUB_OUTPUT"
@@ -57,18 +64,42 @@ jobs:
           echo "test-exe=test" >> "$GITHUB_OUTPUT"
         fi
 
+        if [ "${{ matrix.backend }}" == "iouring" ]; then
+          echo "backend-cmake=-DMG_AIO_USE_IOURING=1" >> "$GITHUB_OUTPUT"
+        else
+          echo "backend-cmake=" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [ "${{ matrix.copiler_suite }}" == "msvc" ]; then
+          echo "compiler_c=cl" >> "$GITHUB_OUTPUT"
+          echo "compiler_cxx=cl" >> "$GITHUB_OUTPUT"
+        elif [ "${{ matrix.copiler_suite }}" == "llvm" ]; then
+          echo "compiler_c=clang" >> "$GITHUB_OUTPUT"
+          echo "compiler_cxx=clang++" >> "$GITHUB_OUTPUT"
+        else
+          echo "compiler_c=gcc" >> "$GITHUB_OUTPUT"
+          echo "compiler_cxx=g++" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Install libs
+      shell: bash
+      run: |
+        if [ "${{ matrix.backend }}" == "iouring" ]; then
+          sudo apt install liburing-dev
+        fi
+
     - name: Configure CMake
       shell: bash
       run: |
-        export CC=${{ matrix.c_compiler }}
-        export CXX=${{ matrix.cpp_compiler }}
+        export CC="${{ steps.strings.outputs.compiler_c }}"
+        export CXX="${{ steps.strings.outputs.compiler_cxx }}"
         if [ "$RUNNER_OS" == "macOS" ]; then
           export CC=$(brew --prefix llvm@15)/bin/$CC
           export CXX=$(brew --prefix llvm@15)/bin/$CXX
         fi
-
         cmake -B "${{ steps.strings.outputs.build-output-dir }}" \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          ${{ steps.strings.outputs.backend-cmake }} \
           -S "${{ github.workspace }}"
 
     - name: Build

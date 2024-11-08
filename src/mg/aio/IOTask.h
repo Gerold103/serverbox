@@ -5,20 +5,28 @@
 #define MG_IOCORE_USE_IOCP 1
 #define MG_IOCORE_USE_EPOLL 0
 #define MG_IOCORE_USE_KQUEUE 0
+#define MG_IOCORE_USE_IOURING 0
 #elif IS_PLATFORM_APPLE
 #define MG_IOCORE_USE_IOCP 0
 #define MG_IOCORE_USE_EPOLL 0
 #define MG_IOCORE_USE_KQUEUE 1
+#define MG_IOCORE_USE_IOURING 0
+#elif MG_IOCORE_USE_IOURING
+#define MG_IOCORE_USE_IOCP 0
+#define MG_IOCORE_USE_EPOLL 0
+#define MG_IOCORE_USE_KQUEUE 0
+#define MG_IOCORE_USE_IOURING 1
 #else
 #define MG_IOCORE_USE_IOCP 0
 #define MG_IOCORE_USE_EPOLL 1
 #define MG_IOCORE_USE_KQUEUE 0
+#define MG_IOCORE_USE_IOURING 0
 #endif
 
-#if MG_IOCORE_USE_IOCP
+#if MG_IOCORE_USE_IOCP || MG_IOCORE_USE_IOURING
 #include "mg/box/ForwardList.h"
-#include "mg/net/Socket.h"
 #endif
+#include "mg/box/IOVec.h"
 #include "mg/box/SharedPtr.h"
 #include "mg/net/Socket.h"
 
@@ -34,6 +42,7 @@ namespace mg {
 namespace aio {
 
 	class IOCore;
+	struct IOTask;
 
 #if MG_IOCORE_USE_KQUEUE
 	struct IOKqueueEvents
@@ -49,16 +58,84 @@ namespace aio {
 	};
 #endif
 
+#if MG_IOCORE_USE_IOURING
+	static constexpr uint32_t theIOUringMaxBufCount = 128;
+
+	enum IOUringOpcode
+	{
+		MG_IO_URING_OP_NOP,
+		MG_IO_URING_OP_CONNECT,
+		MG_IO_URING_OP_ACCEPT,
+		MG_IO_URING_OP_RECVMSG,
+		MG_IO_URING_OP_SENDMSG,
+		MG_IO_URING_OP_CANCEL_FD,
+		MG_IO_URING_OP_READ,
+	};
+
+	struct IOUringParamsIOMsg
+	{
+		int myFd;
+		msghdr myMsg;
+		mg::box::IOVec myData[theIOUringMaxBufCount];
+	};
+
+	struct IOUringParamsAccept
+	{
+		int myFd;
+		union
+		{
+			mg::net::Sockaddr base;
+			mg::net::SockaddrIn in;
+			mg::net::SockaddrIn6 in6;
+		} myAddr;
+		mg::net::SocklenT myAddrLen;
+	};
+
+	struct IOUringParamsConnect
+	{
+		int myFd;
+		union
+		{
+			mg::net::Sockaddr base;
+			mg::net::SockaddrIn in;
+			mg::net::SockaddrIn6 in6;
+		} myAddr;
+		mg::net::SocklenT myAddrLen;
+	};
+
+	struct IOUringParamsRead
+	{
+		int myFd;
+		void* myBuf;
+		uint64_t mySize;
+	};
+
+	struct IOUringParamsCancelFd
+	{
+		int myFd;
+	};
+
+	// The accepted sockets are going to be returned in the 'bytes' field of the event.
+	// Hence should fit into the byte count type.
+	static_assert(sizeof(mg::net::Socket) == sizeof(uint32_t), "socket is int");
+#endif
+
 	// Windows IO events are WSAOVERLAPPED objects initialized by WSA functions
 	// (WSASend/Recv/..()). Overlappeds are put into IOCP queue by the userspace, and
 	// returned from the queue by the kernel, when the operation is finished.
 	// Pointer at the overlapped is returned unchanged - it allows to inherit it in C
 	// style, and attach any needed data in the parent struct, which is done below.
 	//
-	// On Linux and Apple the event is useful for platform-agnostic code which operates on
-	// tasks and events instead of raw sockets and WSAOVERLAPPED objects. In such code it
-	// is important though to remember, that any IO function would return the event with
-	// result immediately. Without going a full circle through IOCore first.
+	// On Linux io_uring the events are submission and completion queue entries. They are
+	// stored in cyclic queues of the ring. Operations never end right away. They always
+	// get sent as submission entries, and later produce a completion entry. The entries
+	// use IOEvent as user-data to link the low-level operations with high-level data.
+	//
+	// On Linux epoll and Apple kqueue the event is useful for platform-agnostic code
+	// which operates on tasks and events instead of raw sockets and WSAOVERLAPPED
+	// objects. In such code it is important though to remember, that any IO function
+	// would return the event with result immediately. Without going a full circle through
+	// IOCore first.
 	//
 	struct IOEvent
 	{
@@ -99,6 +176,24 @@ namespace aio {
 		// One socket can get multiple events from IOCP before they are dispatched. They
 		// are linked into a list.
 		IOEvent* myNext;
+#elif MG_IOCORE_USE_IOURING
+		IOUringOpcode myOpcode;
+		union
+		{
+			IOUringParamsIOMsg myParamsIOMsg;
+			IOUringParamsAccept myParamsAccept;
+			IOUringParamsConnect myParamsConnect;
+			IOUringParamsRead myParamsRead;
+			IOUringParamsCancelFd myParamsCancelFd;
+		};
+		// One socket can get multiple events from io_uring before they are dispatched.
+		// They are linked into a list.
+		IOEvent* myNext;
+		// io_uring takes a single user data pointer. If it would be the task, then the
+		// result couldn't be matched to the source event. If it would be the event, then
+		// how to wakeup the owner-task? The only way is to store the event as user data
+		// in io_uring and link it with the task implicitly via the event.
+		IOTask* myTask;
 #endif
 	private:
 		// Lock is not atomic. It is only intended for use in one thread at a time. Usage
@@ -108,8 +203,9 @@ namespace aio {
 		// Linux.
 		//
 		// When event is used with task's IO methods, it means the operation couldn't be
-		// completed right now. On Linux it is EWOULDBLOCK, on Windows the event is sent
-		// to IOCore and will be completed later.
+		// completed right now. On Linux epoll and Apple kqueue it is EWOULDBLOCK, on
+		// Linux io_uring and on Windows IOCP the event is sent to IOCore and will be
+		// completed later.
 		bool myIsLocked;
 		bool myIsEmpty;
 		bool myIsError;
@@ -120,14 +216,14 @@ namespace aio {
 		};
 	};
 
-#if MG_IOCORE_USE_IOCP
+#if MG_IOCORE_USE_IOCP || MG_IOCORE_USE_IOURING
 	using IOEventList = mg::box::ForwardList<IOEvent>;
 #endif
 
 	class IOArgs
 	{
 	public:
-#if MG_IOCORE_USE_IOCP
+#if MG_IOCORE_USE_IOCP || MG_IOCORE_USE_IOURING
 		IOEvent* myEvents;
 #elif MG_IOCORE_USE_EPOLL
 		int myEvents;
@@ -298,7 +394,7 @@ namespace aio {
 
 		void SaveEventWritable();
 		void SaveEventReadable();
-#else
+#elif MG_IOCORE_USE_IOCP
 		// IOCP with WSA functions gives a clear concept of an operation with the center
 		// in an WSAOVERLAPPED object. All the operations must be accounted to be able to
 		// tell when all of them are finished when want to close and free the task safely.
@@ -312,7 +408,16 @@ namespace aio {
 		//
 		// This is done automatically when task's IO methods are used.
 		void OperationAbort();
-
+#elif MG_IOCORE_USE_IOURING
+		// In io_uring each sqe gets an cqe as a result. All the submitted sqes must be
+		// accounted to be able to tell if all of them are finished when want to close and
+		// free the task safely. Doing so without waiting for all the events to complete
+		// would result into getting them anyway after the task is already deleted.
+		//
+		// This is done automatically when task's IO methods are used.
+		void OperationStart();
+#else
+		#error "Unknown backend"
 #endif
 		// Check if the task is in the current thread, and this thread is an IO worker.
 		// When it is in a worker, IO functions can be called right away. This helps to
@@ -327,7 +432,9 @@ namespace aio {
 		//
 		// IO functions for the task's socket.
 		//
-		// Behaviour on Unix-like and Windows is of course different. But with this API it
+		// Behaviour on various OS backends is of course different. Some finish the
+		// operation always right away (direct send/recv with epoll or kqueue scheduler),
+		// some always async (io_uring), some would do both (IOCP). But with this API it
 		// is possible to handle it regardless. Only need to account all possible
 		// outcomes.
 		//
@@ -440,7 +547,7 @@ namespace aio {
 		// Currently blocked write-event. Unlocked by EPOLLOUT.
 		IOEvent* myOutEvent;
 #elif MG_IOCORE_USE_KQUEUE
-		// Epoll events to dispatch in a worker thread. Events are flushed here when the
+		// Kqueue events to dispatch in a worker thread. Events are flushed here when the
 		// task appears in the core via the front queue. And then cleared by a worker
 		// thread. While the events are being handled, the worker may decide to put some
 		// events back if they were not consumed. These saved events will be returned
@@ -449,14 +556,14 @@ namespace aio {
 		IOKqueueEvents myReadyEvents;
 		// Epoll events to flush to the task when it will appear in the core again. The
 		// field is updated *only* by the core, and therefore can be non-atomic. Events
-		// are added here by the core from epoll_wait() results while the task can be
+		// are added here by the core from kevent() results while the task can be
 		// anywhere, even in a worker thread.
 		IOKqueueEvents myPendingEvents;
-		// Currently blocked read-event. Unlocked by EPOLLIN.
+		// Currently blocked read-event. Unlocked by EVFILT_READ.
 		IOEvent* myInEvent;
-		// Currently blocked write-event. Unlocked by EPOLLOUT.
+		// Currently blocked write-event. Unlocked by EVFILT_WRITE.
 		IOEvent* myOutEvent;
-#else
+#elif MG_IOCORE_USE_IOCP
 		// Meaning of the events is exactly the same as for epoll but the events are
 		// objects instead of flags.
 		IOEventList myReadyEvents;
@@ -473,6 +580,25 @@ namespace aio {
 		// Null for non-server sockets. Otherwise stores some platform-specific extra data
 		// needed for the server-socket to work.
 		IOServerSocket* myServerSock;
+#elif MG_IOCORE_USE_IOURING
+		// io_uring operates in 2 cyclic buffers - one of them is for submission. It is
+		// only thread-safe for single-producer-single-consumer usage. The tasks can't
+		// submit the operations right away. Instead, they put them into this to-submit
+		// queue which is later flushed by the scheduler into io_uring.
+		IOEventList myToSubmitEvents;
+		// Same as IOCP.
+		IOEventList myReadyEvents;
+		int myReadyEventCount;
+		IOEventList myPendingEvents;
+		int myPendingEventCount;
+		int myOperationCount;
+		// A special event for io_uring. Unlike IOCP, a socket close won't cancel all the
+		// running operations. They just hang. Unless cancelled explicitly and manually.
+		// This event is pre-allocated for cancelling all in-progress operations on a
+		// closing socket.
+		IOEvent myCancelEvent;
+#else
+	#error "Uknown aio backend"
 #endif
 		IOSubscription::Ptr mySub;
 		mg::net::Socket mySocket;

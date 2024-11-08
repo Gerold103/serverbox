@@ -7,8 +7,13 @@
 #include "mg/box/MultiProducerQueueIntrusive.h"
 #include "mg/box/Signal.h"
 
+#if MG_IOCORE_USE_IOURING
+#include <liburing.h>
+#endif
+
 #define MG_IOCORE_DEFAULT_THREAD_COUNT UINT32_MAX
 #define MG_IOCORE_IOCP_BATCH 256
+#define MG_IOCORE_IOURING_BATCH 1024
 #define MG_IOCORE_EPOLL_BATCH 1024
 #define MG_IOCORE_KQUEUE_BATCH 1024
 #define MG_IOCORE_READY_BATCH 4096
@@ -107,7 +112,7 @@ namespace aio {
 
 		void PrivKernelRegister(
 			IOTask* aTask);
-#if !MG_IOCORE_USE_IOCP
+#if !MG_IOCORE_USE_IOCP && !MG_IOCORE_USE_IOURING
 		void PrivKernelUnregister(
 			IOTask* aTask);
 #endif
@@ -135,6 +140,27 @@ namespace aio {
 		int myEventFd;
 #elif MG_IOCORE_USE_KQUEUE
 		int myNativeCore;
+#elif MG_IOCORE_USE_IOURING
+		io_uring myRing;
+		// The ring doesn't say anything about whether its descriptor would raise an
+		// input-event (POLLIN) when the ring has any completed events. Which makes it
+		// impossible to "wait for events for a timeout" without consuming any of those
+		// events. As a workaround, io_uring allows to attach an eventfd to it which is
+		// signaled every time when the completion queue becomes non-empty. Can wait on
+		// that eventfd then.
+		int myRingEventFd;
+		// Separate eventfd for waking io_uring up. Using one eventfd for both leads to a
+		// loop - signal the fd, it triggers a completion event in the ring, which signals
+		// the same fd again, so the next submitted request to read the eventfd would
+		// complete right away. And that triggers the signal again, and so on. Need 2
+		// eventfds to break the loop.
+		int mySignalEventFd;
+		// The signal event waiting goes the regular route of all submission requests in
+		// form of io-events. This one is pre-allocated.
+		IOEvent mySignalEvent;
+		// A queue of all submission requests from all tasks which are coming to the front
+		// queue. They are being flushed into the ring in batches.
+		IOEventList myToSubmitEvents;
 #endif
 		IOCoreFrontQueue myFrontQueue;
 		IOCorePendingQueue myPendingQueue;

@@ -90,6 +90,6 @@ To be added. For now refer to tests, `bench/BenchIOTCPClient.cpp`, `bench/BenchI
 
 `IOCore` is the same as `TaskScheduler`, go have a look at it if you didn't yet. Further it is assumed that you know `TaskScheduler` internals.
 
-The difference in `IOCore` is that internally it has one another queue next to the waiting queue - the kernel event queue. On Linux that would be `epoll`, on Windows - `IOCP` (IO Completion Ports), on Mac/BSD - `kqueue`. All sockets are stored in that kernel-queue. When the kernel reports an event, such as if the socket became writable or readable, `IOCore` saves that event inside `IOTask` and wakes the task up.
+The difference in `IOCore` is that internally it has one another queue next to the waiting queue - the kernel event queue. On Linux that would be `epoll` or `io_uring`, on Windows - `IOCP` (IO Completion Ports), on Mac/BSD - `kqueue`. All sockets are stored in that kernel-queue. When the kernel reports an event, such as if the socket became writable or readable, `IOCore` saves that event inside `IOTask` and wakes the task up.
 
 Another difference is that `IOTask`s don't need to be re-posted after each wakeup. They belong to the `IOCore` instance which they were posted into, and stay in there until closure. The reason is that the sockets stay inside `IOCore`'s kernel-queue and that forces to keep the tasks attached to `IOCore` too.
