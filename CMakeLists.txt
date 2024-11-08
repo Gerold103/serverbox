@@ -35,6 +35,12 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	)
 endif()
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(-- " Kernel version: " ${UNAME_RESULT})
+	string(REGEX MATCH "[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${UNAME_RESULT})
+endif ()
+
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(bench)

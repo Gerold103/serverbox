@@ -32,6 +32,11 @@ namespace aio {
 		, myEventFd(-1)
 #elif MG_IOCORE_USE_KQUEUE
 		: myNativeCore(-1)
+#elif MG_IOCORE_USE_IOURING
+		: myRingEventFd(-1)
+		, mySignalEventFd(-1)
+#else
+		#error "Unknown backend"
 #endif
 		, myReadyQueue(MG_IOCORE_READY_BATCH)
 		, myExecBatchSize(MG_IOCORE_READY_BATCH)
@@ -40,6 +45,10 @@ namespace aio {
 		, myDescriptorCount(0)
 		, myState(IOCORE_STATE_STOPPED)
 	{
+#if MG_IOCORE_USE_IOURING
+		memset(&myRing, 0, sizeof(myRing));
+		myRing.ring_fd = -1;
+#endif
 		PrivPlatformCreate();
 	}
 
@@ -47,6 +56,9 @@ namespace aio {
 	{
 		MG_BOX_ASSERT(WaitEmpty() == 0);
 		Stop();
+#if MG_IOCORE_USE_IOURING
+		MG_BOX_ASSERT(myToSubmitEvents.IsEmpty());
+#endif
 		MG_BOX_ASSERT(myDescriptorCount.LoadRelaxed() == 0);
 		MG_BOX_ASSERT(myPendingQueue.IsEmpty());
 		MG_BOX_ASSERT(myFrontQueue.IsEmpty());
@@ -178,9 +190,10 @@ namespace aio {
 			// scheduler can. So if the task is not supposed to end now (also decided by
 			// the scheduler), the worker shall return it to the scheduler.
 			// This is done because even while the task is in a worker thread, it still
-			// can get new events from the scheduler from iocp/epoll. Necessity to check
-			// both the events and the status here would complicate the task processing
-			// too much, and would make the worker do a part of the scheduler's job.
+			// can get new events from the scheduler from iocp/epoll/kqueue/io_uring.
+			// Necessity to check both the events and the status here would complicate the
+			// task processing too much, and would make the worker do a part of the
+			// scheduler's job.
 			PrivPost(aTask);
 		}
 		else
