@@ -67,10 +67,10 @@ namespace aio {
 		mg::box::MutexLock lock(myMutex);
 		if (myState.LoadRelaxed() != IOCORE_STATE_STOPPED)
 			return;
+		myState.StoreRelaxed(IOCORE_STATE_RUNNING);
 		mySchedBatchSize = myExecBatchSize * aThreadCount;
 		for (uint32_t i = 0; i < aThreadCount; ++i)
 			myWorkers.push_back(new IOCoreWorker(*this));
-		myState.StoreRelaxed(IOCORE_STATE_RUNNING);
 	}
 
 	uint32_t
