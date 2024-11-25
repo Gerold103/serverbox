@@ -16,6 +16,11 @@ namespace box {
 		TEST_CHECK(mg::box::Max(0, 0) == 0);
 		TEST_CHECK(mg::box::Max(1, 0) == 1);
 		TEST_CHECK(mg::box::Max(0, 1) == 1);
+
+		int a = 0;
+		constexpr int b = 0;
+		TEST_CHECK(mg::box::Min(a, b) == 0);
+		TEST_CHECK(mg::box::Max(a, b) == 0);
 	}
 
 	void

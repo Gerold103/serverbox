@@ -9,15 +9,15 @@ namespace box {
 	// without hacks. Easier to just define them again with different naming.
 
 	template <typename T>
-	T Max(T&& A, T&& B)
+	const T& Max(const T& A, const T& B)
 	{
-		return A > B ? std::forward<T>(A) : std::forward<T>(B);
+		return A > B ? A : B;
 	}
 
 	template <typename T>
-	T Min(T&& A, T&& B)
+	const T& Min(const T& A, const T& B)
 	{
-		return A < B ? std::forward<T>(A) : std::forward<T>(B);
+		return A < B ? A : B;
 	}
 
 }
