@@ -108,6 +108,8 @@ namespace box {
 	{
 		if (aHead != nullptr)
 			myNext = aHead->*myLink;
+		else
+			myNext = nullptr;
 	}
 
 	template<typename T, T* T::*myLink>
