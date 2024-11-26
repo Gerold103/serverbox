@@ -137,6 +137,7 @@ private:
 It is possible to choose certain things at the CMake configuration stage. Each option can be given to CMake using `-D<name>=<value>` syntax. For example, `-DMG_AIO_USE_IOURING=1`.
 
 * `MG_AIO_USE_IOURING` - 1 = enable `io_uring` on Linux, 0 = use `epoll`. Default is 0.
+* `MG_BOOST_USE_IOURING` - 1 = enable `io_uring` on Linux for `boost` in the benchmarks, 0 = use `epoll`. Default is 0.
 
 #### Visual Studio
 * Open VisualStudio;
