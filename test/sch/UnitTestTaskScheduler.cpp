@@ -606,7 +606,8 @@ namespace sch {
 			t.SetWait();
 			co_await t.AsyncYield();
 
-			s.Send();
+			co_await t.AsyncExitSendSignal(s);
+			TEST_CHECK(!"Unreachable");
 			co_return;
 		}(t, s));
 		sched.Post(&t);
@@ -632,7 +633,8 @@ namespace sch {
 			t.SetWait();
 			TEST_CHECK(co_await t.AsyncReceiveSignal());
 
-			s.Send();
+			co_await t.AsyncExitSendSignal(s);
+			TEST_CHECK(!"Unreachable");
 			co_return;
 		}(t, s));
 		sched.Post(&t);
@@ -649,8 +651,13 @@ namespace sch {
 		TestCaseGuard guard("Coroutine AsyncReceiveSignal()");
 		mg::sch::TaskScheduler sched("tst", 2, 100);
 		mg::box::Signal s;
+		mg::box::AtomicBool isGuardDone(false);
 		mg::sch::Task t;
-		t.SetCallback([](mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
+		t.SetCallback([](
+			mg::sch::Task& t,
+			mg::box::Signal& s,
+			mg::box::AtomicBool& isGuardDone) -> mg::box::Coro {
+
 			for (int i = 0; i < 2; ++i)
 			{
 				s.Send();
@@ -658,9 +665,11 @@ namespace sch {
 					t.SetWait();
 				} while (!co_await t.AsyncReceiveSignal());
 			}
-			TestScopeGuard guard([&]() { s.Send(); });
+			TestScopeGuard guard([&]() { isGuardDone.StoreRelaxed(true); });
+			co_await t.AsyncExitSendSignal(s);
+			TEST_CHECK(!"Unreachable");
 			co_return;
-		}(t, s));
+		}(t, s, isGuardDone));
 		sched.Post(&t);
 		for (int i = 0; i < 2; ++i)
 		{
@@ -671,6 +680,7 @@ namespace sch {
 			t.PostSignal();
 		}
 		s.ReceiveBlocking();
+		TEST_CHECK(isGuardDone.LoadRelaxed());
 		//
 		// The signal already available.
 		//
@@ -678,7 +688,8 @@ namespace sch {
 		t.SetCallback([](mg::sch::Task& t, mg::box::Signal& s) -> mg::box::Coro {
 			t.SetWait();
 			TEST_CHECK(co_await t.AsyncReceiveSignal());
-			s.Send();
+			co_await t.AsyncExitSendSignal(s);
+			TEST_CHECK(!"Unreachable");
 			co_return;
 		}(t, s));
 		sched.Post(&t);
@@ -690,16 +701,22 @@ namespace sch {
 		t.SetCallback([](mg::sch::Task& t, mg::sch::Task& t2) -> mg::box::Coro {
 			t.SetWait();
 			TEST_CHECK(co_await t.AsyncReceiveSignal());
-			t2.PostSignal();
+			co_await t.AsyncExitExec([&t2](mg::sch::Task*) { t2.PostSignal(); });
+			TEST_CHECK(!"Unreachable");
 			co_return;
 		}(t, t2));
 		sched.Post(&t);
 
-		t2.SetCallback([](mg::sch::Task& t, mg::sch::Task& t2, mg::box::Signal& s) -> mg::box::Coro {
+		t2.SetCallback([](
+			mg::sch::Task& t,
+			mg::sch::Task& t2,
+			mg::box::Signal& s) -> mg::box::Coro {
+
 			t.PostSignal();
 			t2.SetWait();
 			TEST_CHECK(co_await t2.AsyncReceiveSignal());
-			s.Send();
+			co_await t2.AsyncExitSendSignal(s);
+			TEST_CHECK(!"Unreachable");
 			co_return;
 		}(t, t2, s));
 		sched.Post(&t2);
@@ -842,7 +859,8 @@ namespace sch {
 			s.Send();
 			t.SetWait();
 			co_await t.AsyncYield();
-			s.Send();
+			co_await t.AsyncExitSendSignal(s);
+			TEST_CHECK(!"Unreachable");
 			co_return;
 		}(t, s));
 
@@ -984,7 +1002,8 @@ namespace sch {
 					} while (!co_await aCtx.myTask.AsyncReceiveSignal());
 					aNextCtx.myTask.PostSignal();
 				}
-				aCtx.mySignal.Send();
+				co_await aCtx.myTask.AsyncExitSendSignal(aCtx.mySignal);
+				TEST_CHECK(!"Unreachable");
 			}(ctx, nextCtx, signalCount));
 
 			sched.Post(&ctx.myTask);
