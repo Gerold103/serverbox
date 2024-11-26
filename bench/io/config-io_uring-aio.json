@@ -1,0 +1,45 @@
+{
+	"os": "Operating system name and version",
+	"cpu": "Processor details",
+	"comment-server": "Server: -thread_count 3 -mode server",
+	"versions": {
+		"epoll": {
+			"name": "epoll scheduler",
+			"short_name": "epoll",
+			"exe": "bench_io_epoll",
+			"cmd": "-backend mg_aio -report summary -mode client"
+		},
+		"io_uring": {
+			"name": "io_uring scheduler",
+			"short_name": "io_uring",
+			"exe": "bench_io_uring",
+			"cmd": "-backend mg_aio -report summary -mode client"
+		}
+	},
+	"main_version": "epoll",
+	"metric_key": "Message/sec(med)",
+	"metric_name": "messages per second",
+	"precision": 0.01,
+	"scenarios": [
+		{
+			"name": "Basic",
+			"cmd": "-thread_count 3 -connect_count_per_port 100 -message_payload_size 128 -message_int_count 5 -message_target_count 3500000",
+			"count": 3
+		},
+		{
+			"name": "Single thread",
+			"cmd": "-thread_count 1 -connect_count_per_port 100 -message_payload_size 128 -message_int_count 5 -message_target_count 3000000",
+			"count": 3
+		},
+		{
+			"name": "3 threads 100kb messages",
+			"cmd": "-thread_count 3 -connect_count_per_port 200 -message_payload_size 102400 -message_target_count 200000",
+			"count": 3
+		},
+		{
+			"name": "Parallel messages",
+			"cmd": "-thread_count 3 -connect_count_per_port 100 -message_payload_size 128 -message_parallel_count 5 -message_target_count 20000000",
+			"count": 3
+		}
+	]
+}

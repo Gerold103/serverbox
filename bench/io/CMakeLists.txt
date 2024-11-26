@@ -16,6 +16,12 @@ if(${Boost_FOUND})
 		BenchIOTCPClientBoost.cpp
 	)
 	set(bench_io_include_dirs ${Boost_INCLUDE_DIRS})
+	if (MG_BOOST_USE_IOURING)
+		set(BOOST_MACRO ${BOOST_MACRO}
+			BOOST_ASIO_HAS_IO_URING=1
+			BOOST_ASIO_DISABLE_EPOLL=1
+		)
+	endif()
 else()
 	set(BOOST_MACRO MG_BENCH_IO_HAS_BOOST=0)
 	set(bench_io_include_dirs)
