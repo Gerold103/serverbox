@@ -4,6 +4,10 @@
 #include "mg/box/Time.h"
 #include "mg/sch/TaskScheduler.h"
 
+#if MG_CORO_IS_ENABLED
+#include "mg/box/Signal.h"
+#endif
+
 namespace mg {
 namespace sch {
 
@@ -43,7 +47,14 @@ namespace sch {
 		mg::box::CoroHandle) noexcept
 	{
 		myTask->PrivTouch();
-		delete myTask;
+		// This hack is needed because ASAN seems to spot here a false-positive
+		// use-after-free. When deleting the task as a member, ASAN claims a use after
+		// free after the Task is already destroyed. Looking like if ASAN-generated code
+		// tried to access this operation object (which was already deleted together with
+		// the task's callback). Without ASAN in Release build this generates practically
+		// identical assembly regardless of how to delete the task.
+		Task* t = myTask;
+		delete t;
 		return true;
 	}
 
@@ -60,6 +71,21 @@ namespace sch {
 		t->PrivTouch();
 		t->SetCallback(std::move(cb));
 		t->myCallback(t);
+		return true;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	bool
+	TaskCoroOpExitSendSignal::await_suspend(
+		mg::box::CoroHandle) noexcept
+	{
+		mg::box::Signal& s = mySignal;
+		// Make sure this coroutine is destroyed (being captured in the task's callback)
+		// before the signal is sent. So no destructors or anything else gets executed
+		// after the signal.
+		myTask->myCallback = {};
+		s.Send();
 		return true;
 	}
 

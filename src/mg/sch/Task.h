@@ -6,6 +6,8 @@
 
 #include <functional>
 
+F_DECLARE_CLASS(mg, box, Signal)
+
 namespace mg {
 namespace sch {
 
@@ -102,6 +104,23 @@ namespace sch {
 	private:
 		Task* const myTask;
 		TaskCallback myNewCallback;
+	};
+
+	struct TaskCoroOpExitSendSignal
+		: public mg::box::CoroOp
+		, public mg::box::CoroOpIsNotReady
+		, public mg::box::CoroOpIsEmptyReturn
+	{
+		TaskCoroOpExitSendSignal(
+			Task* aTask,
+			mg::box::Signal& aSignal)
+			: myTask(aTask), mySignal(aSignal) {}
+		bool await_suspend(
+			mg::box::CoroHandle aThisCoro) noexcept;
+
+	private:
+		Task* const myTask;
+		mg::box::Signal& mySignal;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -349,6 +368,52 @@ namespace sch {
 		//
 		TaskCoroOpExitExec AsyncExitExec(
 			TaskCallback&& aCallback);
+
+		// Exit the coroutine and send the given signal object. It is useful when don't
+		// want to delete the task, but want to notify some other thread waiting on the
+		// task to be finished to destroy it.
+		//
+		// Just doing the following code is unsafe:
+		//
+		//     Coro
+		//     TaskBody(Task* aTask)
+		//     {
+		//         // Do work ...
+		//         // ...
+		//         aSignal.Send();                          // (1)
+		//         co_return;                               // (2)
+		//     }
+		//
+		//     // Some other thread.
+		//     aSignal.Recv();                              // (3)
+		//     delete task;                                 // (4)
+		//
+		// Because the sequence of execution might be the following: (1), (3), (4), (2).
+		// At (2) is going to happen a use-after-free, because the coroutine object is
+		// already deleted in (4).
+		//
+		// The code can be transformed like this:
+		//
+		//     Coro
+		//     TaskBody(Task* aTask)
+		//     {
+		//         // Do work ...
+		//         // ...
+		//         co_await aTask->AsyncExitSendSignal(aSignal);
+		//
+		//         // Code below is unreachable.
+		//         assert(false);
+		//     }
+		//
+		//     // Some other thread.
+		//     aSignal.Recv();
+		//     delete task;
+		//
+		// Technically, the same can be done using AsyncExitExec(), but it would be more
+		// code to write.
+		//
+		TaskCoroOpExitSendSignal AsyncExitSendSignal(
+			mg::box::Signal& aSignal);
 #endif
 
 		//////////////////////////////////////////////////////////////////////////////////
@@ -474,6 +539,7 @@ namespace sch {
 		friend class TaskScheduler;
 		friend struct TaskCoroOpExitDelete;
 		friend struct TaskCoroOpExitExec;
+		friend struct TaskCoroOpExitSendSignal;
 		friend struct TaskCoroOpReceiveSignal;
 		friend struct TaskCoroOpYield;
 	};
@@ -535,6 +601,13 @@ namespace sch {
 		TaskCallback&& aCallback)
 	{
 		return TaskCoroOpExitExec(this, std::move(aCallback));
+	}
+
+	inline TaskCoroOpExitSendSignal
+	Task::AsyncExitSendSignal(
+		mg::box::Signal& aSignal)
+	{
+		return TaskCoroOpExitSendSignal(this, aSignal);
 	}
 #endif
 
