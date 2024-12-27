@@ -142,7 +142,7 @@ namespace bsttcpcli {
 		PrivConnect()
 		{
 			boost::asio::ip::tcp::endpoint endpoint(
-				boost::asio::ip::address::from_string(myHost.ToStringNoPort()),
+				boost::asio::ip::make_address(myHost.ToStringNoPort()),
 				myHost.GetPort());
 			mySocket.async_connect(endpoint,
 				boost::asio::bind_executor(myStrand, std::bind(&Client::OnConnect,
