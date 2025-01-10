@@ -1,6 +1,11 @@
 cmake_minimum_required (VERSION 3.8)
 
-project("ServerBox")
+project("Examples")
+
+if (NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Release)
+endif()
+message(STATUS "Build type ${CMAKE_BUILD_TYPE}")
 
 if (NOT DEFINED CMAKE_CXX_STANDARD)
 	message(STATUS "Using C++20 standard as default")
@@ -34,16 +39,32 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	)
 endif()
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(-- " Kernel version: " ${UNAME_RESULT})
-	string(REGEX MATCH "[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${UNAME_RESULT})
-endif ()
+set(MG_SERVERBOX_BUILD_DIR ${CMAKE_BINARY_DIR}/build_serverbox)
+set(MG_SERVERBOX_DIR ${MG_SERVERBOX_BUILD_DIR}/installed)
 
-add_subdirectory(src)
-if (NOT MG_SKIP_TEST)
-	add_subdirectory(test)
-endif()
-if (NOT MG_SKIP_BENCHES)
-	add_subdirectory(bench)
-endif()
+add_custom_target(install_serverbox
+	COMMAND ${CMAKE_COMMAND}
+		-S ${CMAKE_SOURCE_DIR}/..
+		-B ${MG_SERVERBOX_BUILD_DIR}
+		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+		-DMG_SKIP_BENCHES=1
+		-DMG_SKIP_TEST=1
+		-DCMAKE_INSTALL_PREFIX=${MG_SERVERBOX_DIR}
+
+	COMMAND ${CMAKE_COMMAND}
+		--build ${MG_SERVERBOX_BUILD_DIR} --config ${CMAKE_BUILD_TYPE} -j
+
+	COMMAND ${CMAKE_COMMAND}
+		--install ${MG_SERVERBOX_BUILD_DIR} --config ${CMAKE_BUILD_TYPE}
+
+	COMMENT "Installing serverbox"
+)
+
+add_subdirectory(iocore_01_tcp_hello)
+add_subdirectory(iocore_02_ssl_hello)
+add_subdirectory(iocore_03_pipeline)
+add_subdirectory(iocore_04_tcp_periodic)
+add_subdirectory(scheduler_01_simple_task)
+add_subdirectory(scheduler_02_coroutine_task)
+add_subdirectory(scheduler_03_multistep_task)
+add_subdirectory(scheduler_04_interacting_tasks)
