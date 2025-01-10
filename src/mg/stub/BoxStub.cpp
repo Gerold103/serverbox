@@ -2,6 +2,7 @@
 #include "mg/box/Log.h"
 
 #include <cstdio>
+#include <mutex>
 
 //
 // The file implements missing functions from mg::box in some trivial way to get the tests
@@ -42,6 +43,8 @@ namespace box {
 		const char* aFormat,
 		va_list aParams)
 	{
+		static std::mutex mutex;
+		std::unique_lock lock(mutex);
 		printf("%s (%s): ", LogLevelToStringWithPadding(aLevel), aTag);
 		vprintf(aFormat, aParams);
 		printf("\n");
