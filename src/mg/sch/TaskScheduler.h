@@ -49,6 +49,17 @@ namespace sch {
 
 	class TaskSchedulerThread;
 
+	enum TaskScheduleResult
+	{
+		// Scheduling isn't done, another thread is doing it right now.
+		TASK_SCHEDULE_BUSY,
+		// Scheduling is done successfully.
+		TASK_SCHEDULE_DONE,
+		// Done successfully and was the last one. The scheduler is being stopped right
+		// now.
+		TASK_SCHEDULE_FINISHED,
+	};
+
 	// Scheduler for asynchronous execution of tasks. Can be used
 	// for tons of one-shot short-living tasks, as well as for
 	// long-living periodic tasks with deadlines.
@@ -109,7 +120,7 @@ namespace sch {
 		void PrivPost(
 			Task* aTask);
 
-		bool PrivSchedule();
+		TaskScheduleResult PrivSchedule();
 
 		bool PrivExecute(
 			Task* aTask);

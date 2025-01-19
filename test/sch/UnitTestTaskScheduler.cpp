@@ -109,6 +109,28 @@ namespace sch {
 	}
 
 	static void
+	UnitTestTaskSchedulerDestroyWithFront()
+	{
+		TestCaseGuard guard("Destroy with front");
+
+		mg::box::AtomicU32 doneCount(0);
+		mg::sch::Task task2([&](mg::sch::Task*) {
+			doneCount.IncrementRelaxed();
+		});
+		mg::sch::Task task1([&](mg::sch::Task*) {
+			// Task posts another one. To cover the case how does the scheduler behave,
+			// when a new task was submitted after shutdown is started.
+			mg::sch::TaskScheduler::This().Post(&task2);
+			doneCount.IncrementRelaxed();
+		});
+		{
+			mg::sch::TaskScheduler sched("tst", 1, 5);
+			sched.Post(&task1);
+		}
+		TEST_CHECK(doneCount.LoadRelaxed() == 2);
+	}
+
+	static void
 	UnitTestTaskSchedulerOrder()
 	{
 		TestCaseGuard guard("Order");
@@ -1507,6 +1529,7 @@ namespace sch {
 		TestSuiteGuard suite("TaskScheduler");
 
 		UnitTestTaskSchedulerBasic();
+		UnitTestTaskSchedulerDestroyWithFront();
 		UnitTestTaskSchedulerOrder();
 		UnitTestTaskSchedulerDomino();
 		UnitTestTaskSchedulerWakeup();

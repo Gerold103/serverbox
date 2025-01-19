@@ -68,11 +68,11 @@ namespace sch {
 			mySignalFront.Send();
 	}
 
-	bool
+	TaskScheduleResult
 	TaskScheduler::PrivSchedule()
 	{
 		if (myIsSchedulerWorking.ExchangeAcqRel(true))
-			return false;
+			return TASK_SCHEDULE_BUSY;
 
 		// Task status operations can all be relaxed inside the
 		// scheduler. Syncing writes and reads between producers and
@@ -87,11 +87,9 @@ namespace sch {
 		uint64_t timestamp = mg::box::GetMilliseconds();
 		uint32_t batch;
 		uint32_t maxBatch = mySchedBatchSize;
+		TaskScheduleResult result = TASK_SCHEDULE_DONE;
 
 	retry:
-		if (PrivIsStopped())
-			goto end;
-
 		// -------------------------------------------------------
 		// Handle waiting tasks. They are older than the ones in
 		// the front queue, so must be handled first.
@@ -215,11 +213,7 @@ namespace sch {
 			// sleeping any moment. So the sched can't quit. It
 			// must retry until either a front task appears, or
 			// one of the waiting tasks' deadline is expired.
-			if (myQueueWaiting.Count() == 0)
-			{
-				mySignalFront.ReceiveBlocking();
-			}
-			else
+			if (myQueueWaiting.Count() > 0)
 			{
 				deadline = myQueueWaiting.GetTop()->myDeadline;
 				timestamp = mg::box::GetMilliseconds();
@@ -228,6 +222,18 @@ namespace sch {
 					mySignalFront.ReceiveTimed(
 						mg::box::TimeDuration(deadline - timestamp));
 				}
+			}
+			else if (!PrivIsStopped())
+			{
+				mySignalFront.ReceiveBlocking();
+			}
+			else
+			{
+				// **Only** report scheduling is fully finished when there is actually
+				// nothing to do. That is, no tasks anywhere at all. Not in the front
+				// queue, not in the waiting queue, not in the ready queue.
+				result = TASK_SCHEDULE_FINISHED;
+				goto end;
 			}
 			goto retry;
 		}
@@ -263,7 +269,7 @@ namespace sch {
 		// and other workers will sleep on waiting for ready
 		// tasks.
 		PrivSignalReady();
-		return true;
+		return result;
 	}
 
 	bool
@@ -319,11 +325,13 @@ namespace sch {
 		TaskScheduler::ourCurrent = myScheduler;
 		uint64_t maxBatch = myScheduler->myExecBatchSize;
 		uint64_t batch;
-		while (!myScheduler->PrivIsStopped())
+		TaskScheduleResult result = TASK_SCHEDULE_DONE;
+		while (result != TASK_SCHEDULE_FINISHED)
 		{
 			do
 			{
-				if (myScheduler->PrivSchedule())
+				result = myScheduler->PrivSchedule();
+				if (result != TASK_SCHEDULE_BUSY)
 					myScheduleCount.IncrementRelaxed();
 				batch = 0;
 				while (myScheduler->PrivExecute(myConsumer.Pop()) && ++batch < maxBatch);
