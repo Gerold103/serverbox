@@ -19,4 +19,4 @@ set(install_headers
 )
 
 install(TARGETS mgsch DESTINATION "${install_lib_root}")
-install(FILES ${install_headers} DESTINATION "${install_include_root}/mg/sched/")
+install(FILES ${install_headers} DESTINATION "${install_include_root}/mg/sch/")

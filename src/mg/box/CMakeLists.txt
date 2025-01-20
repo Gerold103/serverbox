@@ -59,8 +59,10 @@ set(install_headers
 	RefCount.h
 	SharedPtr.h
 	Signal.h
+	StringFunctions.h
 	Thread.h
 	ThreadLocalPool.h
+	Time.h
 	TypeTraits.h
 )
 
