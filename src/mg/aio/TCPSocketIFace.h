@@ -119,6 +119,7 @@ namespace aio {
 		bool IsClosed() const;
 		bool IsConnected() const;
 		bool IsInWorkerNow() const;
+		IOCore& GetCore();
 
 		//
 		// Not thread-safe functions. Can only be called from an IO worker thread. From
@@ -242,6 +243,12 @@ namespace aio {
 		TCPSocketCtl* myFrontCtl;
 		TCPSocketCtl* myCtl;
 	};
+
+	inline IOCore&
+	TCPSocketIFace::GetCore()
+	{
+		return myTask.GetCore();
+	}
 
 	inline void
 	TCPSocketIFace::SetDeadline(

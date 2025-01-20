@@ -370,6 +370,7 @@ namespace aio {
 		bool IsExpired() const;
 		mg::net::Socket GetSocket() const;
 		bool HasSocket() const;
+		IOCore& GetCore();
 
 		// Deadline is reset on each wakeup. Setting a new deadline works only if it is
 		// lower than the previous deadline installed during the same task execution. That
@@ -817,6 +818,12 @@ namespace aio {
 	IOTask::HasSocket() const
 	{
 		return GetSocket() != mg::net::theInvalidSocket;
+	}
+
+	inline IOCore&
+	IOTask::GetCore()
+	{
+		return myCore;
 	}
 
 	inline void
