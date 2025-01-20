@@ -51,6 +51,11 @@ set(install_headers
 	Buffer.h
 	DomainToIP.h
 	Host.h
+	Socket.h
+	SSL.h
+	SSLContext.h
+	SSLContextOpenSSL.h
+	SSLOpenSSL.h
 	URL.h
 )
 
