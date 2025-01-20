@@ -48,6 +48,7 @@ namespace aio {
 
 		void PostClose();
 		bool IsClosed() const;
+		IOCore& GetCore();
 
 	private:
 		TCPServer(IOCore& aCore);
@@ -63,6 +64,12 @@ namespace aio {
 		TCPServerSubscription* mySub;
 		IOServerSocket* myBoundSocket;
 	};
+
+	inline IOCore&
+	TCPServer::GetCore()
+	{
+		return myTask.GetCore();
+	}
 
 }
 }

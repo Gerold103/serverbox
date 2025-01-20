@@ -333,6 +333,7 @@ namespace tcpsocketiface {
 		TestMessage* Pop();
 
 		uint64_t GetWakeupCount();
+		mg::aio::IOCore& GetCore();
 
 		mg::box::ErrorCode GetError();
 		mg::box::ErrorCode GetErrorConnect();
@@ -455,6 +456,7 @@ namespace tcpsocketiface {
 			// Basic test to see if works at all.
 			TestClientSocket client;
 			client.PostConnectBlocking(aPort);
+			TEST_CHECK(&client.GetCore() == &theContext->myCore);
 			client.SetAutoRecv();
 			client.Send(new TestMessage());
 			delete client.PopBlocking();
@@ -2530,6 +2532,12 @@ namespace tcpsocketiface {
 	{
 		mg::box::MutexLock lock(myStateMutex);
 		return myWakeupCount;
+	}
+
+	mg::aio::IOCore&
+	TestClientSocket::GetCore()
+	{
+		return mySocket->GetCore();
 	}
 
 	mg::box::ErrorCode

@@ -51,6 +51,7 @@ namespace tcpserver {
 		TEST_CHECK(!server->IsClosed());
 		TEST_CHECK(server->Bind(host, err));
 		TEST_CHECK(!server->IsClosed());
+		TEST_CHECK(&server->GetCore() == &core);
 		server->PostClose();
 
 		// Any IPv4.
