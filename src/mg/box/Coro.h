@@ -32,15 +32,26 @@ namespace box {
 
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	// Base class for all awaitable operations. They are supposed to be created and
-	// destroyed right in the co_await expression. Hence not copyable nor assignable.
 	struct CoroOp
 	{
-		CoroOp() = default;
-		CoroOp(
-			const CoroOp&) = delete;
-		CoroOp& operator=(
-			const CoroOp&) = delete;
+		// Base class for all awaitable operations. A while ago it had copy and move
+		// constructors deleted. Indeed, they (ops) are supposed to be created and
+		// destroyed right in the co_await expression. Hence not copyable nor assignable.
+		//
+		// But this led to undefined behaviour on MacOS with clang compiler 15.0.7
+		// under certain weird random conditions. Debugging has revealed, that when
+		// another operation inherits this one, adds some members, and fills them in its
+		// constructor, those members are nullified by the time await_suspend is called.
+		// This went away, when the child operation got copy/move constructors defined.
+		//
+		// Apparently, the compiler was/is copying the operation after its creation into
+		// the coroutine's context. Completely ignoring if this is even allowed. Moreover,
+		// if this is banned, then stuff gets nullified and "copied" anyway.
+		//
+		// Unfortunately, the only reproducer was in GitHub Actions CI on their
+		// macos-latest image (14.7.2 23H311). Hence it was decided to simply drop those
+		// deleted constructors and allow "copying". Perhaps in the future this can be
+		// brought back.
 	};
 
 	struct CoroOpIsNotReady { static constexpr bool await_ready() noexcept { return false; } };
