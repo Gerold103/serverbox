@@ -7,9 +7,12 @@ on:
     branches: [ "master" ]
 
 jobs:
+##########################################################################################
+## Tests
+##########################################################################################
   test:
+    name: Tests
     runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: true
       matrix:
@@ -116,3 +119,102 @@ jobs:
       working-directory: ${{ steps.strings.outputs.test-dir }}
       run: ./${{ steps.strings.outputs.test-exe }}
       timeout-minutes: 30
+
+##########################################################################################
+## Examples
+##########################################################################################
+
+  examples:
+    name: Examples
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Release]
+        copiler_suite: [msvc, llvm, gnu]
+        exclude:
+          - os: windows-latest
+            copiler_suite: gnu
+          - os: windows-latest
+            copiler_suite: llvm
+
+          - os: ubuntu-latest
+            copiler_suite: msvc
+
+          - os: macos-latest
+            copiler_suite: msvc
+          - os: macos-latest
+            copiler_suite: gnu
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set strings
+      id: strings
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          echo "exe-subdir=${{ matrix.build_type }}/" >> "$GITHUB_OUTPUT"
+          echo "exe-suffix=.exe" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [ "${{ matrix.copiler_suite }}" == "msvc" ]; then
+          echo "compiler_c=cl" >> "$GITHUB_OUTPUT"
+          echo "compiler_cxx=cl" >> "$GITHUB_OUTPUT"
+        elif [ "${{ matrix.copiler_suite }}" == "llvm" ]; then
+          echo "compiler_c=clang" >> "$GITHUB_OUTPUT"
+          echo "compiler_cxx=clang++" >> "$GITHUB_OUTPUT"
+        else
+          echo "compiler_c=gcc" >> "$GITHUB_OUTPUT"
+          echo "compiler_cxx=g++" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Configure CMake
+      working-directory: ${{ github.workspace }}/examples
+      shell: bash
+      run: |
+        export CC="${{ steps.strings.outputs.compiler_c }}"
+        export CXX="${{ steps.strings.outputs.compiler_cxx }}"
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          export CC=$(brew --prefix llvm@15)/bin/$CC
+          export CXX=$(brew --prefix llvm@15)/bin/$CXX
+        fi
+        cmake -B "${{ github.workspace }}/examples/build" \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -S "${{ github.workspace }}/examples"
+
+    - name: Build
+      shell: bash
+      run: |
+        cmake --build "${{ github.workspace }}/examples/build" \
+          --config ${{ matrix.build_type }}
+
+    - name: Run
+      working-directory: ${{ github.workspace }}/examples/build
+      timeout-minutes: 5
+      shell: bash
+      run: |
+        invoke_exe() {
+          local arg="$1"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+              local exe_path="./$arg/${{ matrix.build_type }}/$arg.exe"
+          else
+              local exe_path="./$arg/$arg"
+          fi
+          if [ -x "$exe_path" ]; then
+              "$exe_path"
+          else
+              echo "Error: Executable not found or not executable at $exe_path"
+              return 1
+          fi
+        }
+        invoke_exe scheduler_01_simple_task
+        invoke_exe scheduler_02_coroutine_task
+        invoke_exe scheduler_03_multistep_task
+        invoke_exe scheduler_04_interacting_tasks
+        invoke_exe iocore_01_tcp_hello
+        invoke_exe iocore_02_ssl_hello
+        invoke_exe iocore_03_pipeline
+        invoke_exe iocore_04_tcp_periodic
