@@ -24,6 +24,7 @@ t->SetCallback([](Task *self) -> mg::box::Coro {
 	else
 		printf("No signal");
 	co_await self->AsyncExitDelete();
+	assert(!"unreachable");
 	co_return;
 }(t));
 sched.Post(t);
@@ -53,7 +54,7 @@ The performance depends on thread count and task durations. An example of how it
 - 2 worker threads;
 - A task body takes up to tens of nanoseconds, quite short. Worst case scenario for contention.
 
-That gives **more than 5 millions of tasks per second**. That isn't the top perf, just a regular example. For more info see `bench` folder with detailed reports and if want to run them yourself.
+That gives **more than 5 millions of tasks per second** on quite a weak CPU. That isn't the top perf, just a regular example. For more info see `bench` folder with detailed reports and if want to run them yourself.
 
 #### Correctness
 The algorithms used in the scheduler are validated in TLA+ specifications to ensure absence of deadlocks, unintentional reordering, task loss, and other logical mistakes.
@@ -102,8 +103,8 @@ private:
 		myTask.SetCallback(this, &MyCoroutine::PrivStep2);
 
 		// Post self again when complete.
-		myClient.Get(firstUrl, [&sched, aTask]() {
-			sched.Post(aTask);
+		myClient.Get(firstUrl, [aTask]() {
+			TaskScheduler::This().Post(aTask);
 		});
 	}
 
@@ -116,8 +117,8 @@ private:
 		myTask.SetCallback(this, &MyCoroutine::PrivStep3);
 
 		// Post self again when complete.
-		myClient.Head(secondUrl, [&sched, aTask]() {
-			sched.Post(aTask);
+		myClient.Head(secondUrl, [aTask]() {
+			TaskScheduler::This().Post(aTask);
 		});
 	}
 
