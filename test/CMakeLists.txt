@@ -1,5 +1,13 @@
 cmake_minimum_required (VERSION 3.8)
 
+option(MG_IS_CI "Whether is running in CI" 0)
+
+if (MG_IS_CI)
+	add_compile_definitions(MG_IS_CI=1)
+else()
+	add_compile_definitions(MG_IS_CI=0)
+endif()
+
 add_executable(test
 	main.cpp
 	UnitTest.cpp
