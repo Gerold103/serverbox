@@ -4,7 +4,7 @@
 
 **Serverbox** is a framework for networking in C++. The purpose is similar to `boost::asio`. The focus is on these key points:
 
-- **Simplicity** - the API is hard to misuse and is easy to understand.
+- **Simplicity** - the API and algorithm is hard to misuse and is easy to understand.
 - **Compactness** - the framework is small, both in code and binary size.
 - **Speed** - extreme optimizations and efficiency for run-time and even compile-time.
 - **Fairness** - huge accent on algorithms' fairness and even utilization of the CPU.
@@ -13,7 +13,7 @@ Being tens if not hundreds of times smaller than Boost, this small framework out
 
 The framework consists of several modules implementing things most needed on the backend: network IO, task scheduling, fast data structures and containers, and some smaller utilities.
 
-The core features in the framework are `IOCore`  - a networking layer to accept clients, to send and receive data, and `TaskScheduler` - request processing engine. More about them below.
+The core features in the framework are `IOCore`  - a networking layer to accept clients, to send and receive data, and `TaskScheduler` - task processing engine. More about them below.
 
 ## `TaskScheduler`
 
@@ -28,7 +28,7 @@ Task* t = new Task([](Task *self) {
 });
 sched.Post(t);
 ```
-The `Task` object is a context which can be just deleted right after single callback invocation, or can be attached to your own data and re-used across multiple steps of your pipeline, and can be used for deadlines, wakeups, signaling, etc.
+The `Task` object is a very light context (< 100 bytes) which can be just deleted right after single callback invocation, or can be attached to your own data and re-used across multiple steps of your pipeline, and can be used for deadlines, wakeups, signaling, etc.
 
 It can also be used with C++20 coroutines:
 ```C++
@@ -42,6 +42,7 @@ t->SetCallback([](Task *self) -> mg::box::Coro {
 	else
 		printf("No signal");
 	co_await self->AsyncExitDelete();
+	assert(!"unreachable");
 	co_return;
 }(t));
 sched.Post(t);
@@ -109,25 +110,26 @@ private:
 	const Host myHost;
 };
 ```
-`IOCore` core can be used as a task scheduler - `IOTask`s don't need to have sockets right from the start or at all. It can also be combined with `TaskScheduler` to execute your business logic in there, and do just IO in `IOCore`.
+`IOCore` core can be used as a task scheduler - `IOTask`s don't need to have sockets right from the start or at all. It can also be combined with `TaskScheduler` to execute your business logic in there, and do just IO in `IOCore`. This is actually the preferable usage.
 
 ## Getting Started
 
 ### Dependencies
 
-* At least C++11;
+* At least C++17;
 * A standard C++ library. On non-Windows also need `pthread` library.
 * Compiler support:
 	- Windows MSVC;
 	- Clang;
 	- GCC;
-* OS should be any version of Linux, Windows, WSL, Mac. The actual testing was done on:
-	- Windows 10;
-	- WSLv1;
-	- Debian 4.19;
-	- MacOS Catalina 11.7.10;
-	- Ubuntu 22.04.4 LTS;
-* Supports only architecture x86-64. On ARM it might work, but wasn't compiled nor tested (yet);
+* Kernel support:
+	- Windows *(10 and later guaranteed)*;
+	- WSLv1 *(v2 as well, since this is basically a VM)*;
+	- Linux *(any version)*;
+	- MacOS *(earliest tested Catalina 11.7.10)*;
+* Architecture support:
+	- x86
+	- ARM
 * CMake. Compatible with `cmake` CLI and with VisualStudio CMake.
 
 ### Build and test
@@ -136,12 +138,14 @@ private:
 
 It is possible to choose certain things at the CMake configuration stage. Each option can be given to CMake using `-D<name>=<value>` syntax. For example, `-DMG_AIO_USE_IOURING=1`.
 
-* `MG_AIO_USE_IOURING` - 1 = enable `io_uring` on Linux, 0 = use `epoll`. Default is 0.
-* `MG_BOOST_USE_IOURING` - 1 = enable `io_uring` on Linux for `boost` in the benchmarks, 0 = use `epoll`. Default is 0.
+* `MG_ENABLE_TEST` - 1/0 = enable or disable tests compilation. Handy, when building and installing it regularly and want to save time. **Default is 1**.
+* `MG_ENABLE_BENCH` - 1/0 = same as above for benchmarks. Disabling them also makes sense because they might be not compatible with certain `boost` versions. **Default is 0**.
+* `MG_AIO_USE_IOURING` - 1/0 = enable/disable `io_uring` on Linux, 0 = use `epoll`, 1 = use `io_uring`. **Default is 0**.
+* `MG_BOOST_USE_IOURING` - 1/0 = same for `boost::asio` used in the benchmarks. **Default is 0**.
 
 #### Visual Studio
 * Open VisualStudio;
-* Select "Open a local folder";
+* Select *"Open a local folder"*;
 * Select `serverbox/` folder where the main `CMakeLists.txt` is located;
 * Wait for CMake parsing and configuration to complete;
 * Build and run as a normal VS project.
@@ -170,7 +174,7 @@ Useful tips (for clean project, from the `build` folder created above):
 	- Debug, no optimization at all:<br/>
 	  `cmake -DCMAKE_BUILD_TYPE=Debug ../`;
 * Change C++ standard:
-	`cmake -DCMAKE_CXX_STANDARD=11/14/17/20/...`;
+	`cmake -DCMAKE_CXX_STANDARD=17/20/...`;
 
 ### Installation
 
@@ -181,7 +185,7 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(pwd)/installed ../
 make install
 ```
-This creates a folder `installed/` which contains the library binaries and headers. The libraries are self-sufficient and isolated. It means you can take just `TaskScheduler` headers and static library, or just `IOCore`'s, or just basic `libmgbox` and its headers. Or any combination of those.
+This creates a subfolder `installed/` in the current directory, which contains the library binaries and headers. The libraries are self-sufficient and isolated. It means you can take just `TaskScheduler` headers and static library, or just `IOCore`'s, or just basic `libmgbox` and its headers. Or any combination of those.
 
 #### Stubs
 

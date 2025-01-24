@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.8)
 
 project("ServerBox")
 
+option(MG_ENABLE_TEST "Configure the tests" 1)
+option(MG_ENABLE_BENCH "Configure the benchmarks" 0)
+
 if (NOT DEFINED CMAKE_CXX_STANDARD)
 	message(STATUS "Using C++20 standard as default")
 	set(CMAKE_CXX_STANDARD 20)
@@ -41,9 +44,9 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif ()
 
 add_subdirectory(src)
-if (NOT MG_SKIP_TEST)
+if (MG_ENABLE_TEST)
 	add_subdirectory(test)
 endif()
-if (NOT MG_SKIP_BENCHES)
+if (MG_ENABLE_BENCH)
 	add_subdirectory(bench)
 endif()
