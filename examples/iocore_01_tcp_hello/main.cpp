@@ -33,6 +33,9 @@ public:
 		mySock->Open({});
 		mg::aio::TCPSocketConnectParams connParams;
 		connParams.myEndpoint = mg::net::HostMakeLocalIPV4(aPort).ToString();
+
+		// From PostConnect() moment the socket runs in IOCore and its event-callbacks
+		// will start firing.
 		mySock->PostConnect(connParams, this);
 	}
 
@@ -58,6 +61,7 @@ private:
 	{
 		MG_LOG_INFO("Client.OnRecv", "%d: got response", myID);
 		MG_BOX_ASSERT(aStream.GetReadSize() > 0);
+		// Closure is asynchronous as well. You get OnClose() event when it is complete.
 		mySock->PostClose();
 	}
 
@@ -74,6 +78,11 @@ private:
 	void
 	OnClose() final
 	{
+		// Here the socket should be deleted, ideally. But also you can reopen it and
+		// reuse. The socket will stay valid anyway. Moreover, the socket still can be
+		// used for deadlines and wakeups, even when it is closed. This allows to
+		// implement automatic reconnect with a fallback period like 1 second or so.
+
 		MG_LOG_INFO("Client.OnClose", "%d", myID);
 		// Try to always have all deletions in a single place. And the only suitable place
 		// is on-close. This is the only place where you can safely assume that the socket
@@ -185,6 +194,8 @@ public:
 	Start()
 	{
 		mg::box::Error::Ptr err;
+		// From Listen() moment the server's socket runs in IOCore and its event-callbacks
+		// start firing.
 		bool ok = myServer->Listen(mg::net::SocketMaxBacklog(), this, err);
 		MG_BOX_ASSERT(ok);
 	}
@@ -209,6 +220,8 @@ private:
 	void
 	OnClose() final
 	{
+		// The server will not run anymore after this event. It is still valid, but won't
+		// fire any events.
 		MG_LOG_INFO("Server.OnClose", "");
 	}
 

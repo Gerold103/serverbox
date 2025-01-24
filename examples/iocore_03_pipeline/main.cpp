@@ -77,6 +77,13 @@ public:
 		std::function<void(int64_t)>&& aOnComplete)
 	{
 		MG_LOG_INFO("Client.Submit", "new request");
+		// This function can be called by any thread in our code. Not only by IOCore
+		// worker serving this client's socket right now. Need to be careful with thread
+		// safety here.
+		//
+		// The solution we can do is have a thread-safe queue of requests submitted to the
+		// client. When the queue gets populated, we wakeup the client to pop the queue
+		// and handle the requests.
 		CalcRequest* req = new CalcRequest();
 		req->myOp = aOp;
 		req->myArg1 = aArg1;
@@ -119,12 +126,14 @@ private:
 	{
 		CalcRequest* tail;
 		CalcRequest* head = myFrontQueue.PopAll(tail);
+		// Check if spurious wakeup.
 		if (head == nullptr)
 			return;
 
-		// Save the requests for later response handling.
+		// Move the requests from the thread-safe front queue to the local plain simple
+		// list. For later response handling.
 		myQueue.Append(head, tail);
-		// Send requests in bulk.
+		// Send requests in bulk, in one stream of bytes.
 		mg::net::BufferStream data;
 		while (head != nullptr)
 		{
@@ -181,9 +190,14 @@ private:
 	}
 
 	mg::aio::TCPSocket* mySock;
-	// Queue of sent requests waiting for their responses.
+
+	// Queue of sent requests waiting for their responses. It is not thread-safe, just a
+	// normal list. But it is only accessed inside client's socket context. Hence never is
+	// touched by more than one thread. No need for a mutex.
 	mg::box::ForwardList<CalcRequest> myQueue;
-	// Queue if requests submitted by other threads. Not yet sent to the network.
+
+	// Queue if requests submitted by other threads. Not yet sent to the network. It is
+	// thread-safe.
 	mg::box::MultiProducerQueueIntrusive<CalcRequest> myFrontQueue;
 };
 
@@ -360,7 +374,8 @@ private:
 			aSelf->myTask.PostSignal();
 		});
 		// Wait for the signal in a yielding loop, to handle potential spurious wakeups.
-		while (!co_await aSelf->myTask.AsyncReceiveSignal());
+		while (!co_await aSelf->myTask.AsyncReceiveSignal())
+			aSelf->myTask.SetWait();
 		// 
 		MG_LOG_INFO("MyRequest.Execute", "%d: got response %lld", myID, (long long)res);
 
@@ -371,7 +386,8 @@ private:
 			res = aRes;
 			aSelf->myTask.PostSignal();
 		});
-		while (!co_await aSelf->myTask.AsyncReceiveSignal());
+		while (!co_await aSelf->myTask.AsyncReceiveSignal())
+			aSelf->myTask.SetWait();
 		MG_LOG_INFO("MyRequest.Execute", "%d: got response %lld", myID, (long long)res);
 
 		// 'delete this' + co_return wouldn't work here. Because deletion of the self
