@@ -135,6 +135,7 @@ public:
 		mg::net::Socket aSock)
 		: myID(aID)
 		, mySock(new mg::aio::TCPSocket(aCore))
+		, mySendSize(0)
 		, mySendDeadline(0)
 	{
 		mySock->Open({});
@@ -203,11 +204,12 @@ private:
 		if (mySendSize != 0)
 			return;
 
-		// Finally all is sent. Send the next one in 1 second.
+		// Finally all is sent. Send the next one in 1 second. For that need to actually
+		// do socket->SetDeadline(), but we will do it in OnEvent().
 		mySendDeadline = mg::box::GetMilliseconds() + 1000;
-		// OnEvent() is going to be executed again ASAP, but this is ok. It is simpler
-		// for us to implement all the logic in one function. It will handle this
-		// reschedule a spurious wakeup.
+		// Reschedule() basically means 'reschedule the socket right away'. Same as saying
+		// SetDeadline(0). OnEvent() is going to be executed again ASAP. This way it is
+		// simpler for us to implement all the logic in one function.
 		mySock->Reschedule();
 	}
 
