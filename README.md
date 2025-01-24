@@ -142,6 +142,7 @@ It is possible to choose certain things at the CMake configuration stage. Each o
 * `MG_ENABLE_BENCH` - 1/0 = same as above for benchmarks. Disabling them also makes sense because they might be not compatible with certain `boost` versions. **Default is 0**.
 * `MG_AIO_USE_IOURING` - 1/0 = enable/disable `io_uring` on Linux, 0 = use `epoll`, 1 = use `io_uring`. **Default is 0**.
 * `MG_BOOST_USE_IOURING` - 1/0 = same for `boost::asio` used in the benchmarks. **Default is 0**.
+* `MG_IS_CI` - 1/0 = whether is running in CI. Is used to reduce duration of some tests which are more about perf than correctness. **Default is 0**.
 
 #### Visual Studio
 * Open VisualStudio;

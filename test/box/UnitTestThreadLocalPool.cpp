@@ -115,7 +115,13 @@ namespace threadlocalpool {
 
 		constexpr uint32_t threadCount = 5;
 		constexpr uint32_t valueCount = 100000;
+#if MG_IS_CI
+		// The default workload runs for 10 minutes in GitHub CI on Windows Debug. Twice
+		// longer than complete job of any other run config. Lets make it smaller.
+		constexpr uint32_t iterCount = 20;
+#else
 		constexpr uint32_t iterCount = 200;
+#endif
 		std::vector<mg::box::Thread*> threads;
 		threads.reserve(threadCount);
 		mg::box::ConditionVariable condVar;

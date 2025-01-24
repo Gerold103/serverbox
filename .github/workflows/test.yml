@@ -109,6 +109,8 @@ jobs:
         fi
         cmake -B "${{ steps.strings.outputs.build-output-dir }}" \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DMG_ENABLE_BENCH=0 \
+          -DMG_IS_CI=1 \
           ${{ steps.strings.outputs.backend-cmake }} \
           -S "${{ github.workspace }}"
 
