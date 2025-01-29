@@ -323,7 +323,7 @@ The scheduler is not a single monolithic algorithm. It is fused from several sma
 
 ### Multi-Producer-Single-Consumer Queue
 
-The scheduler receives tasks from the external code via a front queue. It is an unbounded lock-free MPSC queue. See `src/mg/box/MultiProducerQueueIntrusive.h`.
+The scheduler receives tasks from the external code via a front queue. It is an unbounded lock-free MPSC queue. See [src/mg/box/MultiProducerQueueIntrusive.h](/src/mg/box/MultiProducerQueueIntrusive.h).
 
 Push is an atomic compare-exchange which in case of simultaneous access by multiple threads is retried. No spinlocks, nor any mutexes.
 
@@ -331,7 +331,7 @@ Pop is only able to take all the tasks at once and the order is reversed. That i
 
 ### Multi-Consumer-Single-Producer Queue
 
-This is a backend queue of the scheduler. From here the worker threads pick up the tasks ready for execution. It is an unbounded semi-lock-free MCSP queue. See `src/mg/box/MultiConsumerQueue.h`.
+This is a backend queue of the scheduler. From here the worker threads pick up the tasks ready for execution. It is an unbounded semi-lock-free MCSP queue. See [src/mg/box/MultiConsumerQueue.h](/src/mg/box/MultiConsumerQueue.h).
 
 There is no a simple well known algorithm for having multiple consumers which would be at the same time wait-free; lock-free; unbounded; and with ability to pop items one by one. Mostly that is because of the ABA problem of concurrent algorithms. Working them around usually is quite untrivial and can cost notable fraction of performance.
 
@@ -380,7 +380,7 @@ Linux WSL 1:
 
 ### Signal
 
-Signal is a thread synchronization type, similar to mutex and condition variable. It allows to send an event from one thread to another in a blocking way, but it has a few most common cases optimized to be lock-free. See `src/mg/box/Signal.h`.
+Signal is a thread synchronization type, similar to mutex and condition variable. It allows to send an event from one thread to another in a blocking way, but it has a few most common cases optimized to be lock-free. See [src/mg/box/Signal.h](/src/mg/box/Signal.h).
 
 The scheduler uses it to
 - Notify the worker threads about new ready-to-do tasks coming;
