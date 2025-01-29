@@ -48,11 +48,13 @@ t->SetCallback([](Task *self) -> mg::box::Coro {
 sched.Post(t);
 ```
 
-See more in `src/mg/sch/README.md`.
+See more in [src/mg/sch/README.md](/src/mg/sch/README.md).
 
 ## `IOCore`
 
-**IOCore** is a multi-threaded event-loop for asynchronous code execution and network IO. It is like `TaskScheduler`, the internal architecture and the API are very similar, but `IOCore`'s main use case is work with sockets and efficient IO. You can think of it as if each of your sockets (server, accepted sockets, client sockets) is like a very lightweight coroutine. See more in `src/mg/aio/README.md`.
+**IOCore** is a multi-threaded event-loop for asynchronous code execution and network IO. It is like `TaskScheduler`, the internal architecture and the API are very similar, but `IOCore`'s main use case is work with sockets and efficient IO. You can think of it as if each of your sockets (server, accepted sockets, client sockets) is like a very lightweight coroutine.
+
+See more in [src/mg/aio/README.md](/src/mg/aio/README.md).
 
 A simple example:
 ```C++
@@ -198,5 +200,5 @@ If none of the proposed interception endpoints are needed, you can simply link w
 
 See more details here:
 
-- `src/mg/sch/README.md`
-- `src/mg/aio/README.md`
+- [src/mg/sch/README.md](/src/mg/sch/README.md)
+- [src/mg/aio/README.md](/src/mg/aio/README.md)

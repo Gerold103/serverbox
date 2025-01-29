@@ -57,9 +57,9 @@ private:
 };
 ```
 
-`IOCore` (`src/mg/aio/IOCore.h`) is the event-loop itself. `IOTask` (`src/mg/aio/IOTask.h`) is a task context which a socket can be attached to, or any other data of your choice. With a socket attached `IOTask` can do asynchronous IO. In addition to that it also has the task features - wakeup and deadlines, just like `Task` in `TaskScheduler`.
+`IOCore` ([src/mg/aio/IOCore.h](/src/mg/aio/IOCore.h)) is the event-loop itself. `IOTask` ([src/mg/aio/IOTask.h](/src/mg/aio/IOTask.h)) is a task context which a socket can be attached to, or any other data of your choice. With a socket attached `IOTask` can do asynchronous IO. In addition to that it also has the task features - wakeup and deadlines, just like `Task` in `TaskScheduler`.
 
-For convenience some of the most popular socket types are already implemented on top of `IOTask`, such as `TCPSocket` (`src/mg/aio/TCPSocket.h`) for pure TCP interaction and `TCPServer` (`src/mg/aio/TCPServer.h`) for accepting new clients.
+For convenience some of the most popular socket types are already implemented on top of `IOTask`, such as `TCPSocket` ([src/mg/aio/TCPSocket.h](/src/mg/aio/TCPSocket.h)) for pure TCP interaction and `TCPServer` ([src/mg/aio/TCPServer.h](/src/mg/aio/TCPServer.h)) for accepting new clients.
 
 For building more specific sockets you can use those as a basis, or directly inherit `TCPSocketIFace`.
 
