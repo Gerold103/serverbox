@@ -39,6 +39,7 @@ And yet there are reports, where `io_uring` is quite suboptimal when it comes to
 - https://github.com/axboe/liburing/issues/536
 - https://news.ycombinator.com/item?id=35548289
 - https://ryanseipp.com/post/iouring-vs-epoll/
+- https://github.com/tarantool/tarantool/pull/10969
 
 It seems that `io_uring` is in general slower than `epoll` and becomes faster only when super heavily tuned and `epoll` is limited in resources.
 
