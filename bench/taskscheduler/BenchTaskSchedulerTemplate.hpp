@@ -365,7 +365,8 @@ namespace bench {
 		uint32_t aTaskCount,
 		uint32_t aExecuteCount)
 	{
-		TaskScheduler sched("bench", aThreadCount, 5000);
+		TaskScheduler sched("bench", 5000);
+		sched.Start(aThreadCount);
 		sched.Reserve(aTaskCount);
 		BenchTaskCtl ctl(aTaskCount, aExecuteCount, &sched);
 		ctl.Warmup();

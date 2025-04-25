@@ -10,25 +10,103 @@ namespace sch {
 
 	TaskScheduler::TaskScheduler(
 		const char* aName,
-		uint32_t aThreadCount,
 		uint32_t aSubQueueSize)
 		: myQueueReady(aSubQueueSize)
 		, myExecBatchSize(aSubQueueSize)
-		, mySchedBatchSize(aSubQueueSize * aThreadCount)
-		, myIsSchedulerWorking(0)
-		, myIsStopped(0)
+		, mySchedBatchSize(0)
+		, mySchedulerRole(0)
+		, myState(TASK_SCHEDULER_STATE_STOPPED)
+		, myName(aName)
 	{
-		myThreads.resize(aThreadCount);
-		for (TaskSchedulerThread*& t : myThreads)
-		{
-			t = new TaskSchedulerThread(aName, this);
-			t->Start();
-		}
 	}
 
 	TaskScheduler::~TaskScheduler()
 	{
-		myIsStopped.StoreRelease(true);
+		MG_BOX_ASSERT(WaitEmpty() == 0);
+		Stop();
+		MG_BOX_ASSERT(myThreads.empty());
+		MG_BOX_ASSERT(myQueuePending.IsEmpty());
+		MG_BOX_ASSERT(myQueueFront.PopAllFastReversed() == nullptr);
+		MG_BOX_ASSERT(myQueueWaiting.Count() == 0);
+		MG_BOX_ASSERT(myQueueReady.Count() == 0);
+	}
+
+	void
+	TaskScheduler::Start(
+		uint32_t aThreadCount)
+	{
+		mg::box::MutexLock lock(myMutex);
+		MG_BOX_ASSERT(myState.LoadRelaxed() == TASK_SCHEDULER_STATE_STOPPED);
+		MG_BOX_ASSERT(myThreads.empty());
+		myState.StoreRelaxed(TASK_SCHEDULER_STATE_RUNNING);
+		myThreads.resize(aThreadCount);
+		mySchedBatchSize = myExecBatchSize * aThreadCount;
+		for (TaskSchedulerThread*& t : myThreads)
+		{
+			t = new TaskSchedulerThread(myName.c_str(), this);
+			t->Start();
+		}
+	}
+
+	bool
+	TaskScheduler::WaitEmpty(
+		mg::box::TimeLimit aTimeLimit)
+	{
+		mg::box::TimePoint deadline = aTimeLimit.ToPointFromNow();
+		// TODO: add self to admins under a mutex.
+		// Set to admin_taken if it is free.
+		// If was admin_waiting or admin_taken already, then wait-ready.
+		// If was taken, then make it admin_waiting.
+		// Signal the front each time.
+		mg::box::MutexLock lock(myMutex);
+		// Add the inspection flag.
+		// uint64_t expected = 0;
+		// uint64_t target =
+		// 	TASK_SCHEDULER_ROLE_FLAG_TAKEN |
+		// 	TASK_SCHEDULER_ROLE_FLAG_INSPECTION;
+		// while (!mySchedulerRole.CmpExchgWeakAcquire(expected, target))
+		// {
+		// 	if (expected == 0)
+		// 	{
+		// 		// Try again.
+		// 		continue;
+		// 	}
+		// 	if (expected == TASK_SCHEDULER_ROLE_FLAG_TAKEN)
+		// 	{
+		// 		// Taken, but not under inspection. Try again then.
+		// 		continue;
+		// 	}
+		// }
+		bool isEmpty =
+			myQueueFront.IsEmpty() &&
+			myQueuePending.IsEmpty() &&
+			myQueueReady.Count() == 0;
+
+		if (!myVisitors.IsEmpty())
+		{
+			TaskSchedulerVisitor* first = myVisitors.PopFirst();
+			first->mySignal.Send();
+		}
+		else
+		{
+			expected =
+				TASK_SCHEDULER_ROLE_FLAG_TAKEN |
+			TASK_SCHEDULER_ROLE_FLAG_INSPECTION;
+			uint64_t old = mySchedulerRole.ExchangeRelease(0);
+			MG_BOX_ASSERT(old == expected);
+		}
+		return isEmpty;
+	}
+
+	void
+	TaskScheduler::Stop()
+	{
+		mg::box::MutexLock lock(myMutex);
+		TaskSchedulerState state = myState.LoadRelaxed();
+		if (state == TASK_SCHEDULER_STATE_STOPPED)
+			return;
+		MG_BOX_ASSERT(state == TASK_SCHEDULER_STATE_RUNNING);
+		myState.StoreRelaxed(TASK_SCHEDULER_STATE_STOPPING);
 		for (TaskSchedulerThread* t : myThreads)
 			t->Stop();
 		// It is enough to wake the sched-thread. It will wakeup
@@ -37,10 +115,8 @@ namespace sch {
 		mySignalFront.Send();
 		for (TaskSchedulerThread* t : myThreads)
 			t->StopAndDelete();
-		MG_BOX_ASSERT(myQueuePending.IsEmpty());
-		MG_BOX_ASSERT(myQueueFront.PopAllFastReversed() == nullptr);
-		MG_BOX_ASSERT(myQueueWaiting.Count() == 0);
-		MG_BOX_ASSERT(myQueueReady.Count() == 0);
+		mySchedBatchSize = 0;
+		myState.StoreRelaxed(TASK_SCHEDULER_STATE_STOPPED);
 	}
 
 	void
@@ -68,11 +144,19 @@ namespace sch {
 			mySignalFront.Send();
 	}
 
-	TaskScheduleResult
+	inline bool
+	TaskScheduler::PrivSchedulerTake()
+	{
+		return !myIsSchedulerWorking.ExchangeAcqRel(true);
+	}
+
+	bool
 	TaskScheduler::PrivSchedule()
 	{
-		if (myIsSchedulerWorking.ExchangeAcqRel(true))
-			return TASK_SCHEDULE_BUSY;
+		// TODO: mode can be free, taken, admin_taken, admin_waiting
+		// TODO: set if it is free. Otherwise return.
+		if (!PrivSchedulerTake())
+			return false;
 
 		// Task status operations can all be relaxed inside the
 		// scheduler. Syncing writes and reads between producers and
@@ -87,7 +171,6 @@ namespace sch {
 		uint64_t timestamp = mg::box::GetMilliseconds();
 		uint32_t batch;
 		uint32_t maxBatch = mySchedBatchSize;
-		TaskScheduleResult result = TASK_SCHEDULE_DONE;
 
 	retry:
 		// -------------------------------------------------------
@@ -211,6 +294,10 @@ namespace sch {
 
 		if (myQueueReady.Count() == 0 && myQueuePending.IsEmpty())
 		{
+			if (myState.LoadRelaxed() != TASK_SCHEDULER_STATE_RUNNING)
+			{
+				goto end;
+			}
 			// No ready tasks means the other workers already
 			// sleep on ready-signal. Or are going to start
 			// sleeping any moment. So the sched can't quit. It
@@ -226,22 +313,23 @@ namespace sch {
 						mg::box::TimeDuration(deadline - timestamp));
 				}
 			}
-			else if (!PrivIsStopped())
-			{
-				mySignalFront.ReceiveBlocking();
-			}
 			else
 			{
-				// **Only** report scheduling is fully finished when there is actually
-				// nothing to do. That is, no tasks anywhere at all. Not in the front
-				// queue, not in the waiting queue, not in the ready queue.
-				result = TASK_SCHEDULE_FINISHED;
-				goto end;
+				mySignalFront.ReceiveBlocking();
 			}
 			goto retry;
 		}
 
 	end:
+		// TODO: set it free if it was taken. Can't be admin_taken.
+		// If was admin_waiting, then give control exactly to the next admin.
+		PrivSchedulerFree();
+		return true;
+	}
+
+	inline void
+	TaskScheduler::PrivSchedulerFree()
+	{
 		myIsSchedulerWorking.StoreRelease(false);
 		// The signal is absolutely vital to have exactly here.
 		// If the signal would not be emitted here, all the
@@ -272,7 +360,6 @@ namespace sch {
 		// and other workers will sleep on waiting for ready
 		// tasks.
 		PrivSignalReady();
-		return result;
 	}
 
 	bool
@@ -292,22 +379,22 @@ namespace sch {
 		return true;
 	}
 
-	void
+	inline void
 	TaskScheduler::PrivWaitReady()
 	{
 		mySignalReady.ReceiveBlocking();
 	}
 
-	void
+	inline bool
+	TaskScheduler::PrivWaitReady(mg::box::TimeLimit aTimeLimit)
+	{
+		return mySignalReady.ReceiveTimed(aTimeLimit);
+	}
+
+	inline void
 	TaskScheduler::PrivSignalReady()
 	{
 		mySignalReady.Send();
-	}
-
-	bool
-	TaskScheduler::PrivIsStopped()
-	{
-		return myIsStopped.LoadAcquire();
 	}
 
 	TaskSchedulerThread::TaskSchedulerThread(
@@ -328,14 +415,14 @@ namespace sch {
 		TaskScheduler::ourCurrent = myScheduler;
 		uint64_t maxBatch = myScheduler->myExecBatchSize;
 		uint64_t batch;
-		TaskScheduleResult result = TASK_SCHEDULE_DONE;
-		while (result != TASK_SCHEDULE_FINISHED)
+		while (true)
 		{
 			do
 			{
-				result = myScheduler->PrivSchedule();
-				if (result != TASK_SCHEDULE_BUSY)
+				if (myScheduler->PrivSchedule())
 					myScheduleCount.IncrementRelaxed();
+				if (myScheduler->myState.LoadRelaxed() != TASK_SCHEDULER_STATE_RUNNING)
+					goto end;
 				batch = 0;
 				while (myScheduler->PrivExecute(myConsumer.Pop()) && ++batch < maxBatch);
 				myExecuteCount.AddRelaxed(batch);
@@ -344,6 +431,7 @@ namespace sch {
 
 			myScheduler->PrivWaitReady();
 		}
+	end:
 		myScheduler->PrivSignalReady();
 		MG_BOX_ASSERT(TaskScheduler::ourCurrent == myScheduler);
 		TaskScheduler::ourCurrent = nullptr;
