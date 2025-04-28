@@ -125,6 +125,7 @@ EXTENDS TLC, Integers, Sequences
 \* scheduler until reach the target execution count. To test how signals and
 \* wakeups affect the tasks between posts.
 CONSTANT ExecTarget
+CONSTANT InspectionTarget
 CONSTANT NULL
 CONSTANT TaskIDs
 \* Worker threads are inside of the scheduler.
@@ -181,8 +182,9 @@ VARIABLE UserThreads
 \* grow. In reality this number makes 0 sense but here it is used for validation
 \* that the task signals can not be lost.
 VARIABLE UserSignalCount
+VARIABLE UserInspectionCount
 
-UserVars == <<UserThreads, UserSignalCount>>
+UserVars == <<UserThreads, UserSignalCount, UserInspectionCount>>
 
 \* Signal whether front-queue becomes non-empty.
 VARIABLE IsFrontSignaled
@@ -198,8 +200,10 @@ VARIABLE IsSchedulerTaken
 \* Queue of tasks waiting for a deadline. It is used only by the scheduler role.
 \* Hence can be a simple binary heap of waiting tasks sorted by deadlines.
 VARIABLE WaitingQueue
+VARIABLE HasInspectors
+VARIABLE Inspectors
 
-SchedVars == <<IsSchedulerTaken, WaitingQueue>>
+SchedVars == <<IsSchedulerTaken, HasInspectors, Inspectors, WaitingQueue>>
 
 vars == <<TaskVars, WorkerVars, UserVars, FrontVars, SchedVars>>
 
@@ -231,6 +235,7 @@ SetExecCount(v, b) == [b EXCEPT !.exec_count = v]
 \* The same but for struct arrays.
 
 ArrLen(s) == Len(s)
+ArrFirst(s) == Head(s)
 ArrLast(s) == s[Len(s)]
 ArrIsEmpty(s) == Len(s) = 0
 ArrPopHead(s) == Tail(s)
@@ -270,7 +275,8 @@ UserThreadNew == [
   state |-> "idle",
   \* ID of the task the thread is working with right now. In reality the task
   \* would be just on the thread's stack as a variable.
-  task_id |-> NULL
+  task_id |-> NULL,
+  was_inspector |-> FALSE,
 ]
 
 Init ==
@@ -279,9 +285,12 @@ Init ==
   /\ WorkerThreads = [wid \in WorkerThreadIDs |-> WorkerThreadNew]
   /\ UserThreads = [uid \in UserThreadIDs |-> UserThreadNew]
   /\ UserSignalCount = 0
+  /\ UserInspectionCount = 0
   /\ IsFrontSignaled = FALSE
   /\ IsReadySignaled = FALSE
   /\ IsSchedulerTaken = FALSE
+  /\ HasInspectors = FALSE
+  /\ Inspectors = {}
   /\ FrontQueue = << >>
   /\ WaitingQueue = {}
   /\ ReadyQueue = << >>
@@ -443,6 +452,58 @@ UserSignalTask(uid) ==
         ELSE
         /\ UNCHANGED<<UserThreads>>
   /\ UNCHANGED<<TaskPool, WorkerVars, FrontVars, SchedVars>>
+
+--------------------------------------------------------------------------------
+
+UserBecomeInspector(uid) ==
+  LET w == UserThreads[uid] IN
+  /\ w.state = "idle"
+  /\ UserInspectionCount < InspectionTarget
+  \* ---
+  \* Try to just take the scheduler.
+  /\ UserInspectionCount' = UserInspectionCount + 1
+  /\ \/ /\ ~IsSchedulerTaken
+        /\ IsSchedulerTaken' = TRUE
+        /\ UserThreads' = ArrSetState(uid, "stop_inspecting", UserThreads)
+     \/ /\ IsSchedulerTaken
+        /\ UserThreads' = ArrSetState(uid, "create_inspector", UserThreads)
+
+UserCreateInspector(uid) ==
+  LET w == UserThreads[uid] IN
+  /\ w.state = "create_inspector"
+  \* ---
+  /\ HasInspectors' = TRUE
+  /\ Inspectors' = ArrAppend(uid, Inspectors)
+  /\ UserThreads' = ArrSetState(uid, "try_inspection_again", UserThreads)
+
+UserTryInspectionAgain(uid) ==
+  LET w == UserThreads[uid] IN
+  /\ w.state = "try_inspection_again"
+  \* ---
+  /\ \/ /\ ~IsSchedulerTaken
+        /\ IsSchedulerTaken' = TRUE
+        /\ UserThreads' = ArrSetState(uid, "remove_inspector", UserThreads)
+     \/ /\ IsSchedulerTaken
+        /\ UserThreads' = ArrSetState(uid, "inspection_handover", UserThreads)
+
+UserRemoveInspector(uid) ==
+  LET w == UserThreads[uid] IN
+  /\ w.state = "remove_inspector"
+  /\ Assert(ArrFirst(Inspectors) = uid, "Inspectors are FIFO")
+  \* ---
+  /\ Inspectors' = ArrPopHead(Inspectors)
+  /\ IF ArrLen(Inspectors) = 1 THEN
+     /\ HasInspectors' = FALSE
+     ELSE
+     /\ Assert(HasInspectors, "Non-empty inspectors list has the flag set")
+     /\ UNCHANGED<<HasInspectors>>
+  /\ UserThreads' = ArrSetState(uid, "stop_inspecting", UserThreads)
+
+UserStopInspecting(uid) ==
+  LET w == UserThreads[uid] IN
+  /\ w.state = "stop_inspecting"
+  \* ---
+  /\ IF 
 
 --------------------------------------------------------------------------------
 \* All the actions the user threads can do with the tasks.

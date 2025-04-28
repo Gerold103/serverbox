@@ -57,10 +57,12 @@ namespace bench {
 	public:
 		TaskScheduler(
 			const char* aName,
-			uint32_t aThreadCount,
 			uint32_t aSubQueueSize);
 
 		~TaskScheduler();
+
+		void Start(
+			uint32_t aThreadCount);
 
 		void Post(
 			Task* aTask);
@@ -146,13 +148,9 @@ namespace bench {
 
 	TaskScheduler::TaskScheduler(
 		const char* aName,
-		uint32_t aThreadCount,
 		uint32_t /*aSubQueueSize*/)
-		: myIsStopped(false)
+		: myIsStopped(true)
 	{
-		myWorkers.resize(aThreadCount);
-		for (TaskSchedulerThread*& w : myWorkers)
-			w = new TaskSchedulerThread(aName, this);
 	}
 
 	TaskScheduler::~TaskScheduler()
@@ -163,6 +161,16 @@ namespace bench {
 		myMutex.Unlock();
 		for (TaskSchedulerThread* w : myWorkers)
 			delete w;
+	}
+
+	void
+	TaskScheduler::Start(
+		uint32_t aThreadCount)
+	{
+		myIsStopped = false;
+		myWorkers.resize(aThreadCount);
+		for (TaskSchedulerThread*& w : myWorkers)
+			w = new TaskSchedulerThread(aName, this);
 	}
 
 	void

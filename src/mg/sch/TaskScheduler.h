@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mg/box/BinaryHeap.h"
+#include "mg/box/DoublyList.h"
 #include "mg/box/ForwardList.h"
 #include "mg/box/MultiConsumerQueue.h"
 #include "mg/box/MultiProducerQueueIntrusive.h"
@@ -51,14 +52,25 @@ namespace sch {
 
 	enum TaskScheduleResult
 	{
-		// Scheduling isn't done, another thread is doing it right now.
-		TASK_SCHEDULE_BUSY,
-		// Scheduling is done successfully.
-		TASK_SCHEDULE_DONE,
-		// Done successfully and was the last one. The scheduler is being stopped right
-		// now.
-		TASK_SCHEDULE_FINISHED,
+		TASK_SCHEDULE_RESULT_WOULDBLOCK,
+		TASK_SCHEDULE_RESULT_DONE,
+		TASK_SCHEDULE_RESULT_STOP,
 	};
+
+	enum TaskSchedulerRoleFlags
+	{
+		TASK_SCHEDULER_ROLE_FLAG_TAKEN = 0x1,
+		TASK_SCHEDULER_ROLE_FLAG_INSPECTION = 0x2,
+	};
+
+	struct TaskSchedulerVisitor
+	{
+		mg::box::Signal mySignal;
+		TaskSchedulerVisitor* myPrev;
+		TaskSchedulerVisitor* myNext;
+	};
+
+	using TaskSchedulerVisitorList = mg::box::DoublyList<TaskSchedulerVisitor>;
 
 	// Scheduler for asynchronous execution of tasks. Can be used
 	// for tons of one-shot short-living tasks, as well as for
@@ -77,10 +89,16 @@ namespace sch {
 		// thousands (1-5) usually is fine.
 		TaskScheduler(
 			const char* aName,
-			uint32_t aThreadCount,
 			uint32_t aSubQueueSize);
 
 		~TaskScheduler();
+
+		void Start(
+			uint32_t aThreadCount);
+		bool IsEmpty();
+		bool WaitEmpty(
+			mg::box::TimeLimit aTimeLimit = mg::box::theTimeDurationInf);
+		void Stop();
 
 		// Ensure the scheduler can fit the given number of tasks
 		// in its internal queues without making any additional
@@ -120,12 +138,16 @@ namespace sch {
 		void PrivPost(
 			Task* aTask);
 
+		bool PrivSchedulerTakeAsWorker();
+		void PrivSchedulerTakeAsInspector();
 		TaskScheduleResult PrivSchedule();
+		void PrivSchedulerFree();
 
 		bool PrivExecute(
 			Task* aTask);
 
 		void PrivWaitReady();
+		bool PrivWaitReady(mg::box::TimeLimit aTimeLimit);
 
 		void PrivSignalReady();
 
@@ -142,12 +164,13 @@ namespace sch {
 		// separated from the fields below by thread list, which
 		// is almost never updated or read. So can be used as a
 		// barrier.
-		std::vector<TaskSchedulerThread*> myThreads;
+		MG_UNUSED_MEMBER char myFalseSharingProtection1[MG_CACHE_LINE_SIZE];
 
 		TaskSchedulerQueuePending myQueuePending;
 		TaskSchedulerQueueWaiting myQueueWaiting;
 		TaskSchedulerQueueReady myQueueReady;
 		mg::box::Signal mySignalReady;
+		bool myIsRunning;
 		// Threads try to execute not just all ready tasks in a row - periodically they
 		// try to take care of the scheduling too. It helps to prevent the front-queue
 		// from growing too much.
@@ -157,7 +180,7 @@ namespace sch {
 		// the bottleneck when the scheduling takes too long time while the other threads
 		// are idle and the ready-queue is empty. For example, processing of a million of
 		// front queue tasks might take ~100-200ms.
-		const uint32_t mySchedBatchSize;
+		uint32_t mySchedBatchSize;
 
 		// The pending and waiting tasks must be dispatched
 		// somehow to be moved to the ready queue. For that there
@@ -172,13 +195,25 @@ namespace sch {
 		//
 		// The worker thread, doing the scheduling right now, is
 		// called 'sched-thread' throughout the code.
-		mg::box::AtomicBool myIsSchedulerWorking;
-		mg::box::AtomicBool myIsStopped;
+		mg::box::AtomicU8 mySchedulerRole;
+
+		MG_UNUSED_MEMBER char myFalseSharingProtection2[MG_CACHE_LINE_SIZE];
+
+		mg::box::Mutex myMutex;
+		std::vector<TaskSchedulerThread*> myThreads;
+		TaskSchedulerVisitorList myVisitors;
+		const std::string myName;
 
 		static thread_local TaskScheduler* ourCurrent;
 
 		friend class Task;
 		friend class TaskSchedulerThread;
+	};
+
+	enum TaskSchedulerWorkerState
+	{
+		TASK_SCHEDULER_WORKER_STATE_RUNNING,
+		TASK_SCHEDULER_WORKER_STATE_IDLE,
 	};
 
 	class TaskSchedulerThread
@@ -193,10 +228,13 @@ namespace sch {
 
 		uint64_t StatPopScheduleCount();
 
+		TaskSchedulerWorkerState GetState() const;
+
 	private:
 		void Run() override;
 
 		TaskScheduler* myScheduler;
+		mg::box::Atomic<TaskSchedulerWorkerState> myState;
 		TaskSchedulerQueueReadyConsumer myConsumer;
 		mg::box::AtomicU64 myExecuteCount;
 		mg::box::AtomicU64 myScheduleCount;
