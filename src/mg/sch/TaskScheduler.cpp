@@ -130,10 +130,13 @@ namespace sch {
 		// -------------------------------------------------------
 		// Handle front tasks.
 
-		mySignalFront.Receive();
 		// Popping the front queue takes linear time due to how the multi-producer queue
 		// is implemented. It is not batched so far, but even for millions of tasks it is
 		// a few milliseconds tops.
+		// Note, the front signal is not received, because under a high load the queue is
+		// rarely expected to be empty. So receiving this signal would be pointless. At
+		// the same time, if the queue does become empty for a while, the front signal is
+		// received when the scheduler has nothing to do and goes to sleep on that signal.
 		t = myQueueFront.PopAll(tail);
 		myQueuePending.Append(t, tail);
 		batch = 0;

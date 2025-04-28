@@ -516,15 +516,10 @@ SchedCheckFront(wid) ==
   \* ---
   /\ LET tid == FrontQueue[1] t == Tasks[tid] IN
      /\ IF ArrLen(FrontQueue) = 1 THEN
-        \* The entire front queue is consumed. Consume the signal too. This
-        \* should be done before the queue becomes empty. Otherwise a new task
-        \* might arrive after the last task was popped and just before the front
-        \* signal is consumed. Then the queue would be non-empty but without
-        \* this signal and that would be a deadlock.
-        /\ IsFrontSignaled' = FALSE
+        \* The entire front queue is consumed. Switch to the next state.
         /\ WorkerThreads' = ArrSetState(wid, "sched_wait_front", WorkerThreads)
         ELSE
-        /\ UNCHANGED<<IsFrontSignaled, WorkerThreads>>
+        /\ UNCHANGED<<WorkerThreads>>
      /\ FrontQueue' = ArrPopHead(FrontQueue)
      \* Status check + change can be done via atomic compare-exchange.
      \* The 'wait' flag does not need to be atomic. It is never accessed by more
@@ -545,7 +540,7 @@ SchedCheckFront(wid) ==
            /\ UNCHANGED<<Tasks>>
         /\ WaitingQueue' = WaitingQueue \ {tid}
         /\ ReadyQueue' = ArrAppend(tid, ReadyQueue)
-  /\ UNCHANGED<<IsReadySignaled, IsSchedulerTaken>>
+  /\ UNCHANGED<<IsFrontSignaled, IsReadySignaled, IsSchedulerTaken>>
 
 \* If has no ready tasks then wait until anything comes to the front or the
 \* closest task-deadline expires. Keep the scheduler role during that. Other
