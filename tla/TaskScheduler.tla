@@ -567,7 +567,7 @@ SchedWaitFrontSignal(wid) ==
   /\ Assert(IsSchedulerTaken, "Is in scheduler")
   \* ---
   /\ IsFrontSignaled' = FALSE
-  /\ WorkerThreads' = ArrSetState(wid, "sched_check_waiting", WorkerThreads)
+  /\ WorkerThreads' = ArrSetState(wid, "sched_exit", WorkerThreads)
   /\ UNCHANGED<<Tasks, IsReadySignaled, ReadyQueue, FrontQueue, SchedVars>>
 
 \* Have tasks in the ready-queue. Exit the scheduler and go help other workers
