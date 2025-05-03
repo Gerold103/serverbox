@@ -89,7 +89,6 @@ namespace sch {
 		uint32_t maxBatch = mySchedBatchSize;
 		TaskScheduleResult result = TASK_SCHEDULE_DONE;
 
-	retry:
 		// -------------------------------------------------------
 		// Handle waiting tasks. They are older than the ones in
 		// the front queue, so must be handled first.
@@ -211,11 +210,9 @@ namespace sch {
 
 		if (myQueueReady.Count() == 0 && myQueuePending.IsEmpty())
 		{
-			// No ready tasks means the other workers already
-			// sleep on ready-signal. Or are going to start
-			// sleeping any moment. So the sched can't quit. It
-			// must retry until either a front task appears, or
-			// one of the waiting tasks' deadline is expired.
+			// No ready tasks means the other workers already sleep on ready-signal. Or
+			// are going to start sleeping any moment. So the sched can't quit. It must
+			// try to wait until something new happens which would require processing.
 			if (myQueueWaiting.Count() > 0)
 			{
 				deadline = myQueueWaiting.GetTop()->myDeadline;
@@ -238,7 +235,6 @@ namespace sch {
 				result = TASK_SCHEDULE_FINISHED;
 				goto end;
 			}
-			goto retry;
 		}
 
 	end:
