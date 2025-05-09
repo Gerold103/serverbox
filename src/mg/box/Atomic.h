@@ -176,6 +176,32 @@ namespace box {
 		T DecrementFetch()
 		{ return myValue.fetch_sub(1, std::memory_order_seq_cst) - 1; }
 
+		T FetchBitOrRelaxed(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_relaxed); }
+		T FetchBitOrAcquire(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_acquire); }
+		T FetchBitOrRelease(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_release); }
+		T FetchBitOr(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_seq_cst); }
+
+		T FetchBitAndRelaxed(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_relaxed); }
+		T FetchBitAndAcquire(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_acquire); }
+		T FetchBitAndRelease(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_release); }
+		T FetchBitAnd(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_seq_cst); }
+
 		bool CmpExchgWeakRelaxed(
 			T& aExpected,
 			const T& aValue);

@@ -21,6 +21,7 @@ add_executable(test
 	box/UnitTestDoublyList.cpp
 	box/UnitTestError.cpp
 	box/UnitTestForwardList.cpp
+	box/UnitTestInterruptibleMutex.cpp
 	box/UnitTestIOVec.cpp
 	box/UnitTestLog.cpp
 	box/UnitTestMultiConsumerQueue.cpp
