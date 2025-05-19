@@ -15,7 +15,6 @@ namespace sch {
 		: myQueueReady(aSubQueueSize)
 		, myExecBatchSize(aSubQueueSize)
 		, mySchedBatchSize(aSubQueueSize * aThreadCount)
-		, myIsSchedulerWorking(0)
 		, myIsStopped(0)
 	{
 		myThreads.resize(aThreadCount);
@@ -68,10 +67,16 @@ namespace sch {
 			mySignalFront.Send();
 	}
 
+	inline bool
+	TaskScheduler::PrivSchedulerTryLock()
+	{
+		return mySchedulerMutex.TryLock();
+	}
+
 	TaskScheduleResult
 	TaskScheduler::PrivSchedule()
 	{
-		if (myIsSchedulerWorking.ExchangeAcqRel(true))
+		if (!PrivSchedulerTryLock())
 			return TASK_SCHEDULE_BUSY;
 
 		// Task status operations can all be relaxed inside the
@@ -238,7 +243,14 @@ namespace sch {
 		}
 
 	end:
-		myIsSchedulerWorking.StoreRelease(false);
+		PrivSchedulerUnlock();
+		return result;
+	}
+
+	inline void
+	TaskScheduler::PrivSchedulerUnlock()
+	{
+		mySchedulerMutex.Unlock();
 		// The signal is absolutely vital to have exactly here.
 		// If the signal would not be emitted here, all the
 		// workers could block on ready tasks in their loops.
@@ -268,7 +280,6 @@ namespace sch {
 		// and other workers will sleep on waiting for ready
 		// tasks.
 		PrivSignalReady();
-		return result;
 	}
 
 	bool

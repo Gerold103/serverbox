@@ -51,6 +51,7 @@ set(install_headers
 	DoublyList.h
 	Error.h
 	ForwardList.h
+	InterruptibleMutex.h
 	IOVec.h
 	Log.h
 	MultiConsumerQueue.h

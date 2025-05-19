@@ -2,6 +2,7 @@
 
 #include "mg/box/BinaryHeap.h"
 #include "mg/box/ForwardList.h"
+#include "mg/box/InterruptibleMutex.h"
 #include "mg/box/MultiConsumerQueue.h"
 #include "mg/box/MultiProducerQueueIntrusive.h"
 #include "mg/box/Signal.h"
@@ -120,7 +121,9 @@ namespace sch {
 		void PrivPost(
 			Task* aTask);
 
+		bool PrivSchedulerTryLock();
 		TaskScheduleResult PrivSchedule();
+		void PrivSchedulerUnlock();
 
 		bool PrivExecute(
 			Task* aTask);
@@ -172,7 +175,7 @@ namespace sch {
 		//
 		// The worker thread, doing the scheduling right now, is
 		// called 'sched-thread' throughout the code.
-		mg::box::AtomicBool myIsSchedulerWorking;
+		mg::box::InterruptibleMutex mySchedulerMutex;
 		mg::box::AtomicBool myIsStopped;
 
 		static thread_local TaskScheduler* ourCurrent;
