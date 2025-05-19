@@ -2,6 +2,8 @@
 
 #include "UnitTest.h"
 
+#include <functional>
+
 namespace mg {
 namespace unittests {
 namespace box {
@@ -199,6 +201,90 @@ namespace box {
 	}
 
 	static void
+	UnitTestAtomicFetchBitOr()
+	{
+		mg::box::AtomicU32 value;
+		using Func = std::function<uint32_t(uint32_t)>;
+		Func funcs[] = {
+			std::bind(&mg::box::AtomicU32::FetchBitOrRelaxed, &value,
+				std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::FetchBitOrAcquire, &value,
+				std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::FetchBitOrRelease, &value,
+				std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::FetchBitOr, &value,
+				std::placeholders::_1),
+		};
+		for (const Func& f : funcs)
+		{
+			value.StoreRelaxed(0b0011);
+			TEST_CHECK(f(0b1000) == 0b0011);
+			TEST_CHECK(value.LoadRelaxed() == 0b1011);
+		}
+	}
+
+	static void
+	UnitTestAtomicBitOr()
+	{
+		mg::box::AtomicU32 value;
+		using Func = std::function<void(uint32_t)>;
+		Func funcs[] = {
+			std::bind(&mg::box::AtomicU32::BitOrRelaxed, &value, std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::BitOrAcquire, &value, std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::BitOrRelease, &value, std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::BitOr, &value, std::placeholders::_1),
+		};
+		for (const Func& f : funcs)
+		{
+			value.StoreRelaxed(0b0011);
+			f(0b1000);
+			TEST_CHECK(value.LoadRelaxed() == 0b1011);
+		}
+	}
+
+	static void
+	UnitTestAtomicFetchBitAnd()
+	{
+		mg::box::AtomicU32 value;
+		using Func = std::function<uint32_t(uint32_t)>;
+		Func funcs[] = {
+			std::bind(&mg::box::AtomicU32::FetchBitAndRelaxed, &value,
+				std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::FetchBitAndAcquire, &value,
+				std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::FetchBitAndRelease, &value,
+				std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::FetchBitAnd, &value,
+				std::placeholders::_1),
+		};
+		for (const Func& f : funcs)
+		{
+			value.StoreRelaxed(0b0011);
+			TEST_CHECK(f(0b1010) == 0b0011);
+			TEST_CHECK(value.LoadRelaxed() == 0b0010);
+		}
+	}
+
+	static void
+	UnitTestAtomicBitAnd()
+	{
+		mg::box::AtomicU32 value;
+		using Func = std::function<void(uint32_t)>;
+		Func funcs[] = {
+			std::bind(&mg::box::AtomicU32::BitAndRelaxed, &value, std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::BitAndAcquire, &value, std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::BitAndRelease, &value, std::placeholders::_1),
+			std::bind(&mg::box::AtomicU32::BitAnd, &value, std::placeholders::_1),
+		};
+		for (const Func& f : funcs)
+		{
+			value.StoreRelaxed(0b0011);
+			f(0b1010);
+			TEST_CHECK(value.LoadRelaxed() == 0b0010);
+		}
+	}
+
+	static void
 	UnitTestAtomicCmpExchgWeak()
 	{
 		mg::box::Atomic<int> value(123);
@@ -375,6 +461,10 @@ namespace box {
 		UnitTestAtomicDecrement();
 		UnitTestAtomicFetchDecrement();
 		UnitTestAtomicDecrementFetch();
+		UnitTestAtomicFetchBitOr();
+		UnitTestAtomicBitOr();
+		UnitTestAtomicFetchBitAnd();
+		UnitTestAtomicBitAnd();
 		UnitTestAtomicCmpExchgWeak();
 		UnitTestAtomicCmpExchgStrong();
 		UnitTestAtomicBool();
