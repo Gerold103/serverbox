@@ -5,6 +5,7 @@ set(mgbox_src
 	ConditionVariable.cpp
 	Coro.cpp
 	Error.cpp
+	InterruptibleMutex.cpp
 	IOVec.cpp
 	Log.cpp
 	MultiConsumerQueueBase.cpp
