@@ -11,9 +11,9 @@ int
 main()
 {
 	mg::sch::TaskScheduler sched("tst",
-		1, // Thread count.
 		5  // Subqueue size.
 	);
+	sched.Start(1);
 	sched.Post(new mg::sch::Task([&](mg::sch::Task *self) {
 		std::cout << "Executed in scheduler!\n";
 		delete self;

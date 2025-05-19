@@ -80,9 +80,9 @@ main()
 	// Normally one would allocate tasks on the heap and make them delete themselves when
 	// they are finished.
 	mg::sch::TaskScheduler scheduler("tst",
-		1, // Thread count.
 		5  // Subqueue size.
 	);
+	scheduler.Start(1);
 	scheduler.Post(&task);
 	return 0;
 }
