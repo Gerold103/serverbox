@@ -31,7 +31,8 @@ namespace sch {
 	{
 		TestCaseGuard guard("Basic");
 
-		mg::sch::TaskScheduler sched("tst", 1, 5);
+		mg::sch::TaskScheduler sched("tst", 5);
+		sched.Start(1);
 		mg::sch::TaskCallback cb;
 		mg::sch::Task* tp;
 		mg::box::AtomicU32 progress;
@@ -124,10 +125,29 @@ namespace sch {
 			doneCount.IncrementRelaxed();
 		});
 		{
-			mg::sch::TaskScheduler sched("tst", 1, 5);
+			mg::sch::TaskScheduler sched("tst", 5);
+			sched.Start(1);
 			sched.Post(&task1);
 		}
 		TEST_CHECK(doneCount.LoadRelaxed() == 2);
+	}
+
+	static void
+	UnitTestTaskSchedulerDestroyWithWaiting()
+	{
+		TestCaseGuard guard("Destroy with waiting");
+
+		mg::box::AtomicU32 doneCount(0);
+		mg::sch::Task task([&](mg::sch::Task*) {
+			doneCount.IncrementRelaxed();
+		});
+		task.SetDelay(50);
+		{
+			mg::sch::TaskScheduler sched("tst", 5);
+			sched.Start(1);
+			sched.Post(&task);
+		}
+		TEST_CHECK(doneCount.LoadRelaxed() == 1);
 	}
 
 	static void
@@ -138,7 +158,8 @@ namespace sch {
 		// Order is never guaranteed in a multi-thread system. But
 		// at least it should be correct when the thread is just
 		// one.
-		mg::sch::TaskScheduler sched("tst", 1, 5);
+		mg::sch::TaskScheduler sched("tst", 5);
+		sched.Start(1);
 		mg::sch::TaskCallback cb;
 		mg::sch::Task t1;
 		mg::sch::Task t2;
@@ -181,7 +202,8 @@ namespace sch {
 		// Ensure all the workers wakeup each other if necessary.
 		// The test is called 'domino', because the worker threads
 		// are supposed to wake each other on demand.
-		mg::sch::TaskScheduler sched("tst", 3, 5);
+		mg::sch::TaskScheduler sched("tst", 5);
+		sched.Start(3);
 		mg::sch::TaskCallback cb;
 		mg::sch::Task t1;
 		mg::sch::Task t2;
@@ -216,7 +238,8 @@ namespace sch {
 	{
 		TestCaseGuard guard("Wakeup");
 
-		mg::sch::TaskScheduler sched("tst", 1, 5);
+		mg::sch::TaskScheduler sched("tst", 5);
+		sched.Start(1);
 		mg::sch::TaskCallback cb;
 		mg::sch::Task t1;
 		mg::box::AtomicU32 progress(false);
@@ -313,7 +336,8 @@ namespace sch {
 	{
 		TestCaseGuard guard("Expiration");
 
-		mg::sch::TaskScheduler sched("tst", 1, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(1);
 		mg::sch::Task t1;
 		mg::box::AtomicU32 progress;
 
@@ -430,8 +454,10 @@ namespace sch {
 	{
 		TestCaseGuard guard("Reschedule");
 
-		mg::sch::TaskScheduler sched1("tst1", 2, 100);
-		mg::sch::TaskScheduler sched2("tst2", 2, 100);
+		mg::sch::TaskScheduler sched1("tst1", 100);
+		sched1.Start(2);
+		mg::sch::TaskScheduler sched2("tst2", 100);
+		sched2.Start(2);
 		mg::sch::TaskCallback cb;
 		mg::sch::Task t1;
 		mg::sch::Task t2;
@@ -517,7 +543,8 @@ namespace sch {
 	{
 		TestCaseGuard guard("Signal");
 
-		mg::sch::TaskScheduler sched("tst", 1, 2);
+		mg::sch::TaskScheduler sched("tst", 2);
+		sched.Start(1);
 
 		// Signal works during execution.
 		mg::box::AtomicU32 progress(0);
@@ -613,7 +640,8 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine basic");
-		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(2);
 		mg::box::Signal s;
 		mg::sch::Task t;
 		//
@@ -671,7 +699,8 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine AsyncReceiveSignal()");
-		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(2);
 		mg::box::Signal s;
 		mg::box::AtomicBool isGuardDone(false);
 		mg::sch::Task t;
@@ -752,7 +781,8 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine AsyncExitDelete()");
-		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(2);
 		mg::box::Signal s;
 		mg::sch::Task* t = new mg::sch::Task();
 
@@ -779,7 +809,8 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine AsyncExitExec()");
-		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(2);
 		mg::box::Signal s;
 		mg::sch::Task t;
 		t.SetCallback([](
@@ -840,7 +871,8 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine nested");
-		mg::sch::TaskScheduler sched("tst", 2, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(2);
 		mg::box::Signal s;
 		mg::sch::Task t;
 		t.SetCallback([](
@@ -940,8 +972,10 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine different schedulers");
-		mg::sch::TaskScheduler sched1("tst1", 1, 100);
-		mg::sch::TaskScheduler sched2("tst2", 1, 100);
+		mg::sch::TaskScheduler sched1("tst1", 100);
+		sched1.Start(1);
+		mg::sch::TaskScheduler sched2("tst2", 100);
+		sched2.Start(1);
 		mg::box::Signal s;
 		mg::sch::Task t;
 		t.SetCallback([](
@@ -995,7 +1029,8 @@ namespace sch {
 	{
 #if MG_CORO_IS_ENABLED
 		TestCaseGuard guard("Coroutine stress");
-		mg::sch::TaskScheduler sched("tst", 5, 100);
+		mg::sch::TaskScheduler sched("tst", 100);
+		sched.Start(5);
 		mg::box::Signal s;
 		const uint32_t taskCount = 1000;
 		const uint32_t signalCount = 10;
@@ -1291,7 +1326,8 @@ namespace sch {
 
 		Report("Batch test: %u threads, %u tasks, %u executes", aThreadCount, aTaskCount,
 			aExecuteCount);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		UTTSchedulerTaskCtx ctx(aTaskCount, aExecuteCount, &sched);
 
 		ctx.CreateHeavy();
@@ -1312,7 +1348,8 @@ namespace sch {
 		// fast is the scheduler itself, almost not affected by
 		// the task bodies.
 		Report("Micro test: %u threads, %u tasks", aThreadCount, aTaskCount);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		UTTSchedulerTaskCtx ctx(aTaskCount, 1, &sched);
 
 		ctx.CreateMicro();
@@ -1337,7 +1374,8 @@ namespace sch {
 		// it is -1 virtual call compared to automatic one-shot
 		// tasks.
 		Report("Micro new test: %u threads, %u tasks", aThreadCount, aTaskCount);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		mg::box::AtomicU64 executeCount(0);
 		mg::sch::TaskCallback cb(
 			[&](mg::sch::Task* aTask) {
@@ -1367,7 +1405,8 @@ namespace sch {
 		// Checkout speed of one-shot tasks, which are allocated
 		// automatically inside of the scheduler.
 		Report("Micro one shot test: %u threads, %u tasks", aThreadCount, aTaskCount);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		mg::box::AtomicU64 executeCount(0);
 		mg::sch::TaskCallbackOneShot cb([&](void) -> void {
 			executeCount.IncrementRelaxed();
@@ -1396,7 +1435,8 @@ namespace sch {
 		// steps, not in a single sleep-less loop.
 		Report("Portions test: %u threads, %u tasks, %u executes", aThreadCount,
 			aTaskCount, aExecuteCount);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		UTTSchedulerTaskCtx ctx(aTaskCount, aExecuteCount, &sched);
 
 		ctx.CreateHeavy();
@@ -1427,7 +1467,8 @@ namespace sch {
 		uint32_t tasksPer50ms = aTaskCount / aDuration * 50;
 		Report("Mild load test: %u threads, %u tasks, %u executes, %u per 50ms",
 			aThreadCount, aTaskCount, aExecuteCount, tasksPer50ms);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		UTTSchedulerTaskCtx ctx(aTaskCount, aExecuteCount, &sched);
 
 		ctx.CreateHeavy();
@@ -1455,7 +1496,8 @@ namespace sch {
 		// logarithmic time to remove each of them from the
 		// waiting tasks queue's root, which is a binary heap.
 		Report("Timeouts test: %u tasks", aTaskCount);
-		mg::sch::TaskScheduler sched("tst", 1, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(1);
 		UTTSchedulerTaskCtx ctx(aTaskCount, 1, &sched);
 
 		ctx.CreateMicro();
@@ -1506,7 +1548,8 @@ namespace sch {
 		// Ensure the tasks never stuck when signals are used.
 		Report("Signal stress test: %u threads, %u tasks, %u executes", aThreadCount,
 			aTaskCount, aExecuteCount);
-		mg::sch::TaskScheduler sched("tst", aThreadCount, 5000);
+		mg::sch::TaskScheduler sched("tst", 5000);
+		sched.Start(aThreadCount);
 		UTTSchedulerTaskCtx ctx(aTaskCount, aExecuteCount, &sched);
 
 		ctx.CreateSignaled();
@@ -1530,6 +1573,7 @@ namespace sch {
 
 		UnitTestTaskSchedulerBasic();
 		UnitTestTaskSchedulerDestroyWithFront();
+		UnitTestTaskSchedulerDestroyWithWaiting();
 		UnitTestTaskSchedulerOrder();
 		UnitTestTaskSchedulerDomino();
 		UnitTestTaskSchedulerWakeup();

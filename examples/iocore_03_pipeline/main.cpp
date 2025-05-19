@@ -418,9 +418,9 @@ ServeRequests(
 	// the requests, create MyRequest for each, and submit them to the scheduler. But in
 	// this case it is simplified to just a couple of hardcoded MyRequests.
 	mg::sch::TaskScheduler scheduler("tst",
-		1, // Thread count.
 		5  // Subqueue size.
 	);
+	scheduler.Start(1);
 	MG_LOG_INFO("ServeRequests", "got a couple of complex requests");
 	new MyRequest(1, aClient, scheduler);
 	new MyRequest(2, aClient, scheduler);
