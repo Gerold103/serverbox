@@ -176,6 +176,58 @@ namespace box {
 		T DecrementFetch()
 		{ return myValue.fetch_sub(1, std::memory_order_seq_cst) - 1; }
 
+		T FetchBitOrRelaxed(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_relaxed); }
+		T FetchBitOrAcquire(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_acquire); }
+		T FetchBitOrRelease(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_release); }
+		T FetchBitOr(
+			const T& aValue)
+		{ return myValue.fetch_or(aValue, std::memory_order_seq_cst); }
+
+		void BitOrRelaxed(
+			const T& aValue)
+		{ FetchBitOrRelaxed(aValue); }
+		void BitOrAcquire(
+			const T& aValue)
+		{ FetchBitOrAcquire(aValue); }
+		void BitOrRelease(
+			const T& aValue)
+		{ FetchBitOrRelease(aValue); }
+		void BitOr(
+			const T& aValue)
+		{ FetchBitOr(aValue); }
+
+		T FetchBitAndRelaxed(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_relaxed); }
+		T FetchBitAndAcquire(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_acquire); }
+		T FetchBitAndRelease(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_release); }
+		T FetchBitAnd(
+			const T& aValue)
+		{ return myValue.fetch_and(aValue, std::memory_order_seq_cst); }
+
+		void BitAndRelaxed(
+			const T& aValue)
+		{ FetchBitAndRelaxed(aValue); }
+		void BitAndAcquire(
+			const T& aValue)
+		{ FetchBitAndAcquire(aValue); }
+		void BitAndRelease(
+			const T& aValue)
+		{ FetchBitAndRelease(aValue); }
+		void BitAnd(
+			const T& aValue)
+		{ FetchBitAnd(aValue); }
+
 		bool CmpExchgWeakRelaxed(
 			T& aExpected,
 			const T& aValue);
