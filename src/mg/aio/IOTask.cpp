@@ -101,7 +101,10 @@ namespace aio {
 		// immediately noticed by the scheduler (if the task was already in the front
 		// queue) and would be actually closed + deleted in some worker thread even before
 		// this function ends.
-		IOTaskStatus oldStatus = myStatus.ExchangeRelaxed(IOTASK_STATUS_CLOSING);
+		//
+		// Use 'release' to give the other threads a way to sync the writes done before
+		// closing, such as the close-guard setting.
+		IOTaskStatus oldStatus = myStatus.ExchangeRelease(IOTASK_STATUS_CLOSING);
 		MG_BOX_ASSERT_F(
 			oldStatus == IOTASK_STATUS_PENDING ||
 			oldStatus == IOTASK_STATUS_READY ||
@@ -260,10 +263,12 @@ namespace aio {
 	void
 	IOTask::PrivCloseDo()
 	{
+		// Use 'acquire' to sync all the writes done by the thread which has initiated the
+		// closing. Such as the close-guard setting.
+		MG_BOX_ASSERT(myStatus.LoadAcquire() == IOTASK_STATUS_CLOSING);
 		MG_BOX_ASSERT(myCloseGuard.LoadRelaxed());
 		MG_BOX_ASSERT(!myIsClosed);
 		MG_BOX_ASSERT(myNext == nullptr);
-		MG_BOX_ASSERT(myStatus.LoadRelaxed() == IOTASK_STATUS_CLOSING);
 		// Closed flag is ok to update non-atomically. Close is done in the scheduler, so
 		// the task is not executed in any worker now and they can't see this flag before
 		// the task's socket is finally removed from the kernel.
